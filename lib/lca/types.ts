@@ -21,6 +21,11 @@ export type LCICategory =
   | "WWTPChemical"
   | "Consumable";
 
+/** LCIA impact categories supported by the calculation engine. */
+export type ImpactId = "gwp" | "ap" | "ep" | "adpFossil" | "adpElements";
+/** Impact per base unit of a flow (kg, L or kWh). `undefined` = not provided. */
+export type ImpactFactors = Partial<Record<ImpactId, number>>;
+
 export type DataType = "Measured" | "Calculated" | "Estimated";
 export type Confidence = "High" | "Medium" | "Low";
 
@@ -45,6 +50,10 @@ export interface LCIInputEntry extends DataPedigree {
   /** Real item-specific price per base unit (Rp/kg, Rp/L, Rp/kWh). When empty, the category
    * price in CostConfig is used; when that is also empty the cost is not counted. */
   unitPriceRp?: number;
+  /** Cradle-to-gate impact per base unit from a background database (e.g. an ecoinvent
+   * process computed in openLCA); falls back to the category factors in `Project.lcia`. */
+  bgProcess?: string;
+  bgFactors?: ImpactFactors;
 }
 
 export interface AirEmissionEntry {
@@ -53,6 +62,8 @@ export interface AirEmissionEntry {
   relevance: string;
   applicable: boolean;
   valueKgPerPeriod: number;
+  /** Elementary flow used for characterisation: undefined = match by name, "none" = skip. */
+  flow?: string;
 }
 
 export interface WaterEffluentEntry {
@@ -60,6 +71,7 @@ export interface WaterEffluentEntry {
   parameter: string;
   unit: string;
   value: number;
+  flow?: string;
 }
 
 export interface HazardousWasteEntry {
@@ -75,6 +87,9 @@ export interface HazardousWasteEntry {
   destination: string;
   transportKm: number;
   recovery: boolean;
+  /** Treatment/disposal impact per kg of waste (background process). */
+  bgProcess?: string;
+  bgFactors?: ImpactFactors;
 }
 
 export type FunctionalUnitType = "m2_plated" | "part" | "kg_metal_deposited";
@@ -130,6 +145,11 @@ export interface WhatIfLever {
   };
 }
 
+export interface LCIAConfig {
+  /** Default background factors per LCI category (e.g. grid electricity per kWh). */
+  categoryFactors?: Partial<Record<LCICategory, ImpactFactors>>;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -143,6 +163,7 @@ export interface Project {
   waterEffluent: WaterEffluentEntry[];
   hazardousWaste: HazardousWasteEntry[];
   costConfig: CostConfig;
+  lcia?: LCIAConfig;
   whatIfLevers: WhatIfLever[];
 }
 
