@@ -143,7 +143,7 @@ export default function WhatIfPage() {
               <p className="text-xs text-white/60">Operating cost reduction</p>
               <p className="mt-1 text-xl font-semibold">{formatRupiah(comparison.savings.costRp)}</p>
               <p className="text-xs text-white/60">
-                ({formatPercent(comparison.savings.costPct)} dari total biaya saat ini)
+                ({formatPercent(comparison.savings.costPct)} dari biaya aliran sumber daya saat ini)
               </p>
             </div>
           </CardBody>

@@ -8,15 +8,13 @@ import { HorizontalBarChart } from "@/components/charts/HorizontalBarChart";
 import { useProjectStore } from "@/lib/store/useProjectStore";
 import {
   computeCostBreakdown,
-  CHEMICAL_LIKE_CATEGORIES,
   COST_KEY_LABEL,
-  totalQuantity,
   type CostKey,
 } from "@/lib/lca/calculations";
 import { PROCESS_STAGES } from "@/lib/lca/constants";
 import { formatNumber, formatRupiah } from "@/lib/utils/format";
 import type { CostConfig } from "@/lib/lca/types";
-import { AlertTriangle, Coins } from "lucide-react";
+import { AlertTriangle, Coins, Users } from "lucide-react";
 
 const PRICE_FIELDS: Array<{ key: keyof CostConfig; label: string; unit: string }> = [
   { key: "energyPriceRpPerKwh", label: "Harga energi", unit: "Rp/kWh" },
@@ -46,10 +44,6 @@ export default function AliranBiayaPage() {
   const updateCostConfig = useProjectStore((s) => s.updateCostConfig);
   const cost = computeCostBreakdown(project);
 
-  const totalEnergy = totalQuantity(project.lciInputs, ["Energy"]);
-  const totalWater = totalQuantity(project.lciInputs, ["Water"]);
-  const totalChemical = totalQuantity(project.lciInputs, CHEMICAL_LIKE_CATEGORIES);
-
   const fuDivisor = project.functionalUnit.value > 0 ? project.functionalUnit.value : 1;
   const stageRows = [...cost.byStage].sort((a, b) => b.totalRp - a.totalRp);
   const topStageId = stageRows[0]?.totalRp ? stageRows[0].stageId : null;
@@ -62,18 +56,21 @@ export default function AliranBiayaPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Total biaya proses" value={formatRupiah(cost.totalRp)} icon={Coins} />
+        <StatTile label="Biaya aliran sumber daya" value={formatRupiah(cost.flowTotalRp)} icon={Coins} />
+        <StatTile label="Tenaga kerja (di luar aliran)" value={formatRupiah(cost.laborRp)} icon={Users} />
+        <StatTile label="Total biaya proses" value={formatRupiah(cost.totalRp)} />
         <StatTile
-          label={`Biaya / ${FU_LABEL[project.functionalUnit.type]}`}
+          label={`Total biaya / ${FU_LABEL[project.functionalUnit.type]}`}
           value={formatRupiah(cost.costPerFunctionalUnit)}
         />
-        <StatTile label="Total energi" value={formatNumber(totalEnergy)} unit="kWh/proses" />
-        <StatTile label="Total air" value={formatNumber(totalWater)} unit="L/proses" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Rincian Biaya per Kategori" subtitle="Dihitung dari kuantitas LCI × harga satuan" />
+          <CardHeader
+            title="Rincian Biaya Aliran per Kategori"
+            subtitle="Kuantitas LCI × harga satuan, tanpa tenaga kerja"
+          />
           <CardBody>
             <HorizontalBarChart
               data={chartData}
@@ -81,18 +78,23 @@ export default function AliranBiayaPage() {
               valueKey="value"
               valueFormatter={(v) => formatRupiah(v)}
             />
+            <p className="mt-3 text-xs leading-relaxed text-navy-700/60">
+              Kategori = jenis aliran sumber daya yang dibiayai: energi, air, bahan kimia &amp; anoda, bahan kimia
+              WWTP, consumable (dari LCI Input), serta pengolahan dan transport limbah B3 (dari Limbah B3).
+              Tenaga kerja sengaja dipisah karena bukan aliran LCI dan tidak mengikuti tahap proses.
+            </p>
           </CardBody>
         </Card>
 
         <Card>
-          <CardHeader title="Tabel Biaya" />
+          <CardHeader title="Tabel Biaya" subtitle="Biaya aliran dipisahkan dari tenaga kerja" />
           <CardBody>
             <Table>
               <THead>
                 <tr>
                   <Th>Kategori</Th>
                   <Th className="w-32">Total (Rp)</Th>
-                  <Th className="w-20">% Total</Th>
+                  <Th className="w-20">% Aliran</Th>
                   <Th className="w-32">Rp / {FU_LABEL[project.functionalUnit.type]}</Th>
                 </tr>
               </THead>
@@ -101,14 +103,26 @@ export default function AliranBiayaPage() {
                   <Tr key={item.key}>
                     <Td>{item.label}</Td>
                     <Td>{formatRupiah(item.totalRp)}</Td>
-                    <Td>{cost.totalRp > 0 ? formatNumber((item.totalRp / cost.totalRp) * 100) : 0}%</Td>
+                    <Td>{cost.flowTotalRp > 0 ? formatNumber((item.totalRp / cost.flowTotalRp) * 100) : 0}%</Td>
                     <Td>{formatRupiah(item.totalRp / fuDivisor)}</Td>
                   </Tr>
                 ))}
                 <Tr className="font-semibold">
-                  <Td>Total</Td>
-                  <Td>{formatRupiah(cost.totalRp)}</Td>
+                  <Td>Subtotal biaya aliran</Td>
+                  <Td>{formatRupiah(cost.flowTotalRp)}</Td>
                   <Td>100%</Td>
+                  <Td>{formatRupiah(cost.flowCostPerFunctionalUnit)}</Td>
+                </Tr>
+                <Tr>
+                  <Td>Tenaga kerja (di luar aliran)</Td>
+                  <Td>{formatRupiah(cost.laborRp)}</Td>
+                  <Td>-</Td>
+                  <Td>{formatRupiah(cost.laborRp / fuDivisor)}</Td>
+                </Tr>
+                <Tr className="font-semibold">
+                  <Td>Total biaya proses</Td>
+                  <Td>{formatRupiah(cost.totalRp)}</Td>
+                  <Td>-</Td>
                   <Td>{formatRupiah(cost.costPerFunctionalUnit)}</Td>
                 </Tr>
               </tbody>
@@ -157,8 +171,8 @@ export default function AliranBiayaPage() {
             </tbody>
           </Table>
           <p className="mt-3 text-xs text-navy-700/60">
-            Tenaga kerja {formatRupiah(cost.unallocatedRp)} belum dialokasikan ke tahap mana pun, jadi tidak ada di
-            tabel ini tetapi tetap masuk Total biaya proses.
+            Tenaga kerja {formatRupiah(cost.laborRp)} tidak dialokasikan ke tahap mana pun, jadi tidak ada di tabel ini
+            maupun di grafik; ia hanya masuk Total biaya proses.
           </p>
         </CardBody>
       </Card>

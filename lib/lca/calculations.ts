@@ -220,13 +220,19 @@ export interface StageCostRow {
 }
 
 export interface CostSummary {
+  /** Resource-flow costs only (energy, water, chemicals, consumables, waste); labor is
+   * deliberately excluded so charts and hotspots reflect environmental flows. */
   items: CostBreakdownItem[];
+  /** Sum of `items`: the cost of the resource flows. */
+  flowTotalRp: number;
+  flowCostPerFunctionalUnit: number;
+  /** Labor cost per process; not an LCI flow and not allocated to a stage. */
+  laborRp: number;
+  /** flowTotalRp + laborRp: full production cost per process. */
   totalRp: number;
   costPerFunctionalUnit: number;
   lines: CostLine[];
   byStage: StageCostRow[];
-  /** Cost that cannot be traced to a process stage (labor). */
-  unallocatedRp: number;
   /** Data-quality notes: unit mismatches, missing prices, etc. */
   warnings: string[];
 }
@@ -393,14 +399,15 @@ export function computeCostBreakdown(project: Project): CostSummary {
   }
   totals.labor = cfg.laborCostRpPerPeriod;
 
-  const items: CostBreakdownItem[] = COST_KEYS.map((key) => ({
+  const items: CostBreakdownItem[] = COST_KEYS.filter((key) => key !== "labor").map((key) => ({
     key,
     label: COST_KEY_LABEL[key],
     totalRp: totals[key],
   }));
-  const totalRp = items.reduce((sum, i) => sum + i.totalRp, 0);
-  const unallocatedRp = totals.labor;
-  const allocatedRp = totalRp - unallocatedRp;
+  const flowTotalRp = items.reduce((sum, i) => sum + i.totalRp, 0);
+  const laborRp = totals.labor;
+  const totalRp = flowTotalRp + laborRp;
+  const allocatedRp = flowTotalRp;
 
   const byStage: StageCostRow[] = PROCESS_STAGES.map((stage) => {
     const byKey = stageRows.get(stage.id)!;
@@ -413,7 +420,17 @@ export function computeCostBreakdown(project: Project): CostSummary {
     };
   });
 
-  return { items, totalRp, costPerFunctionalUnit: totalRp / fu, lines, byStage, unallocatedRp, warnings };
+  return {
+    items,
+    flowTotalRp,
+    flowCostPerFunctionalUnit: flowTotalRp / fu,
+    laborRp,
+    totalRp,
+    costPerFunctionalUnit: totalRp / fu,
+    lines,
+    byStage,
+    warnings,
+  };
 }
 
 export function buyToFlyRatio(project: Project): number {
