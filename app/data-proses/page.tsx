@@ -10,7 +10,7 @@ import { WaterEffluentTable } from "@/components/data-proses/WaterEffluentTable"
 import { HazardousWasteTable } from "@/components/data-proses/HazardousWasteTable";
 
 const TABS = [
-  { id: "input", label: "LCI Input (30 parameter)" },
+  { id: "input", label: "LCI Input" },
   { id: "air", label: "Output — Emisi Udara" },
   { id: "water", label: "Output — Efluen Air" },
   { id: "waste", label: "Output — Limbah B3" },
