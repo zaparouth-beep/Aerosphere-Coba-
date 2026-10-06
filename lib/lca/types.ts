@@ -107,6 +107,14 @@ export interface CostConfig {
    * while hazardous waste and its transport are entered per month. Optional so projects
    * saved before this field existed keep working (defaults to 1). */
   processesPerMonth?: number;
+  /** Waste pick-ups per month for each distinct destination (default 1). A truck going to
+   * one destination is charged once, however many waste types it carries. */
+  wasteTripsPerMonth?: number;
+  /** Labor: operators × hours in each stage × hourly rate. laborCostRpPerPeriod stays as an
+   * optional fixed extra per process (supervision, overhead). */
+  laborOperators?: number;
+  laborRateRpPerHour?: number;
+  laborHoursByStage?: Partial<Record<ProcessStageId, number>>;
 }
 
 export interface WhatIfLever {

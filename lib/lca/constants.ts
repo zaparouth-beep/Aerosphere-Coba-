@@ -157,6 +157,10 @@ export const DEFAULT_COST_CONFIG: CostConfig = {
   wasteDisposalPriceRpPerKg: 0,
   wasteTransportPriceRpPerKm: 0,
   processesPerMonth: 1,
+  wasteTripsPerMonth: 1,
+  laborOperators: 1,
+  laborRateRpPerHour: 0,
+  laborHoursByStage: {},
 };
 
 let idCounter = 0;
