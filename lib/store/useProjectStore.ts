@@ -28,8 +28,12 @@ interface ProjectState {
   removeLCIInput: (id: string) => void;
 
   updateAirEmission: (id: string, patch: Partial<AirEmissionEntry>) => void;
+  addAirEmission: (entry: Omit<AirEmissionEntry, "id">) => void;
+  removeAirEmission: (id: string) => void;
 
   updateWaterEffluent: (id: string, patch: Partial<WaterEffluentEntry>) => void;
+  addWaterEffluent: (entry: Omit<WaterEffluentEntry, "id">) => void;
+  removeWaterEffluent: (id: string) => void;
 
   updateHazardousWaste: (id: string, patch: Partial<HazardousWasteEntry>) => void;
   addHazardousWaste: (entry: Omit<HazardousWasteEntry, "id">) => void;
@@ -105,6 +109,38 @@ export const useProjectStore = create<ProjectState>()(
             airEmissions: state.project.airEmissions.map((entry) =>
               entry.id === id ? { ...entry, ...patch } : entry,
             ),
+          },
+        })),
+
+      addAirEmission: (entry) =>
+        set((state) => ({
+          project: {
+            ...state.project,
+            airEmissions: [...state.project.airEmissions, { ...entry, id: generateId("air") }],
+          },
+        })),
+
+      removeAirEmission: (id) =>
+        set((state) => ({
+          project: {
+            ...state.project,
+            airEmissions: state.project.airEmissions.filter((entry) => entry.id !== id),
+          },
+        })),
+
+      addWaterEffluent: (entry) =>
+        set((state) => ({
+          project: {
+            ...state.project,
+            waterEffluent: [...state.project.waterEffluent, { ...entry, id: generateId("water") }],
+          },
+        })),
+
+      removeWaterEffluent: (id) =>
+        set((state) => ({
+          project: {
+            ...state.project,
+            waterEffluent: state.project.waterEffluent.filter((entry) => entry.id !== id),
           },
         })),
 
