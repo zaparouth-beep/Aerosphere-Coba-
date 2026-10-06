@@ -39,9 +39,13 @@ export function applyWhatIfLevers(project: Project, activeLevers: WhatIfLever[])
           waste.quantityKgMonth *= 1 - cascade;
         }
       }
+      // Less rinse water leaves the same drag-out mass in a smaller volume, so effluent
+      // concentrations rise by 1/(1-r) and pollutant loads stay constant.
       for (const effluent of scenario.waterEffluent) {
         if (effluent.parameter === "Effluent volume") {
           effluent.value *= 1 - r;
+        } else if (/\/l$|\/m3$/i.test(effluent.unit.trim()) && r < 1) {
+          effluent.value /= 1 - r;
         }
       }
     }

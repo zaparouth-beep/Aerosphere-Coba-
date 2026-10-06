@@ -108,6 +108,10 @@ export default function OverviewPage() {
           value={formatNumber(impact.ghgPerFunctionalUnit, 2)}
           unit={`kg CO2e/${fuLabel}`}
           icon={Gauge}
+          hint={(() => {
+            const cov = impact.lcia.coverage.find((c) => c.impact === "gwp");
+            return cov ? `${cov.coveredCount}/${cov.totalCount} input berfaktor GWP` : undefined;
+          })()}
         />
       </div>
 
