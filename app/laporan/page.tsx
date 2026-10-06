@@ -57,7 +57,7 @@ export default function LaporanPage() {
         { Metrik: "Air (L)", Sebelum: (intensities.waterIntensity * project.functionalUnit.value).toFixed(2), Sesudah: (scenario.after.intensities.waterIntensity * project.functionalUnit.value).toFixed(2) },
         { Metrik: "Kimia (kg)", Sebelum: (intensities.chemicalIntensity * project.functionalUnit.value).toFixed(2), Sesudah: (scenario.after.intensities.chemicalIntensity * project.functionalUnit.value).toFixed(2) },
         { Metrik: "Limbah B3 (kg)", Sebelum: (intensities.wasteIntensity * project.functionalUnit.value).toFixed(2), Sesudah: (scenario.after.intensities.wasteIntensity * project.functionalUnit.value).toFixed(2) },
-        { Metrik: "Biaya (Rp)", Sebelum: cost.totalRp.toFixed(0), Sesudah: scenario.after.cost.totalRp.toFixed(0) },
+        { Metrik: "Biaya aliran sumber daya (Rp)", Sebelum: cost.flowTotalRp.toFixed(0), Sesudah: scenario.after.cost.flowTotalRp.toFixed(0) },
       ],
       "aerosphere-lca-skenario.csv",
     );
@@ -98,7 +98,7 @@ export default function LaporanPage() {
               {project.name} — {project.part.partName} ({project.part.material}), dibutuhkan{" "}
               {formatNumber(project.part.initialStockMassKg)} kg stok untuk menghasilkan{" "}
               {formatNumber(project.part.finishedMassKg)} kg part jadi (buy-to-fly{" "}
-              {formatNumber(buyToFlyRatio(project), 2)}:1). Proses plating menghasilkan biaya bersih{" "}
+              {formatNumber(buyToFlyRatio(project), 2)}:1). Proses plating menghasilkan biaya total{" "}
               {formatRupiah(cost.costPerFunctionalUnit)} per{" "}
               {project.functionalUnit.type === "m2_plated" ? "m² ter-plating" : "unit"}, dengan{" "}
               {formatNumber(impact.totalWasteKgB3)} kg limbah B3 per proses. Hotspot utama:{" "}
@@ -116,8 +116,9 @@ export default function LaporanPage() {
               <Indicator label="Massa produk" value={`${formatNumber(project.part.finishedMassKg)} kg`} />
               <Indicator label="Scrap total" value={`${formatNumber(scrapMassKg(project))} kg`} />
               <Indicator label="Energi proses" value={`${formatNumber(impact.totalEnergyKwh)} kWh`} />
-              <Indicator label="Biaya total" value={formatRupiah(cost.totalRp)} />
-              <Indicator label={`Biaya bersih / ${project.functionalUnit.type === "m2_plated" ? "m²" : "unit"}`} value={formatRupiah(cost.costPerFunctionalUnit)} />
+              <Indicator label="Biaya aliran sumber daya" value={formatRupiah(cost.flowTotalRp)} />
+              <Indicator label="Biaya total (+ tenaga kerja)" value={formatRupiah(cost.totalRp)} />
+              <Indicator label={`Biaya total / ${project.functionalUnit.type === "m2_plated" ? "m²" : "unit"}`} value={formatRupiah(cost.costPerFunctionalUnit)} />
               <Indicator label="Estimasi CO2e" value={`${formatNumber(impact.totalGhgKgCO2e)} kg`} />
               <Indicator label="CO2e / unit fungsional" value={`${formatNumber(impact.ghgPerFunctionalUnit, 2)} kg`} />
               <Indicator label="Volume tahunan" value={`${formatNumber(project.part.annualVolumeParts, 0)} part`} />

@@ -124,7 +124,7 @@ export default function PengaturanPage() {
             </Select>
           </div>
           <div>
-            <Label>Total produksi periode ini</Label>
+            <Label>Total produksi per proses</Label>
             <Input
               type="number"
               min={0}

@@ -147,8 +147,8 @@ export function compareScenario(
       wastePct: safePct(beforeWaste, afterWaste),
       ghgKgCO2e: before.impact.totalGhgKgCO2e - after.impact.totalGhgKgCO2e,
       ghgPct: safePct(before.impact.totalGhgKgCO2e, after.impact.totalGhgKgCO2e),
-      costRp: before.cost.totalRp - after.cost.totalRp,
-      costPct: safePct(before.cost.totalRp, after.cost.totalRp),
+      costRp: before.cost.flowTotalRp - after.cost.flowTotalRp,
+      costPct: safePct(before.cost.flowTotalRp, after.cost.flowTotalRp),
     },
   };
 }
