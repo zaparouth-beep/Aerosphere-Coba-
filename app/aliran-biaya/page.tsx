@@ -26,8 +26,8 @@ const PRICE_FIELDS: Array<{ key: keyof CostConfig; label: string; unit: string }
   { key: "consumablePriceRpPerKg", label: "Harga consumable", unit: "Rp/kg" },
   { key: "wasteDisposalPriceRpPerKg", label: "Biaya olah limbah B3", unit: "Rp/kg" },
   { key: "wasteTransportPriceRpPerKm", label: "Biaya transport limbah", unit: "Rp/km" },
-  { key: "laborCostRpPerPeriod", label: "Biaya tenaga kerja", unit: "Rp/periode" },
-  { key: "periodMonths", label: "Lama periode LCI", unit: "bulan" },
+  { key: "laborCostRpPerPeriod", label: "Biaya tenaga kerja", unit: "Rp/proses" },
+  { key: "processesPerMonth", label: "Jumlah proses per bulan", unit: "proses/bulan" },
 ];
 
 const FU_LABEL = { m2_plated: "m²", part: "part", kg_metal_deposited: "kg logam" } as const;
@@ -67,8 +67,8 @@ export default function AliranBiayaPage() {
           label={`Biaya / ${FU_LABEL[project.functionalUnit.type]}`}
           value={formatRupiah(cost.costPerFunctionalUnit)}
         />
-        <StatTile label="Total energi" value={formatNumber(totalEnergy)} unit="kWh/periode" />
-        <StatTile label="Total air" value={formatNumber(totalWater)} unit="L/periode" />
+        <StatTile label="Total energi" value={formatNumber(totalEnergy)} unit="kWh/proses" />
+        <StatTile label="Total air" value={formatNumber(totalWater)} unit="L/proses" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -180,7 +180,7 @@ export default function AliranBiayaPage() {
       )}
 
       <Card>
-        <CardHeader title="Konfigurasi Harga Satuan" subtitle="Ubah asumsi harga untuk menyesuaikan dengan kondisi aktual" />
+        <CardHeader title="Konfigurasi Harga Satuan" subtitle="Isi dengan harga riil. Harga per item (Data Proses) diutamakan; harga kategori dipakai bila harga item kosong." />
         <CardBody className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {PRICE_FIELDS.map((field) => (
             <div key={field.key}>
@@ -190,7 +190,7 @@ export default function AliranBiayaPage() {
               <Input
                 type="number"
                 min={0}
-                value={project.costConfig[field.key] ?? (field.key === "periodMonths" ? 1 : 0)}
+                value={project.costConfig[field.key] ?? (field.key === "processesPerMonth" ? 1 : 0)}
                 onChange={(e) =>
                   updateCostConfig({ [field.key]: Number(e.target.value) } as Partial<CostConfig>)
                 }

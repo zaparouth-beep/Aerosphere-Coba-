@@ -103,7 +103,7 @@ export default function WhatIfPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Sebelum vs Sesudah" subtitle="Total flow per periode pada functional unit saat ini" />
+          <CardHeader title="Sebelum vs Sesudah" subtitle="Total flow per proses pada functional unit saat ini" />
           <CardBody>
             <GroupedBarChart
               data={chartData}
