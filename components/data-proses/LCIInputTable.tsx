@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { PROCESS_STAGES } from "@/lib/lca/constants";
+import { CATEGORY_BASE_UNIT, categoryPrice } from "@/lib/lca/calculations";
 import { useProjectStore } from "@/lib/store/useProjectStore";
 import type {
   Confidence,
@@ -29,6 +30,7 @@ const CONFIDENCE_LEVELS: Confidence[] = ["High", "Medium", "Low"];
 
 export function LCIInputTable() {
   const lciInputs = useProjectStore((s) => s.project.lciInputs);
+  const costConfig = useProjectStore((s) => s.project.costConfig);
   const updateLCIInput = useProjectStore((s) => s.updateLCIInput);
   const addLCIInput = useProjectStore((s) => s.addLCIInput);
   const removeLCIInput = useProjectStore((s) => s.removeLCIInput);
@@ -58,6 +60,7 @@ export function LCIInputTable() {
             <Th className="w-32">Kuantitas</Th>
             <Th>Unit</Th>
             <Th className="w-28">Confidence</Th>
+            <Th className="w-28">Harga</Th>
             <Th className="w-10" />
           </tr>
         </THead>
@@ -159,6 +162,17 @@ export function LCIInputTable() {
                       ))}
                     </Select>
                   </Td>
+                  <Td className="whitespace-nowrap text-xs">
+                    {entry.unitPriceRp && entry.unitPriceRp > 0 ? (
+                      <span>Rp {entry.unitPriceRp}</span>
+                    ) : categoryPrice(costConfig, entry.category) > 0 ? (
+                      <span className="text-navy-700/60">harga kategori</span>
+                    ) : (
+                      <span className="font-medium text-accent-red">
+                        belum diisi
+                      </span>
+                    )}
+                  </Td>
                   <Td>
                     <button
                       type="button"
@@ -173,7 +187,7 @@ export function LCIInputTable() {
                 {isOpen && (
                   <tr className={cn("bg-sand-50")}>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="border-b border-sand-200 px-6 py-3"
                     >
                       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -225,20 +239,29 @@ export function LCIInputTable() {
                             }
                           />
                         </Field>
-                        <Field label="Harga riil satuan (Rp/kg, Rp/L, Rp/kWh)">
-                        <Input
-                          type="number"
-                          min={0}
-                          placeholder="Isi harga riil"
-                          value={entry.unitPriceRp ?? ""}
-                          onChange={(e) =>
-                            updateLCIInput(entry.id, {
-                              unitPriceRp: e.target.value === "" ? undefined : Number(e.target.value),
-                            })
-                          }
-                        />
-                      </Field>
-                      <Field label="Period">
+                        <Field
+                          label={`Harga riil satuan (Rp/${CATEGORY_BASE_UNIT[entry.category]})`}
+                        >
+                          <Input
+                            type="number"
+                            min={0}
+                            placeholder={
+                              categoryPrice(costConfig, entry.category) > 0
+                                ? `Harga kategori: ${categoryPrice(costConfig, entry.category)}`
+                                : "Isi harga riil"
+                            }
+                            value={entry.unitPriceRp ?? ""}
+                            onChange={(e) =>
+                              updateLCIInput(entry.id, {
+                                unitPriceRp:
+                                  e.target.value === ""
+                                    ? undefined
+                                    : Number(e.target.value),
+                              })
+                            }
+                          />
+                        </Field>
+                        <Field label="Period">
                           <Input
                             value={entry.period}
                             onChange={(e) =>

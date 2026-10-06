@@ -78,12 +78,18 @@ function toPercentRow(
 export function computeHotspotTable(project: Project): HotspotRow[] {
   const energyByStage = sumByStage(project.lciInputs, ["Energy"]);
   const waterByStage = sumByStage(project.lciInputs, ["Water"]);
-  const chemicalByStage = sumByStage(project.lciInputs, CHEMICAL_LIKE_CATEGORIES);
+  const chemicalByStage = sumByStage(
+    project.lciInputs,
+    CHEMICAL_LIKE_CATEGORIES,
+  );
   const wasteByStage = sumWasteByStage(project.hazardousWaste);
 
   const energyTotal = Object.values(energyByStage).reduce((a, b) => a + b, 0);
   const waterTotal = Object.values(waterByStage).reduce((a, b) => a + b, 0);
-  const chemicalTotal = Object.values(chemicalByStage).reduce((a, b) => a + b, 0);
+  const chemicalTotal = Object.values(chemicalByStage).reduce(
+    (a, b) => a + b,
+    0,
+  );
   const wasteTotal = Object.values(wasteByStage).reduce((a, b) => a + b, 0);
 
   const energyPct = toPercentRow(energyByStage, energyTotal);
@@ -122,7 +128,10 @@ export function computeIntensities(project: Project): IntensityMetrics {
   const fu = functionalUnitDivisor(project);
   const totalEnergy = totalQuantity(project.lciInputs, ["Energy"]);
   const totalWater = totalQuantity(project.lciInputs, ["Water"]);
-  const totalChemical = totalQuantity(project.lciInputs, CHEMICAL_LIKE_CATEGORIES);
+  const totalChemical = totalQuantity(
+    project.lciInputs,
+    CHEMICAL_LIKE_CATEGORIES,
+  );
   const totalWasteKg = totalWaste(project.hazardousWaste);
 
   return {
@@ -155,20 +164,29 @@ export interface EnvironmentalImpactSummary {
   ghgPerFunctionalUnit: number;
 }
 
-export function computeEnvironmentalImpact(project: Project): EnvironmentalImpactSummary {
+export function computeEnvironmentalImpact(
+  project: Project,
+): EnvironmentalImpactSummary {
   const fu = functionalUnitDivisor(project);
   const totalEnergyKwh = totalQuantity(project.lciInputs, ["Energy"]);
   const totalWaterL = totalQuantity(project.lciInputs, ["Water"]);
-  const totalChemicalKg = totalQuantity(project.lciInputs, CHEMICAL_LIKE_CATEGORIES);
+  const totalChemicalKg = totalQuantity(
+    project.lciInputs,
+    CHEMICAL_LIKE_CATEGORIES,
+  );
   const totalWasteKgB3 = totalWaste(project.hazardousWaste);
   const totalAirEmissionKg = project.airEmissions
     .filter((e) => e.applicable)
     .reduce((sum, e) => sum + e.valueKgPerPeriod, 0);
 
-  const ghgFromEnergyKgCO2e = totalEnergyKwh * EMISSION_FACTORS.gridElectricityKgCO2ePerKwh;
-  const ghgFromChemicalKgCO2e = totalChemicalKg * EMISSION_FACTORS.chemicalGenericKgCO2ePerKg;
-  const ghgFromWaterKgCO2e = totalWaterL * EMISSION_FACTORS.waterTreatmentKgCO2ePerL;
-  const totalGhgKgCO2e = ghgFromEnergyKgCO2e + ghgFromChemicalKgCO2e + ghgFromWaterKgCO2e;
+  const ghgFromEnergyKgCO2e =
+    totalEnergyKwh * EMISSION_FACTORS.gridElectricityKgCO2ePerKwh;
+  const ghgFromChemicalKgCO2e =
+    totalChemicalKg * EMISSION_FACTORS.chemicalGenericKgCO2ePerKg;
+  const ghgFromWaterKgCO2e =
+    totalWaterL * EMISSION_FACTORS.waterTreatmentKgCO2ePerL;
+  const totalGhgKgCO2e =
+    ghgFromEnergyKgCO2e + ghgFromChemicalKgCO2e + ghgFromWaterKgCO2e;
 
   return {
     totalEnergyKwh,
@@ -214,6 +232,9 @@ export interface CostLine {
 
 export interface StageCostRow {
   stageId: ProcessStageId;
+  /** Labor of this stage (hours × operators × rate), kept outside the flow totals. */
+  laborRp: number;
+  laborHours: number;
   byKey: Record<CostKey, number>;
   totalRp: number;
   pctOfAllocated: number;
@@ -259,7 +280,7 @@ const CATEGORY_COST_KEY: Record<LCICategory, CostKey> = {
   Consumable: "consumable",
 };
 
-const CATEGORY_BASE_UNIT: Record<LCICategory, "kWh" | "L" | "kg"> = {
+export const CATEGORY_BASE_UNIT: Record<LCICategory, "kWh" | "L" | "kg"> = {
   Energy: "kWh",
   Water: "L",
   Chemical: "kg",
@@ -270,7 +291,10 @@ const CATEGORY_BASE_UNIT: Record<LCICategory, "kWh" | "L" | "kg"> = {
 
 /** Conversion of the numerator of a free-text unit ("kg/proses", "m3", ...) to the
  * base unit used by the price table. */
-const UNIT_TO_BASE: Record<string, { base: "kWh" | "L" | "kg"; factor: number }> = {
+const UNIT_TO_BASE: Record<
+  string,
+  { base: "kWh" | "L" | "kg"; factor: number }
+> = {
   kg: { base: "kg", factor: 1 },
   g: { base: "kg", factor: 0.001 },
   ton: { base: "kg", factor: 1000 },
@@ -281,7 +305,7 @@ const UNIT_TO_BASE: Record<string, { base: "kWh" | "L" | "kg"; factor: number }>
   mwh: { base: "kWh", factor: 1000 },
 };
 
-function categoryPrice(cfg: CostConfig, category: LCICategory): number {
+export function categoryPrice(cfg: CostConfig, category: LCICategory): number {
   switch (CATEGORY_COST_KEY[category]) {
     case "energy":
       return cfg.energyPriceRpPerKwh;
@@ -298,7 +322,10 @@ function categoryPrice(cfg: CostConfig, category: LCICategory): number {
 
 /** Convert an entry's quantity to the base unit of its category. `ok` is false when the
  * unit is unrecognised or incompatible, in which case the raw quantity is used. */
-export function normalizeQuantity(entry: LCIInputEntry): { value: number; ok: boolean } {
+export function normalizeQuantity(entry: LCIInputEntry): {
+  value: number;
+  ok: boolean;
+} {
   const head = (entry.unit.split("/")[0] ?? "").trim().toLowerCase();
   const conv = UNIT_TO_BASE[head];
   if (!conv || conv.base !== CATEGORY_BASE_UNIT[entry.category]) {
@@ -308,20 +335,26 @@ export function normalizeQuantity(entry: LCIInputEntry): { value: number; ok: bo
 }
 
 function emptyCostByKey(): Record<CostKey, number> {
-  return COST_KEYS.reduce((acc, k) => ({ ...acc, [k]: 0 }), {} as Record<CostKey, number>);
+  return COST_KEYS.reduce(
+    (acc, k) => ({ ...acc, [k]: 0 }),
+    {} as Record<CostKey, number>,
+  );
 }
 
 /** Cost flow formulas (all quantities in base units):
  *   input cost      = quantity × unit price            (item price, else category price)
  *   waste treatment = (kg/month ÷ processes per month) × Rp/kg
- *   waste transport = (km ÷ processes per month) × Rp/km   (one pick-up per month)
- *   labor           = fixed cost per process (not allocated to a stage)
+ *   waste transport = per destination: max km × trips/month × Rp/km ÷ processes per month,
+ *                     shared across the waste types going there by quantity
+ *   labor           = Σ stage hours × operators × Rp/hour + fixed extra per process
  *   total           = Σ all lines; cost per FU = total / functional unit */
 export function computeCostBreakdown(project: Project): CostSummary {
   const fu = functionalUnitDivisor(project);
   const cfg: CostConfig = project.costConfig;
   const processesPerMonth =
-    cfg.processesPerMonth && cfg.processesPerMonth > 0 ? cfg.processesPerMonth : 1;
+    cfg.processesPerMonth && cfg.processesPerMonth > 0
+      ? cfg.processesPerMonth
+      : 1;
   const wasteShare = 1 / processesPerMonth;
   const warnings: string[] = [];
   const lines: CostLine[] = [];
@@ -333,8 +366,11 @@ export function computeCostBreakdown(project: Project): CostSummary {
         `Unit "${entry.unit}" pada "${entry.name}" tidak dikenali untuk kategori ${entry.category} (diharapkan ${CATEGORY_BASE_UNIT[entry.category]}); kuantitas dipakai apa adanya.`,
       );
     }
-    const hasItemPrice = entry.unitPriceRp !== undefined && entry.unitPriceRp > 0;
-    const unitPriceRp = hasItemPrice ? (entry.unitPriceRp as number) : categoryPrice(cfg, entry.category);
+    const hasItemPrice =
+      entry.unitPriceRp !== undefined && entry.unitPriceRp > 0;
+    const unitPriceRp = hasItemPrice
+      ? (entry.unitPriceRp as number)
+      : categoryPrice(cfg, entry.category);
     lines.push({
       id: entry.id,
       name: entry.name,
@@ -346,6 +382,16 @@ export function computeCostBreakdown(project: Project): CostSummary {
       priceSource: hasItemPrice ? "item" : "category",
       totalRp: value * unitPriceRp,
     });
+  }
+
+  const tripsPerMonth =
+    cfg.wasteTripsPerMonth && cfg.wasteTripsPerMonth > 0
+      ? cfg.wasteTripsPerMonth
+      : 1;
+  const destinations = new Map<string, HazardousWasteEntry[]>();
+  for (const w of project.hazardousWaste) {
+    const key = w.destination.trim().toLowerCase();
+    destinations.set(key, [...(destinations.get(key) ?? []), w]);
   }
 
   for (const w of project.hazardousWaste) {
@@ -360,33 +406,47 @@ export function computeCostBreakdown(project: Project): CostSummary {
       priceSource: "category",
       totalRp: w.quantityKgMonth * wasteShare * cfg.wasteDisposalPriceRpPerKg,
     });
-    lines.push({
-      id: `${w.id}-transport`,
-      name: `${w.wasteType} (transport)`,
-      costKey: "waste_transport",
-      stageId: w.sourceStageId,
-      quantity: w.transportKm * wasteShare,
-      unit: "km",
-      unitPriceRp: cfg.wasteTransportPriceRpPerKm,
-      priceSource: "category",
-      totalRp: w.transportKm * wasteShare * cfg.wasteTransportPriceRpPerKm,
-    });
+  }
+
+  for (const group of destinations.values()) {
+    const tripKm = Math.max(...group.map((w) => w.transportKm));
+    const tripCostRp =
+      tripKm * tripsPerMonth * wasteShare * cfg.wasteTransportPriceRpPerKm;
+    const groupQty = group.reduce((sum, w) => sum + w.quantityKgMonth, 0);
+    for (const w of group) {
+      const share =
+        groupQty > 0 ? w.quantityKgMonth / groupQty : 1 / group.length;
+      lines.push({
+        id: `${w.id}-transport`,
+        name: `${w.wasteType} (transport)`,
+        costKey: "waste_transport",
+        stageId: w.sourceStageId,
+        quantity: tripKm * tripsPerMonth * wasteShare * share,
+        unit: "km",
+        unitPriceRp: cfg.wasteTransportPriceRpPerKm,
+        priceSource: "category",
+        totalRp: tripCostRp * share,
+      });
+    }
   }
 
   const unpriced = lines.filter((l) => l.unitPriceRp <= 0 && l.quantity > 0);
-  const missingInputs = unpriced.filter((l) => !l.id.includes("-disposal") && !l.id.includes("-transport"));
+  const missingInputs = unpriced.filter(
+    (l) => !l.id.includes("-disposal") && !l.id.includes("-transport"),
+  );
   if (missingInputs.length > 0) {
     warnings.push(
       `${missingInputs.length} input belum punya harga riil (biaya dihitung Rp 0): ${missingInputs
         .map((l) => l.name)
-        .join(", ")}. Isi di Data Proses → detail baris → Harga satuan, atau isi harga kategori di bawah.`,
+        .join(
+          ", ",
+        )}. Isi di Data Proses → detail baris → Harga satuan, atau isi harga kategori di bawah.`,
     );
   }
   if (unpriced.length > missingInputs.length) {
-    warnings.push("Harga olah/transport limbah B3 belum diisi; biayanya dihitung Rp 0.");
-  }
-  if (cfg.laborCostRpPerPeriod <= 0) {
-    warnings.push("Biaya tenaga kerja per proses belum diisi.");
+    warnings.push(
+      "Harga olah/transport limbah B3 belum diisi; biayanya dihitung Rp 0.",
+    );
   }
 
   const totals = emptyCostByKey();
@@ -397,9 +457,37 @@ export function computeCostBreakdown(project: Project): CostSummary {
     totals[line.costKey] += line.totalRp;
     stageRows.get(line.stageId)![line.costKey] += line.totalRp;
   }
-  totals.labor = cfg.laborCostRpPerPeriod;
+  const operators =
+    cfg.laborOperators && cfg.laborOperators > 0 ? cfg.laborOperators : 1;
+  const rate = cfg.laborRateRpPerHour ?? 0;
+  const laborByStage = new Map<ProcessStageId, { hours: number; rp: number }>();
+  for (const stage of PROCESS_STAGES) {
+    const hours = cfg.laborHoursByStage?.[stage.id] ?? 0;
+    laborByStage.set(stage.id, { hours, rp: hours * operators * rate });
+  }
+  const stageLaborRp = [...laborByStage.values()].reduce(
+    (sum, v) => sum + v.rp,
+    0,
+  );
+  const stageLaborHours = [...laborByStage.values()].reduce(
+    (sum, v) => sum + v.hours,
+    0,
+  );
+  totals.labor = stageLaborRp + cfg.laborCostRpPerPeriod;
+  if (stageLaborHours > 0 && rate <= 0) {
+    warnings.push(
+      "Jam kerja sudah diisi tetapi tarif tenaga kerja per jam belum diisi.",
+    );
+  }
+  if (totals.labor <= 0) {
+    warnings.push(
+      "Biaya tenaga kerja belum diisi (jam kerja per tahap × tarif per jam).",
+    );
+  }
 
-  const items: CostBreakdownItem[] = COST_KEYS.filter((key) => key !== "labor").map((key) => ({
+  const items: CostBreakdownItem[] = COST_KEYS.filter(
+    (key) => key !== "labor",
+  ).map((key) => ({
     key,
     label: COST_KEY_LABEL[key],
     totalRp: totals[key],
@@ -414,6 +502,8 @@ export function computeCostBreakdown(project: Project): CostSummary {
     const stageTotal = COST_KEYS.reduce((sum, k) => sum + byKey[k], 0);
     return {
       stageId: stage.id,
+      laborRp: laborByStage.get(stage.id)!.rp,
+      laborHours: laborByStage.get(stage.id)!.hours,
       byKey,
       totalRp: stageTotal,
       pctOfAllocated: allocatedRp > 0 ? (stageTotal / allocatedRp) * 100 : 0,
@@ -440,5 +530,8 @@ export function buyToFlyRatio(project: Project): number {
 }
 
 export function scrapMassKg(project: Project): number {
-  return Math.max(0, project.part.initialStockMassKg - project.part.finishedMassKg);
+  return Math.max(
+    0,
+    project.part.initialStockMassKg - project.part.finishedMassKg,
+  );
 }
