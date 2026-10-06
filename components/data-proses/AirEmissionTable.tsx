@@ -5,6 +5,7 @@ import { useProjectStore } from "@/lib/store/useProjectStore";
 import { Input } from "@/components/ui/Input";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
+import { FlowSelect } from "@/components/data-proses/FlowSelect";
 import { Button } from "@/components/ui/Button";
 
 export function AirEmissionTable() {
@@ -21,6 +22,7 @@ export function AirEmissionTable() {
             <Th>Emisi</Th>
             <Th>Relevansi</Th>
             <Th className="w-28">Berlaku?</Th>
+            <Th className="w-48">Aliran LCIA</Th>
             <Th className="w-40">Nilai (kg/proses)</Th>
             <Th className="w-10" />
           </tr>
@@ -57,6 +59,14 @@ export function AirEmissionTable() {
                     {entry.applicable ? "Ya" : "Tidak"}
                   </Badge>
                 </button>
+              </Td>
+              <Td>
+                <FlowSelect
+                  parameter={entry.parameter}
+                  flow={entry.flow}
+                  medium="air"
+                  onChange={(flow) => updateAirEmission(entry.id, { flow })}
+                />
               </Td>
               <Td>
                 <Input

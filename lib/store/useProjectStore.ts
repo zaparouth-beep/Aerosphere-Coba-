@@ -2,11 +2,14 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { applyBackgroundRows, type ApplyResult, type BackgroundRow } from "@/lib/lca/backgroundImport";
 import { createSeedProject, generateId } from "@/lib/lca/constants";
 import type {
   AirEmissionEntry,
   CostConfig,
   FunctionalUnit,
+  ImpactFactors,
+  LCICategory,
   HazardousWasteEntry,
   LCIInputEntry,
   PartInfo,
@@ -22,6 +25,8 @@ interface ProjectState {
   updatePart: (patch: Partial<PartInfo>) => void;
   updateFunctionalUnit: (patch: Partial<FunctionalUnit>) => void;
   updateCostConfig: (patch: Partial<CostConfig>) => void;
+  updateCategoryFactors: (category: LCICategory, factors: ImpactFactors) => void;
+  applyBackgroundFactors: (rows: BackgroundRow[]) => ApplyResult;
 
   updateLCIInput: (id: string, patch: Partial<LCIInputEntry>) => void;
   addLCIInput: (entry: Omit<LCIInputEntry, "id">) => void;
@@ -48,7 +53,7 @@ interface ProjectState {
 
 export const useProjectStore = create<ProjectState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       project: createSeedProject(),
       activeLeverIds: [],
 
@@ -75,6 +80,23 @@ export const useProjectStore = create<ProjectState>()(
             costConfig: { ...state.project.costConfig, ...patch },
           },
         })),
+
+      updateCategoryFactors: (category, factors) =>
+        set((state) => ({
+          project: {
+            ...state.project,
+            lcia: {
+              ...state.project.lcia,
+              categoryFactors: { ...state.project.lcia?.categoryFactors, [category]: factors },
+            },
+          },
+        })),
+
+      applyBackgroundFactors: (rows) => {
+        const { project, result } = applyBackgroundRows(get().project, rows);
+        set({ project });
+        return result;
+      },
 
       updateLCIInput: (id, patch) =>
         set((state) => ({

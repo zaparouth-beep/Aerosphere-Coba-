@@ -1,10 +1,9 @@
 import {
   computeCostBreakdown,
-  computeEnvironmentalImpact,
   computeIntensities,
   type CostSummary,
-  type EnvironmentalImpactSummary,
 } from "./calculations";
+import { computeEnvironmentalImpact, type EnvironmentalImpactSummary } from "./lcia";
 import type { IntensityMetrics, Project, WhatIfLever } from "./types";
 
 function cloneProject(project: Project): Project {

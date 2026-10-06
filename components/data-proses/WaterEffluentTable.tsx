@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useProjectStore } from "@/lib/store/useProjectStore";
+import { FlowSelect } from "@/components/data-proses/FlowSelect";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
@@ -19,6 +20,7 @@ export function WaterEffluentTable() {
           <tr>
             <Th>Parameter</Th>
             <Th className="w-24">Unit</Th>
+            <Th className="w-48">Aliran LCIA</Th>
             <Th className="w-40">Nilai</Th>
             <Th className="w-10" />
           </tr>
@@ -40,6 +42,14 @@ export function WaterEffluentTable() {
                   onChange={(e) =>
                     updateWaterEffluent(entry.id, { unit: e.target.value })
                   }
+                />
+              </Td>
+              <Td>
+                <FlowSelect
+                  parameter={entry.parameter}
+                  flow={entry.flow}
+                  medium="water"
+                  onChange={(flow) => updateWaterEffluent(entry.id, { flow })}
                 />
               </Td>
               <Td>

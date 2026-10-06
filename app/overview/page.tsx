@@ -15,10 +15,10 @@ import { useProjectStore } from "@/lib/store/useProjectStore";
 import {
   buyToFlyRatio,
   computeCostBreakdown,
-  computeEnvironmentalImpact,
   computeIntensities,
   scrapMassKg,
 } from "@/lib/lca/calculations";
+import { computeEnvironmentalImpact } from "@/lib/lca/lcia";
 import { formatNumber, formatRupiah } from "@/lib/utils/format";
 import { NAV_ITEMS } from "@/components/layout/nav";
 

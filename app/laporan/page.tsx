@@ -9,12 +9,12 @@ import { STAGE_BY_ID } from "@/lib/lca/constants";
 import {
   buyToFlyRatio,
   computeCostBreakdown,
-  computeEnvironmentalImpact,
   computeHotspotTable,
   computeIntensities,
   findHotspotStage,
   scrapMassKg,
 } from "@/lib/lca/calculations";
+import { computeEnvironmentalImpact } from "@/lib/lca/lcia";
 import { compareScenario } from "@/lib/lca/whatif";
 import { downloadCSV, downloadJSON } from "@/lib/utils/export";
 import { formatNumber, formatPercent, formatRupiah } from "@/lib/utils/format";

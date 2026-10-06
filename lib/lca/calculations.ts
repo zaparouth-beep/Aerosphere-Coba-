@@ -120,6 +120,12 @@ export function findHotspotStage(
   return best?.stageId ?? null;
 }
 
+/** Hazardous waste is entered per month while LCI inputs are per process. */
+export function wastePerProcessFactor(project: Project): number {
+  const n = project.costConfig.processesPerMonth;
+  return n && n > 0 ? 1 / n : 1;
+}
+
 export function functionalUnitDivisor(project: Project): number {
   return project.functionalUnit.value > 0 ? project.functionalUnit.value : 1;
 }
@@ -132,73 +138,13 @@ export function computeIntensities(project: Project): IntensityMetrics {
     project.lciInputs,
     CHEMICAL_LIKE_CATEGORIES,
   );
-  const totalWasteKg = totalWaste(project.hazardousWaste);
+  const totalWasteKg = totalWaste(project.hazardousWaste) * wastePerProcessFactor(project);
 
   return {
     energyIntensity: totalEnergy / fu,
     waterIntensity: totalWater / fu,
     chemicalIntensity: totalChemical / fu,
     wasteIntensity: totalWasteKg / fu,
-  };
-}
-
-/** Simplified, clearly-labelled emission factors used only for an indicative GHG
- * estimate in the demo — swap for a verified LCIA database (e.g. ecoinvent) before
- * using these numbers for real reporting. */
-export const EMISSION_FACTORS = {
-  gridElectricityKgCO2ePerKwh: 0.85,
-  chemicalGenericKgCO2ePerKg: 2.5,
-  waterTreatmentKgCO2ePerL: 0.0003,
-};
-
-export interface EnvironmentalImpactSummary {
-  totalEnergyKwh: number;
-  totalWaterL: number;
-  totalChemicalKg: number;
-  totalWasteKgB3: number;
-  totalAirEmissionKg: number;
-  ghgFromEnergyKgCO2e: number;
-  ghgFromChemicalKgCO2e: number;
-  ghgFromWaterKgCO2e: number;
-  totalGhgKgCO2e: number;
-  ghgPerFunctionalUnit: number;
-}
-
-export function computeEnvironmentalImpact(
-  project: Project,
-): EnvironmentalImpactSummary {
-  const fu = functionalUnitDivisor(project);
-  const totalEnergyKwh = totalQuantity(project.lciInputs, ["Energy"]);
-  const totalWaterL = totalQuantity(project.lciInputs, ["Water"]);
-  const totalChemicalKg = totalQuantity(
-    project.lciInputs,
-    CHEMICAL_LIKE_CATEGORIES,
-  );
-  const totalWasteKgB3 = totalWaste(project.hazardousWaste);
-  const totalAirEmissionKg = project.airEmissions
-    .filter((e) => e.applicable)
-    .reduce((sum, e) => sum + e.valueKgPerPeriod, 0);
-
-  const ghgFromEnergyKgCO2e =
-    totalEnergyKwh * EMISSION_FACTORS.gridElectricityKgCO2ePerKwh;
-  const ghgFromChemicalKgCO2e =
-    totalChemicalKg * EMISSION_FACTORS.chemicalGenericKgCO2ePerKg;
-  const ghgFromWaterKgCO2e =
-    totalWaterL * EMISSION_FACTORS.waterTreatmentKgCO2ePerL;
-  const totalGhgKgCO2e =
-    ghgFromEnergyKgCO2e + ghgFromChemicalKgCO2e + ghgFromWaterKgCO2e;
-
-  return {
-    totalEnergyKwh,
-    totalWaterL,
-    totalChemicalKg,
-    totalWasteKgB3,
-    totalAirEmissionKg,
-    ghgFromEnergyKgCO2e,
-    ghgFromChemicalKgCO2e,
-    ghgFromWaterKgCO2e,
-    totalGhgKgCO2e,
-    ghgPerFunctionalUnit: totalGhgKgCO2e / fu,
   };
 }
 
