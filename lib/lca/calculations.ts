@@ -262,7 +262,7 @@ const CATEGORY_BASE_UNIT: Record<LCICategory, "kWh" | "L" | "kg"> = {
   Consumable: "kg",
 };
 
-/** Conversion of the numerator of a free-text unit ("kg/period", "m3", ...) to the
+/** Conversion of the numerator of a free-text unit ("kg/proses", "m3", ...) to the
  * base unit used by the price table. */
 const UNIT_TO_BASE: Record<string, { base: "kWh" | "L" | "kg"; factor: number }> = {
   kg: { base: "kg", factor: 1 },
@@ -307,14 +307,16 @@ function emptyCostByKey(): Record<CostKey, number> {
 
 /** Cost flow formulas (all quantities in base units):
  *   input cost      = quantity × unit price            (item price, else category price)
- *   waste treatment = kg/month × months × Rp/kg
- *   waste transport = km × months × Rp/km              (one pick-up per month)
- *   labor           = fixed cost per period (not allocated to a stage)
+ *   waste treatment = (kg/month ÷ processes per month) × Rp/kg
+ *   waste transport = (km ÷ processes per month) × Rp/km   (one pick-up per month)
+ *   labor           = fixed cost per process (not allocated to a stage)
  *   total           = Σ all lines; cost per FU = total / functional unit */
 export function computeCostBreakdown(project: Project): CostSummary {
   const fu = functionalUnitDivisor(project);
   const cfg: CostConfig = project.costConfig;
-  const months = cfg.periodMonths && cfg.periodMonths > 0 ? cfg.periodMonths : 1;
+  const processesPerMonth =
+    cfg.processesPerMonth && cfg.processesPerMonth > 0 ? cfg.processesPerMonth : 1;
+  const wasteShare = 1 / processesPerMonth;
   const warnings: string[] = [];
   const lines: CostLine[] = [];
 
@@ -346,23 +348,39 @@ export function computeCostBreakdown(project: Project): CostSummary {
       name: `${w.wasteType} (olah)`,
       costKey: "waste_disposal",
       stageId: w.sourceStageId,
-      quantity: w.quantityKgMonth * months,
+      quantity: w.quantityKgMonth * wasteShare,
       unit: "kg",
       unitPriceRp: cfg.wasteDisposalPriceRpPerKg,
       priceSource: "category",
-      totalRp: w.quantityKgMonth * months * cfg.wasteDisposalPriceRpPerKg,
+      totalRp: w.quantityKgMonth * wasteShare * cfg.wasteDisposalPriceRpPerKg,
     });
     lines.push({
       id: `${w.id}-transport`,
       name: `${w.wasteType} (transport)`,
       costKey: "waste_transport",
       stageId: w.sourceStageId,
-      quantity: w.transportKm * months,
+      quantity: w.transportKm * wasteShare,
       unit: "km",
       unitPriceRp: cfg.wasteTransportPriceRpPerKm,
       priceSource: "category",
-      totalRp: w.transportKm * months * cfg.wasteTransportPriceRpPerKm,
+      totalRp: w.transportKm * wasteShare * cfg.wasteTransportPriceRpPerKm,
     });
+  }
+
+  const unpriced = lines.filter((l) => l.unitPriceRp <= 0 && l.quantity > 0);
+  const missingInputs = unpriced.filter((l) => !l.id.includes("-disposal") && !l.id.includes("-transport"));
+  if (missingInputs.length > 0) {
+    warnings.push(
+      `${missingInputs.length} input belum punya harga riil (biaya dihitung Rp 0): ${missingInputs
+        .map((l) => l.name)
+        .join(", ")}. Isi di Data Proses → detail baris → Harga satuan, atau isi harga kategori di bawah.`,
+    );
+  }
+  if (unpriced.length > missingInputs.length) {
+    warnings.push("Harga olah/transport limbah B3 belum diisi; biayanya dihitung Rp 0.");
+  }
+  if (cfg.laborCostRpPerPeriod <= 0) {
+    warnings.push("Biaya tenaga kerja per proses belum diisi.");
   }
 
   const totals = emptyCostByKey();

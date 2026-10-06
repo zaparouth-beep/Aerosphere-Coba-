@@ -60,7 +60,7 @@ export default function DampakLingkunganPage() {
                 <tr>
                   <Th>Parameter</Th>
                   <Th>Berlaku</Th>
-                  <Th className="w-32">kg/periode</Th>
+                  <Th className="w-32">kg/proses</Th>
                 </tr>
               </THead>
               <tbody>

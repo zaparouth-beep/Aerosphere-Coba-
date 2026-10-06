@@ -21,7 +21,7 @@ export function AirEmissionTable() {
             <Th>Emisi</Th>
             <Th>Relevansi</Th>
             <Th className="w-28">Berlaku?</Th>
-            <Th className="w-40">Nilai (kg/periode)</Th>
+            <Th className="w-40">Nilai (kg/proses)</Th>
             <Th className="w-10" />
           </tr>
         </THead>

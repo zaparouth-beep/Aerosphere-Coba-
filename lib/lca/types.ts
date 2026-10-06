@@ -42,8 +42,8 @@ export interface LCIInputEntry extends DataPedigree {
   unit: string;
   stageId: ProcessStageId;
   quantity: number;
-  /** Optional item-specific price per base unit (Rp/kg, Rp/L, Rp/kWh); falls back to the
-   * category price in CostConfig when empty. */
+  /** Real item-specific price per base unit (Rp/kg, Rp/L, Rp/kWh). When empty, the category
+   * price in CostConfig is used; when that is also empty the cost is not counted. */
   unitPriceRp?: number;
 }
 
@@ -103,9 +103,10 @@ export interface CostConfig {
   laborCostRpPerPeriod: number;
   wasteDisposalPriceRpPerKg: number;
   wasteTransportPriceRpPerKm: number;
-  /** Months covered by the LCI period; hazardous waste is entered in kg/month. Optional so
-   * projects saved before this field existed keep working (defaults to 1). */
-  periodMonths?: number;
+  /** Number of production processes (runs) in one month. LCI quantities are per process,
+   * while hazardous waste and its transport are entered per month. Optional so projects
+   * saved before this field existed keep working (defaults to 1). */
+  processesPerMonth?: number;
 }
 
 export interface WhatIfLever {

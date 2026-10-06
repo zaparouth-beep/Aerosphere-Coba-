@@ -125,7 +125,7 @@ export default function OverviewPage() {
             />
             <SummaryStat
               label="Total limbah B3"
-              value={`${formatNumber(impact.totalWasteKgB3)} kg/periode`}
+              value={`${formatNumber(impact.totalWasteKgB3)} kg/proses`}
             />
           </CardBody>
         </Card>

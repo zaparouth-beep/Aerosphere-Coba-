@@ -101,7 +101,7 @@ export default function LaporanPage() {
               {formatNumber(buyToFlyRatio(project), 2)}:1). Proses plating menghasilkan biaya bersih{" "}
               {formatRupiah(cost.costPerFunctionalUnit)} per{" "}
               {project.functionalUnit.type === "m2_plated" ? "m² ter-plating" : "unit"}, dengan{" "}
-              {formatNumber(impact.totalWasteKgB3)} kg limbah B3 per periode. Hotspot utama:{" "}
+              {formatNumber(impact.totalWasteKgB3)} kg limbah B3 per proses. Hotspot utama:{" "}
               <strong>{energyHotspot?.name}</strong> untuk energi, <strong>{chemicalHotspot?.name}</strong>{" "}
               untuk bahan kimia, dan <strong>{wasteHotspot?.name}</strong> untuk limbah B3.
             </p>
@@ -176,7 +176,7 @@ export default function LaporanPage() {
                 Estimasi penghematan biaya {formatRupiah(scenario.savings.costRp)} (
                 {formatPercent(scenario.savings.costPct)}) dan pengurangan emisi{" "}
                 {formatNumber(scenario.savings.ghgKgCO2e)} kg CO2e (
-                {formatPercent(scenario.savings.ghgPct)}) per periode.
+                {formatPercent(scenario.savings.ghgPct)}) per proses.
               </p>
             </div>
           )}

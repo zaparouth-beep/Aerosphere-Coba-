@@ -225,11 +225,11 @@ export function LCIInputTable() {
                             }
                           />
                         </Field>
-                        <Field label="Harga satuan (Rp, kosong = harga kategori)">
+                        <Field label="Harga riil satuan (Rp/kg, Rp/L, Rp/kWh)">
                         <Input
                           type="number"
                           min={0}
-                          placeholder="Ikuti harga kategori"
+                          placeholder="Isi harga riil"
                           value={entry.unitPriceRp ?? ""}
                           onChange={(e) =>
                             updateLCIInput(entry.id, {
