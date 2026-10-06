@@ -224,6 +224,10 @@ export interface LCIAResult {
   warnings: string[];
 }
 
+function formatBalance(n: number): string {
+  return n.toLocaleString("id-ID", { maximumFractionDigits: 1 });
+}
+
 function zeroValues(): ImpactValues {
   return { gwp: 0, ap: 0, ep: 0, adpFossil: 0, adpElements: 0 };
 }
@@ -280,15 +284,15 @@ export function computeLCIA(project: Project): LCIAResult {
     const { value, ok } = normalizeQuantity(entry);
     if (!ok) {
       warnings.push(
-        `Unit "${entry.unit}" pada "${entry.name}" tidak dapat dikonversi ke ${CATEGORY_BASE_UNIT[entry.category]}; kuantitas dipakai apa adanya.`,
+        `Unit "${entry.unit}" pada "${entry.name}" tidak dapat dikonversi ke ${CATEGORY_BASE_UNIT[entry.category]}, jadi input ini dikeluarkan dari hasil (cut-off). Perbaiki unitnya di Data Proses.`,
       );
     }
-    const factors = entry.bgFactors ?? categoryFactors[entry.category] ?? {};
     const values = zeroValues();
     const covered = zeroCovered(false);
     for (const id of IMPACT_IDS) {
-      const f = factors[id];
-      if (f !== undefined && Number.isFinite(f)) {
+      // Per impact: the item's own factor first, then the category default.
+      const f = entry.bgFactors?.[id] ?? categoryFactors[entry.category]?.[id];
+      if (ok && f !== undefined && Number.isFinite(f)) {
         values[id] = value * f;
         covered[id] = true;
       }
@@ -407,6 +411,14 @@ export function computeLCIA(project: Project): LCIAResult {
       covered: zeroCovered(true),
       needsBackground: false,
     });
+  }
+
+  // Water balance: effluent cannot exceed the water entering the line by a wide margin.
+  const waterInM3 = totalQuantity(project.lciInputs, ["Water"]) / 1000;
+  if (volumeM3 > 0 && waterInM3 > 0 && volumeM3 > waterInM3 * 1.2) {
+    warnings.push(
+      `Neraca air tidak konsisten: volume efluen ${formatBalance(volumeM3)} m³ lebih besar dari air masuk ${formatBalance(waterInM3)} m³ per proses. Beban polutan efluen (COD, N, P) ikut terlalu besar.`,
+    );
   }
 
   // 5. Aggregate --------------------------------------------------------------
