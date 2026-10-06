@@ -154,6 +154,7 @@ export const DEFAULT_COST_CONFIG: CostConfig = {
   laborCostRpPerPeriod: 25000000,
   wasteDisposalPriceRpPerKg: 8000,
   wasteTransportPriceRpPerKm: 12000,
+  periodMonths: 1,
 };
 
 let idCounter = 0;

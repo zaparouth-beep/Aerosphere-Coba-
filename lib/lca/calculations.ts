@@ -185,54 +185,217 @@ export function computeEnvironmentalImpact(project: Project): EnvironmentalImpac
 }
 
 export interface CostBreakdownItem {
-  key: string;
+  key: CostKey;
   label: string;
   totalRp: number;
+}
+
+export type CostKey =
+  | "energy"
+  | "water"
+  | "chemical"
+  | "wwtp_chemical"
+  | "consumable"
+  | "waste_disposal"
+  | "waste_transport"
+  | "labor";
+
+export interface CostLine {
+  id: string;
+  name: string;
+  costKey: CostKey;
+  stageId: ProcessStageId;
+  quantity: number;
+  unit: string;
+  unitPriceRp: number;
+  priceSource: "item" | "category";
+  totalRp: number;
+}
+
+export interface StageCostRow {
+  stageId: ProcessStageId;
+  byKey: Record<CostKey, number>;
+  totalRp: number;
+  pctOfAllocated: number;
 }
 
 export interface CostSummary {
   items: CostBreakdownItem[];
   totalRp: number;
   costPerFunctionalUnit: number;
+  lines: CostLine[];
+  byStage: StageCostRow[];
+  /** Cost that cannot be traced to a process stage (labor). */
+  unallocatedRp: number;
+  /** Data-quality notes: unit mismatches, missing prices, etc. */
+  warnings: string[];
 }
 
+export const COST_KEY_LABEL: Record<CostKey, string> = {
+  energy: "Energi (listrik)",
+  water: "Air proses",
+  chemical: "Bahan kimia & anoda",
+  wwtp_chemical: "Bahan kimia WWTP",
+  consumable: "Consumable",
+  waste_disposal: "Pengolahan limbah B3",
+  waste_transport: "Transport limbah B3",
+  labor: "Tenaga kerja",
+};
+
+const COST_KEYS = Object.keys(COST_KEY_LABEL) as CostKey[];
+
+const CATEGORY_COST_KEY: Record<LCICategory, CostKey> = {
+  Energy: "energy",
+  Water: "water",
+  Chemical: "chemical",
+  Anode: "chemical",
+  WWTPChemical: "wwtp_chemical",
+  Consumable: "consumable",
+};
+
+const CATEGORY_BASE_UNIT: Record<LCICategory, "kWh" | "L" | "kg"> = {
+  Energy: "kWh",
+  Water: "L",
+  Chemical: "kg",
+  Anode: "kg",
+  WWTPChemical: "kg",
+  Consumable: "kg",
+};
+
+/** Conversion of the numerator of a free-text unit ("kg/period", "m3", ...) to the
+ * base unit used by the price table. */
+const UNIT_TO_BASE: Record<string, { base: "kWh" | "L" | "kg"; factor: number }> = {
+  kg: { base: "kg", factor: 1 },
+  g: { base: "kg", factor: 0.001 },
+  ton: { base: "kg", factor: 1000 },
+  l: { base: "L", factor: 1 },
+  ml: { base: "L", factor: 0.001 },
+  m3: { base: "L", factor: 1000 },
+  kwh: { base: "kWh", factor: 1 },
+  mwh: { base: "kWh", factor: 1000 },
+};
+
+function categoryPrice(cfg: CostConfig, category: LCICategory): number {
+  switch (CATEGORY_COST_KEY[category]) {
+    case "energy":
+      return cfg.energyPriceRpPerKwh;
+    case "water":
+      return cfg.waterPriceRpPerL;
+    case "wwtp_chemical":
+      return cfg.wwtpChemicalPriceRpPerKg;
+    case "consumable":
+      return cfg.consumablePriceRpPerKg;
+    default:
+      return cfg.chemicalPriceRpPerKg;
+  }
+}
+
+/** Convert an entry's quantity to the base unit of its category. `ok` is false when the
+ * unit is unrecognised or incompatible, in which case the raw quantity is used. */
+export function normalizeQuantity(entry: LCIInputEntry): { value: number; ok: boolean } {
+  const head = (entry.unit.split("/")[0] ?? "").trim().toLowerCase();
+  const conv = UNIT_TO_BASE[head];
+  if (!conv || conv.base !== CATEGORY_BASE_UNIT[entry.category]) {
+    return { value: entry.quantity, ok: false };
+  }
+  return { value: entry.quantity * conv.factor, ok: true };
+}
+
+function emptyCostByKey(): Record<CostKey, number> {
+  return COST_KEYS.reduce((acc, k) => ({ ...acc, [k]: 0 }), {} as Record<CostKey, number>);
+}
+
+/** Cost flow formulas (all quantities in base units):
+ *   input cost      = quantity × unit price            (item price, else category price)
+ *   waste treatment = kg/month × months × Rp/kg
+ *   waste transport = km × months × Rp/km              (one pick-up per month)
+ *   labor           = fixed cost per period (not allocated to a stage)
+ *   total           = Σ all lines; cost per FU = total / functional unit */
 export function computeCostBreakdown(project: Project): CostSummary {
   const fu = functionalUnitDivisor(project);
   const cfg: CostConfig = project.costConfig;
+  const months = cfg.periodMonths && cfg.periodMonths > 0 ? cfg.periodMonths : 1;
+  const warnings: string[] = [];
+  const lines: CostLine[] = [];
 
-  const energyCost = totalQuantity(project.lciInputs, ["Energy"]) * cfg.energyPriceRpPerKwh;
-  const waterCost = totalQuantity(project.lciInputs, ["Water"]) * cfg.waterPriceRpPerL;
-  const chemicalCost =
-    totalQuantity(project.lciInputs, ["Chemical", "Anode"]) * cfg.chemicalPriceRpPerKg;
-  const wwtpChemicalCost =
-    totalQuantity(project.lciInputs, ["WWTPChemical"]) * cfg.wwtpChemicalPriceRpPerKg;
-  const consumableCost =
-    totalQuantity(project.lciInputs, ["Consumable"]) * cfg.consumablePriceRpPerKg;
-  const wasteDisposalCost = totalWaste(project.hazardousWaste) * cfg.wasteDisposalPriceRpPerKg;
-  const wasteTransportCost = project.hazardousWaste.reduce(
-    (sum, w) => sum + w.transportKm * cfg.wasteTransportPriceRpPerKm,
-    0,
+  for (const entry of project.lciInputs) {
+    const { value, ok } = normalizeQuantity(entry);
+    if (!ok) {
+      warnings.push(
+        `Unit "${entry.unit}" pada "${entry.name}" tidak dikenali untuk kategori ${entry.category} (diharapkan ${CATEGORY_BASE_UNIT[entry.category]}); kuantitas dipakai apa adanya.`,
+      );
+    }
+    const hasItemPrice = entry.unitPriceRp !== undefined && entry.unitPriceRp > 0;
+    const unitPriceRp = hasItemPrice ? (entry.unitPriceRp as number) : categoryPrice(cfg, entry.category);
+    lines.push({
+      id: entry.id,
+      name: entry.name,
+      costKey: CATEGORY_COST_KEY[entry.category],
+      stageId: entry.stageId,
+      quantity: value,
+      unit: CATEGORY_BASE_UNIT[entry.category],
+      unitPriceRp,
+      priceSource: hasItemPrice ? "item" : "category",
+      totalRp: value * unitPriceRp,
+    });
+  }
+
+  for (const w of project.hazardousWaste) {
+    lines.push({
+      id: `${w.id}-disposal`,
+      name: `${w.wasteType} (olah)`,
+      costKey: "waste_disposal",
+      stageId: w.sourceStageId,
+      quantity: w.quantityKgMonth * months,
+      unit: "kg",
+      unitPriceRp: cfg.wasteDisposalPriceRpPerKg,
+      priceSource: "category",
+      totalRp: w.quantityKgMonth * months * cfg.wasteDisposalPriceRpPerKg,
+    });
+    lines.push({
+      id: `${w.id}-transport`,
+      name: `${w.wasteType} (transport)`,
+      costKey: "waste_transport",
+      stageId: w.sourceStageId,
+      quantity: w.transportKm * months,
+      unit: "km",
+      unitPriceRp: cfg.wasteTransportPriceRpPerKm,
+      priceSource: "category",
+      totalRp: w.transportKm * months * cfg.wasteTransportPriceRpPerKm,
+    });
+  }
+
+  const totals = emptyCostByKey();
+  const stageRows = new Map<ProcessStageId, Record<CostKey, number>>(
+    PROCESS_STAGES.map((st) => [st.id, emptyCostByKey()]),
   );
-  const laborCost = cfg.laborCostRpPerPeriod;
+  for (const line of lines) {
+    totals[line.costKey] += line.totalRp;
+    stageRows.get(line.stageId)![line.costKey] += line.totalRp;
+  }
+  totals.labor = cfg.laborCostRpPerPeriod;
 
-  const items: CostBreakdownItem[] = [
-    { key: "energy", label: "Energi (listrik)", totalRp: energyCost },
-    { key: "water", label: "Air proses", totalRp: waterCost },
-    { key: "chemical", label: "Bahan kimia & anoda", totalRp: chemicalCost },
-    { key: "wwtp_chemical", label: "Bahan kimia WWTP", totalRp: wwtpChemicalCost },
-    { key: "consumable", label: "Consumable", totalRp: consumableCost },
-    { key: "waste_disposal", label: "Pengolahan limbah B3", totalRp: wasteDisposalCost },
-    { key: "waste_transport", label: "Transport limbah B3", totalRp: wasteTransportCost },
-    { key: "labor", label: "Tenaga kerja", totalRp: laborCost },
-  ];
-
+  const items: CostBreakdownItem[] = COST_KEYS.map((key) => ({
+    key,
+    label: COST_KEY_LABEL[key],
+    totalRp: totals[key],
+  }));
   const totalRp = items.reduce((sum, i) => sum + i.totalRp, 0);
+  const unallocatedRp = totals.labor;
+  const allocatedRp = totalRp - unallocatedRp;
 
-  return {
-    items,
-    totalRp,
-    costPerFunctionalUnit: totalRp / fu,
-  };
+  const byStage: StageCostRow[] = PROCESS_STAGES.map((stage) => {
+    const byKey = stageRows.get(stage.id)!;
+    const stageTotal = COST_KEYS.reduce((sum, k) => sum + byKey[k], 0);
+    return {
+      stageId: stage.id,
+      byKey,
+      totalRp: stageTotal,
+      pctOfAllocated: allocatedRp > 0 ? (stageTotal / allocatedRp) * 100 : 0,
+    };
+  });
+
+  return { items, totalRp, costPerFunctionalUnit: totalRp / fu, lines, byStage, unallocatedRp, warnings };
 }
 
 export function buyToFlyRatio(project: Project): number {

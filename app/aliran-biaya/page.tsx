@@ -6,10 +6,17 @@ import { Input, Label } from "@/components/ui/Input";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
 import { HorizontalBarChart } from "@/components/charts/HorizontalBarChart";
 import { useProjectStore } from "@/lib/store/useProjectStore";
-import { computeCostBreakdown, CHEMICAL_LIKE_CATEGORIES, totalQuantity } from "@/lib/lca/calculations";
+import {
+  computeCostBreakdown,
+  CHEMICAL_LIKE_CATEGORIES,
+  COST_KEY_LABEL,
+  totalQuantity,
+  type CostKey,
+} from "@/lib/lca/calculations";
+import { PROCESS_STAGES } from "@/lib/lca/constants";
 import { formatNumber, formatRupiah } from "@/lib/utils/format";
 import type { CostConfig } from "@/lib/lca/types";
-import { Coins } from "lucide-react";
+import { AlertTriangle, Coins } from "lucide-react";
 
 const PRICE_FIELDS: Array<{ key: keyof CostConfig; label: string; unit: string }> = [
   { key: "energyPriceRpPerKwh", label: "Harga energi", unit: "Rp/kWh" },
@@ -20,6 +27,18 @@ const PRICE_FIELDS: Array<{ key: keyof CostConfig; label: string; unit: string }
   { key: "wasteDisposalPriceRpPerKg", label: "Biaya olah limbah B3", unit: "Rp/kg" },
   { key: "wasteTransportPriceRpPerKm", label: "Biaya transport limbah", unit: "Rp/km" },
   { key: "laborCostRpPerPeriod", label: "Biaya tenaga kerja", unit: "Rp/periode" },
+  { key: "periodMonths", label: "Lama periode LCI", unit: "bulan" },
+];
+
+const FU_LABEL = { m2_plated: "m²", part: "part", kg_metal_deposited: "kg logam" } as const;
+const STAGE_COST_COLUMNS: CostKey[] = [
+  "energy",
+  "water",
+  "chemical",
+  "wwtp_chemical",
+  "consumable",
+  "waste_disposal",
+  "waste_transport",
 ];
 
 export default function AliranBiayaPage() {
@@ -31,6 +50,10 @@ export default function AliranBiayaPage() {
   const totalWater = totalQuantity(project.lciInputs, ["Water"]);
   const totalChemical = totalQuantity(project.lciInputs, CHEMICAL_LIKE_CATEGORIES);
 
+  const fuDivisor = project.functionalUnit.value > 0 ? project.functionalUnit.value : 1;
+  const stageRows = [...cost.byStage].sort((a, b) => b.totalRp - a.totalRp);
+  const topStageId = stageRows[0]?.totalRp ? stageRows[0].stageId : null;
+
   const chartData = cost.items
     .filter((i) => i.totalRp > 0)
     .sort((a, b) => b.totalRp - a.totalRp)
@@ -41,7 +64,7 @@ export default function AliranBiayaPage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile label="Total biaya proses" value={formatRupiah(cost.totalRp)} icon={Coins} />
         <StatTile
-          label={`Biaya / ${project.functionalUnit.type === "m2_plated" ? "m²" : "unit"}`}
+          label={`Biaya / ${FU_LABEL[project.functionalUnit.type]}`}
           value={formatRupiah(cost.costPerFunctionalUnit)}
         />
         <StatTile label="Total energi" value={formatNumber(totalEnergy)} unit="kWh/periode" />
@@ -70,6 +93,7 @@ export default function AliranBiayaPage() {
                   <Th>Kategori</Th>
                   <Th className="w-32">Total (Rp)</Th>
                   <Th className="w-20">% Total</Th>
+                  <Th className="w-32">Rp / {FU_LABEL[project.functionalUnit.type]}</Th>
                 </tr>
               </THead>
               <tbody>
@@ -78,18 +102,82 @@ export default function AliranBiayaPage() {
                     <Td>{item.label}</Td>
                     <Td>{formatRupiah(item.totalRp)}</Td>
                     <Td>{cost.totalRp > 0 ? formatNumber((item.totalRp / cost.totalRp) * 100) : 0}%</Td>
+                    <Td>{formatRupiah(item.totalRp / fuDivisor)}</Td>
                   </Tr>
                 ))}
                 <Tr className="font-semibold">
                   <Td>Total</Td>
                   <Td>{formatRupiah(cost.totalRp)}</Td>
                   <Td>100%</Td>
+                  <Td>{formatRupiah(cost.costPerFunctionalUnit)}</Td>
                 </Tr>
               </tbody>
             </Table>
           </CardBody>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader
+          title="Aliran Biaya per Tahap Proses"
+          subtitle="Biaya input LCI (kuantitas × harga) + limbah B3 dialokasikan ke tahap sumbernya. Tenaga kerja tidak dialokasikan."
+        />
+        <CardBody>
+          <Table>
+            <THead>
+              <tr>
+                <Th>Tahap</Th>
+                {STAGE_COST_COLUMNS.map((k) => (
+                  <Th key={k}>{COST_KEY_LABEL[k]}</Th>
+                ))}
+                <Th>Total (Rp)</Th>
+                <Th className="w-20">% Alokasi</Th>
+                <Th>Rp / {FU_LABEL[project.functionalUnit.type]}</Th>
+              </tr>
+            </THead>
+            <tbody>
+              {stageRows.map((row) => {
+                const stage = PROCESS_STAGES.find((st) => st.id === row.stageId);
+                return (
+                  <Tr key={row.stageId}>
+                    <Td className="whitespace-nowrap font-medium" highlight={row.stageId === topStageId}>
+                      {stage?.code}. {stage?.name}
+                    </Td>
+                    {STAGE_COST_COLUMNS.map((k) => (
+                      <Td key={k} className="whitespace-nowrap text-xs">
+                        {row.byKey[k] > 0 ? formatRupiah(row.byKey[k]) : "-"}
+                      </Td>
+                    ))}
+                    <Td className="whitespace-nowrap font-semibold">{formatRupiah(row.totalRp)}</Td>
+                    <Td>{formatNumber(row.pctOfAllocated)}%</Td>
+                    <Td className="whitespace-nowrap">{formatRupiah(row.totalRp / fuDivisor)}</Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
+          <p className="mt-3 text-xs text-navy-700/60">
+            Tenaga kerja {formatRupiah(cost.unallocatedRp)} belum dialokasikan ke tahap mana pun, jadi tidak ada di
+            tabel ini tetapi tetap masuk Total biaya proses.
+          </p>
+        </CardBody>
+      </Card>
+
+      {cost.warnings.length > 0 && (
+        <Card>
+          <CardHeader title="Catatan Kualitas Data" subtitle="Perlu diperbaiki di Data Proses agar biaya akurat" />
+          <CardBody>
+            <ul className="space-y-1.5 text-xs text-navy-700">
+              {cost.warnings.map((w) => (
+                <li key={w} className="flex gap-2">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-red" />
+                  {w}
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
 
       <Card>
         <CardHeader title="Konfigurasi Harga Satuan" subtitle="Ubah asumsi harga untuk menyesuaikan dengan kondisi aktual" />
@@ -102,7 +190,7 @@ export default function AliranBiayaPage() {
               <Input
                 type="number"
                 min={0}
-                value={project.costConfig[field.key]}
+                value={project.costConfig[field.key] ?? (field.key === "periodMonths" ? 1 : 0)}
                 onChange={(e) =>
                   updateCostConfig({ [field.key]: Number(e.target.value) } as Partial<CostConfig>)
                 }

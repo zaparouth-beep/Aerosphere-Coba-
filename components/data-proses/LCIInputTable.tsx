@@ -225,7 +225,20 @@ export function LCIInputTable() {
                             }
                           />
                         </Field>
-                        <Field label="Period">
+                        <Field label="Harga satuan (Rp, kosong = harga kategori)">
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Ikuti harga kategori"
+                          value={entry.unitPriceRp ?? ""}
+                          onChange={(e) =>
+                            updateLCIInput(entry.id, {
+                              unitPriceRp: e.target.value === "" ? undefined : Number(e.target.value),
+                            })
+                          }
+                        />
+                      </Field>
+                      <Field label="Period">
                           <Input
                             value={entry.period}
                             onChange={(e) =>
