@@ -1,37 +1,35 @@
-/** Fixed categorical order from the design system's validated default palette.
- * Never reassigned per filter/interaction — index is stable per entity. */
-export const CATEGORICAL_PALETTE = [
-  "#2a78d6", // 1 blue
-  "#eb6834", // 2 orange
-  "#1baf7a", // 3 aqua
-  "#eda100", // 4 yellow
-  "#e87ba4", // 5 magenta
-  "#008300", // 6 green
-  "#4a3aa7", // 7 violet
-  "#e34948", // 8 red
-] as const;
+import type { StageId } from "@/lib/domain/types";
 
-export const CHART_CHROME = {
-  gridline: "#e1e0d9",
-  axis: "#c3c2b7",
-  mutedText: "#898781",
-  primaryText: "#0b0b0b",
-  secondaryText: "#52514e",
-  surface: "#fcfcfb",
+/**
+ * Okabe-Ito categorical order (PRD 3.1), re-ordered so adjacent slots pass the
+ * CVD check (worst adjacent ΔE 9,6 deutan). Three slots sit below 3:1 contrast,
+ * so every chart ships direct labels or a table view.
+ */
+export const CATEGORICAL = ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#56B4E9", "#CC79A7", "#5b6475", "#9a7229"] as const;
+
+export const STAGE_COLOR: Record<StageId, string> = {
+  A: CATEGORICAL[0],
+  B: CATEGORICAL[1],
+  C: CATEGORICAL[2],
+  D: CATEGORICAL[3],
+  E: CATEGORICAL[4],
+  F: CATEGORICAL[5],
 };
 
-export const STAGE_COLORS: Record<string, string> = {
-  pretreatment: CATEGORICAL_PALETTE[0],
-  strike: CATEGORICAL_PALETTE[1],
-  main_plating: CATEGORICAL_PALETTE[2],
-  post_treatment: CATEGORICAL_PALETTE[3],
-  utility: CATEGORICAL_PALETTE[4],
-  wwtp: CATEGORICAL_PALETTE[5],
-};
+/** Sequential single-hue ramp (brand blue) for heatmaps, light → dark. */
+export const SEQUENTIAL = ["#eef4fa", "#cfe0ef", "#a3c4e0", "#6fa1cb", "#3b7db3", "#1c6aa2", "#11497a"] as const;
 
-export const METRIC_COLORS = {
-  energy: CATEGORICAL_PALETTE[0],
-  water: CATEGORICAL_PALETTE[1],
-  chemical: CATEGORICAL_PALETTE[2],
-  waste: CATEGORICAL_PALETTE[7], // red — hazardous waste
+export function sequentialColor(t: number): string {
+  const idx = Math.min(SEQUENTIAL.length - 1, Math.max(0, Math.floor(t * (SEQUENTIAL.length - 1) + 0.0001)));
+  return SEQUENTIAL[idx]!;
+}
+
+export const CHROME = {
+  grid: "#e3dccb",
+  axis: "#cfc6ae",
+  muted: "#6a7ab6",
+  text: "#0b1660",
+  surface: "#ffffff",
+  positive: "#1f8a8a",
+  negative: "#b42318",
 };
