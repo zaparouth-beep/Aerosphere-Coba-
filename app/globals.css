@@ -2,14 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-}
-
 html,
 body {
   background-color: #f7f5ef;
-  color: #16213e;
+  color: #0b1660;
+}
+
+body {
+  font-feature-settings: "tnum" 1, "cv11" 1;
+}
+
+.num {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid #1c6aa2;
+  outline-offset: 2px;
 }
 
 @media print {
@@ -19,6 +29,9 @@ body {
   body {
     background: #ffffff;
   }
+  .print-page {
+    break-after: page;
+  }
 }
 
 ::-webkit-scrollbar {
@@ -26,7 +39,7 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #c9c2ab;
+  background-color: #cfc6ae;
   border-radius: 8px;
 }
 ::-webkit-scrollbar-track {

@@ -1,35 +1,49 @@
 import { cn } from "@/lib/utils/cn";
 
-export function Table({ className, children }: { className?: string; children: React.ReactNode }) {
+export function Table({ className, children, caption }: { className?: string; children: React.ReactNode; caption?: string }) {
   return (
-    <div className="overflow-x-auto">
-      <table className={cn("w-full border-collapse text-sm", className)}>{children}</table>
+    <div className="overflow-x-auto rounded-lg border border-sand-200">
+      <table className={cn("w-full border-collapse text-sm", className)}>
+        {caption && <caption className="sr-only">{caption}</caption>}
+        {children}
+      </table>
     </div>
   );
 }
 
 export function THead({ children }: { children: React.ReactNode }) {
-  return <thead className="bg-navy-900 text-left text-xs uppercase tracking-wide text-white">{children}</thead>;
+  return <thead className="bg-navy-900 text-left text-[11px] uppercase tracking-wide text-white">{children}</thead>;
 }
 
-export function Th({ className, children }: { className?: string; children?: React.ReactNode }) {
-  return <th className={cn("px-3 py-2 font-semibold", className)}>{children}</th>;
+export function Th({ className, children, align }: { className?: string; children?: React.ReactNode; align?: "right" | "center" }) {
+  return (
+    <th scope="col" className={cn("whitespace-nowrap px-3 py-2 font-semibold", align === "right" && "text-right", align === "center" && "text-center", className)}>
+      {children}
+    </th>
+  );
 }
 
 export function Td({
   className,
   children,
-  highlight,
+  align,
+  num,
+  colSpan,
 }: {
   className?: string;
-  children: React.ReactNode;
-  highlight?: boolean;
+  children?: React.ReactNode;
+  align?: "right" | "center";
+  num?: boolean;
+  colSpan?: number;
 }) {
   return (
     <td
+      colSpan={colSpan}
       className={cn(
-        "border-b border-sand-200 px-3 py-2 text-navy-900",
-        highlight && "bg-accent-red/10 font-semibold text-accent-red",
+        "border-t border-sand-200 px-3 py-2 align-middle text-navy-900",
+        (align === "right" || num) && "text-right",
+        align === "center" && "text-center",
+        num && "num whitespace-nowrap",
         className,
       )}
     >
@@ -38,6 +52,10 @@ export function Td({
   );
 }
 
-export function Tr({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <tr className={cn("even:bg-sand-50/60", className)}>{children}</tr>;
+export function Tr({ className, children, onClick }: { className?: string; children: React.ReactNode; onClick?: () => void }) {
+  return (
+    <tr onClick={onClick} className={cn("bg-white even:bg-sand-50/50", onClick && "cursor-pointer hover:bg-brand-blue/5", className)}>
+      {children}
+    </tr>
+  );
 }
