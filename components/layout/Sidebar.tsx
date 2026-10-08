@@ -65,7 +65,7 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
             <p className="text-[15px] font-semibold tracking-wide">
               AeroSphere <span className="bg-brand-gradient bg-clip-text text-transparent">LCA</span>
             </p>
-            <p className="truncate text-[10px] uppercase tracking-[0.14em] text-white/45">Manufaktur berkelanjutan</p>
+            <p className="truncate text-[10px] uppercase tracking-[0.06em] text-white/45">Manufaktur berkelanjutan</p>
           </div>
           <button type="button" onClick={onClose} className="ml-auto text-white/60 md:hidden" aria-label="Tutup menu">
             <X className="h-5 w-5" />

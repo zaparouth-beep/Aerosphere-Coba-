@@ -3,17 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, BarChart3, Calculator, FileText, Flame, ShieldCheck, SlidersHorizontal, Upload } from "lucide-react";
+import { ArrowRight, BarChart3, Calculator, FileText, ShieldCheck, SlidersHorizontal, Upload } from "lucide-react";
 import { PlanCards, PlanComparison } from "@/components/plans/PlanPicker";
-import { HeadlineCards, WorstStageBars } from "@/components/summary/Summary";
-import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { InfoTip } from "@/components/ui/InfoTip";
 import { NumberInput } from "@/components/ui/Input";
 import { hardChromeDemo } from "@/lib/domain/templates";
 import { calculate, indicatorsOf } from "@/lib/engine/calculate";
 import { evaluateScenario } from "@/lib/engine/scenario";
-import { fmt, fmtDelta, fmtRp } from "@/lib/utils/format";
-import { headlines, worstStage } from "@/lib/view/summary";
+import { fmt, fmtRp } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -93,7 +89,7 @@ export function Landing() {
         </ol>
       </section>
 
-      <DemoSection />
+      <MockupSection />
       <SavingsCalculator />
 
       <section className="mx-auto max-w-6xl px-4 py-16">
@@ -179,91 +175,75 @@ export function Landing() {
   );
 }
 
-/** Interactive demo on the sample hard-chrome line, computed live by the engine. */
-function DemoSection() {
-  const demo = useMemo(() => {
-    const project = hardChromeDemo();
-    const results = calculate(project);
-    const indicators = indicatorsOf(results);
-    const heads = headlines(indicators, results.lci.referenceFlow, results.lci.fuLabel, null);
-    const outcomes = project.scenarios.map((s) => evaluateScenario(project, s, indicators));
-    return { project, results, heads, worst: worstStage(project, results, heads), outcomes };
-  }, []);
-  const [pick, setPick] = useState<string | null>(null);
-  const chosen = demo.outcomes.find((o) => o.scenario.id === pick);
+const SCREENS = [
+  { id: "beranda", label: "Beranda", text: "Empat angka utama, tahap paling boros, dan perbaikan yang disarankan dalam satu layar." },
+  { id: "titik-boros", label: "Titik Boros", text: "Urutan tahap paling bermasalah, penyebabnya, dan pengeluaran terbesar per m²." },
+  { id: "simulasi", label: "Simulasi Perbaikan", text: "Uji “bagaimana jika” sebelum mengubah lini: hemat per tahun, jejak karbon, usaha, dan waktu." },
+  { id: "laporan", label: "Laporan", text: "Laporan ringkas 2 halaman untuk atasan, siap dicetak atau disimpan sebagai PDF." },
+] as const;
 
+/** Device mockups with real screenshots of the app (proyek percontohan), so visitors can picture the dashboard. */
+function MockupSection() {
+  const [screen, setScreen] = useState<(typeof SCREENS)[number]["id"]>("beranda");
+  const current = SCREENS.find((s) => s.id === screen)!;
   return (
-    <section id="demo" className="scroll-mt-20 border-y border-sand-200 bg-white py-16">
+    <section id="demo" className="scroll-mt-20 overflow-hidden border-y border-sand-200 bg-white py-16">
       <div className="mx-auto max-w-6xl px-4">
-        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-teal">Demo interaktif</p>
-        <h2 className="mt-1 text-center text-2xl font-semibold text-navy-900">Proyek percontohan: lini pelapisan hard chrome, 250 m² per tahun</h2>
-        <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-navy-700/70">
-          Angka di bawah dihitung langsung oleh mesin hitung AeroSphere dari data contoh. Tekan ikon <InfoTip what="Ikon ini menjelaskan arti setiap angka dalam tiga baris." /> untuk penjelasan.
-        </p>
-        <div className="mt-8">
-          <HeadlineCards heads={demo.heads} />
-        </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
-          {demo.worst && (
-            <Card>
-              <CardHeader
-                title={<span className="flex items-center gap-1.5"><Flame className="h-4 w-4 text-status-danger" /> Di mana masalahnya</span>}
-                subtitle={`Tahap ${demo.worst.stageName} menyumbang ${fmt(demo.worst.sharePct, 0)}% dari ${demo.worst.indicator}.`}
-                info="hotspot"
-              />
-              <CardBody>
-                <WorstStageBars project={demo.project} results={demo.results} worst={demo.worst} />
-              </CardBody>
-            </Card>
-          )}
-          <Card>
-            <CardHeader title="Coba perbaikan" subtitle="Pilih satu perbaikan; mesin hitung menghitung ulang seluruh lini." info="whatif" />
-            <CardBody className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {demo.outcomes.map((o) => (
-                  <button
-                    key={o.scenario.id}
-                    type="button"
-                    onClick={() => setPick(o.scenario.id === pick ? null : o.scenario.id)}
-                    aria-pressed={o.scenario.id === pick}
-                    className={cn(
-                      "rounded-lg border px-3 py-1.5 text-xs font-medium",
-                      o.scenario.id === pick ? "border-navy-900 bg-navy-900 text-white" : "border-sand-300 bg-white text-navy-900 hover:bg-sand-50",
-                    )}
-                  >
-                    {o.scenario.name}
-                  </button>
-                ))}
-              </div>
-              {chosen ? (
-                <div className="space-y-2">
-                  <p className="text-xs text-navy-700/75">{chosen.scenario.description}</p>
-                  <dl className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-                    {[
-                      ["Jejak karbon", chosen.delta.ccKg.pct],
-                      ["Air", chosen.delta.waterL.pct],
-                      ["Limbah B3", chosen.delta.wasteKg.pct],
-                      ["Biaya", chosen.delta.costRp.pct],
-                    ].map(([label, pct]) => (
-                      <div key={label as string} className="rounded-lg bg-sand-50 py-2">
-                        <dt className="text-[10px] uppercase tracking-wide text-navy-700/55">{label}</dt>
-                        <dd className={cn("num text-sm font-semibold", (pct as number) < 0 ? "text-status-ok" : (pct as number) > 0 ? "text-status-danger" : "text-navy-700/60")}>
-                          {fmtDelta(pct as number)}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <p className="text-sm text-navy-900">
-                    Hemat sekitar <b className="num">{fmtRp(chosen.lcc.annualSavingRp)}</b> per tahun pada lini contoh.
-                  </p>
-                </div>
-              ) : (
-                <p className="rounded-lg bg-sand-50 p-4 text-center text-xs text-navy-700/65">Pilih perbaikan di atas untuk melihat dampaknya.</p>
+        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-teal">Tampilan aplikasi</p>
+        <h2 className="mt-1 text-center text-2xl font-semibold text-navy-900">Dashboard yang langsung bisa dibaca, di laptop maupun HP</h2>
+        <div className="mt-6 flex flex-wrap justify-center gap-2" role="tablist" aria-label="Pilih layar">
+          {SCREENS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              role="tab"
+              aria-selected={screen === s.id}
+              onClick={() => setScreen(s.id)}
+              className={cn(
+                "rounded-full border px-4 py-1.5 text-xs font-medium transition-colors",
+                screen === s.id ? "border-navy-900 bg-navy-900 text-white" : "border-sand-300 bg-white text-navy-800 hover:bg-sand-50",
               )}
-            </CardBody>
-          </Card>
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
-        <p className="mt-3 text-center text-[11px] text-navy-700/55">Data dan harga contoh, bukan data pabrik nyata.</p>
+        <p className="mx-auto mt-3 max-w-xl text-center text-sm text-navy-700/75">{current.text}</p>
+
+        <div className="relative mx-auto mt-10 max-w-4xl pb-6 md:pr-24">
+          {/* Laptop */}
+          <div className="mx-auto">
+            <div className="rounded-t-[18px] border border-navy-900 bg-navy-950 p-2.5 pb-3 shadow-2xl md:p-3.5">
+              <div className="mx-auto mb-2 h-1.5 w-1.5 rounded-full bg-white/25" aria-hidden />
+              <div className="aspect-[16/10] overflow-hidden rounded-md bg-sand-50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${BASE}/mockup/${screen}.jpg`} alt={`Tampilan ${current.label} di laptop`} className="h-full w-full object-cover object-top" loading="lazy" />
+              </div>
+            </div>
+            <div className="relative mx-[-4%] h-3 rounded-b-xl bg-gradient-to-b from-[#c9ccd3] to-[#9aa0ab] md:h-4" aria-hidden>
+              <div className="absolute left-1/2 top-0 h-1.5 w-24 -translate-x-1/2 rounded-b-md bg-[#8a909b]" />
+            </div>
+          </div>
+          {/* Phone */}
+          <div className="mx-auto mt-8 w-[210px] md:absolute md:-bottom-2 md:right-0 md:mt-0 md:w-[170px] lg:w-[190px]">
+            <div className="rounded-[28px] border-[6px] border-navy-950 bg-navy-950 shadow-2xl ring-1 ring-navy-900">
+              <div className="relative aspect-[390/844] overflow-hidden rounded-[22px] bg-sand-50">
+                <div className="absolute left-1/2 top-1.5 z-10 h-3.5 w-14 -translate-x-1/2 rounded-full bg-navy-950" aria-hidden />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`${BASE}/mockup/beranda-hp.jpg`} alt="Tampilan Beranda di HP" className="h-full w-full object-cover object-top" loading="lazy" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link href="/masuk?daftar=1" className="inline-flex items-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white">
+            Coba sendiri gratis <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link href="/masuk" className="rounded-lg border border-sand-300 px-5 py-2.5 text-sm font-medium text-navy-900 hover:bg-sand-50">
+            Masuk dengan akun demo
+          </Link>
+        </div>
+        <p className="mt-3 text-center text-[11px] text-navy-700/55">Tangkapan layar dari proyek percontohan lini pelapisan hard chrome; data dan harga contoh.</p>
       </div>
     </section>
   );
