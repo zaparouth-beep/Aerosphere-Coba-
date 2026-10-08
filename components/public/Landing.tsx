@@ -41,13 +41,15 @@ export function Landing() {
         <div className="pointer-events-none absolute -bottom-40 left-10 h-96 w-96 rounded-full bg-brand-blue/20 blur-3xl" aria-hidden />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-gold">Untuk lini pelapisan logam</p>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-[42px]">
-              Temukan tahap paling boros di lini pelapisan Anda, berapa rupiahnya, dan perbaikan apa yang paling layak.
+            <h1 className="text-3xl font-semibold leading-tight md:text-[44px]">
+              Jangan hanya tahu totalnya. <span className="bg-brand-gradient bg-clip-text text-transparent">Temukan sumbernya.</span>
             </h1>
+            <p className="mt-4 text-sm font-semibold tracking-wide text-brand-gold md:text-base" lang="en">
+              See the Hotspot. Measure the Impact. Improve the Process.
+            </p>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/70 md:text-base">
-              AeroSphere menghitung jejak karbon, pemakaian air, limbah berbahaya, dan biaya per m² dari data yang sudah Anda punya, lalu
-              menunjukkan perbaikan dengan hasil terbesar.
+              AeroSphere menelusuri penggunaan energi, material, air, limbah, dan biaya hingga level proses—agar Anda tahu di mana hotspot terjadi,
+              seberapa besar dampaknya, dan perbaikan mana yang paling layak dilakukan.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/masuk?daftar=1" className="inline-flex items-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:opacity-95">
