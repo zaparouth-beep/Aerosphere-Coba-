@@ -42,3 +42,29 @@ export function useScenarioOutcomes(): { base: Indicators; outcomes: ScenarioOut
     [project, indicators],
   );
 }
+
+export interface Comparison {
+  label: string;
+  indicators: Indicators;
+  ref: number;
+}
+
+/**
+ * "Bandingkan dengan" (PRD v1.1 §3.0.3): the chosen saved result, or the saved
+ * result before the one shown. Null when there is nothing to compare with.
+ */
+export function useComparison(): Comparison | null {
+  const runs = useAppStore((s) => s.runs);
+  const activeRunId = useAppStore((s) => s.ui.activeRunId);
+  const compareRunId = useAppStore((s) => s.ui.compareRunId);
+  return useMemo(() => {
+    let target: Run | undefined;
+    if (compareRunId) target = runs.find((r) => r.id === compareRunId);
+    else {
+      const idx = activeRunId ? runs.findIndex((r) => r.id === activeRunId) + 1 : 0;
+      target = runs[idx];
+    }
+    if (!target || target.id === activeRunId) return null;
+    return { label: `Hasil #${target.id}`, indicators: indicatorsOf(target.results), ref: target.results.lci.referenceFlow };
+  }, [runs, activeRunId, compareRunId]);
+}

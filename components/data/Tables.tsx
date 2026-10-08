@@ -16,12 +16,12 @@ import { fmt } from "@/lib/utils/format";
 import { MetaCell, StageDot, StageSelect } from "./common";
 
 export const CATEGORY_LABEL: Record<InputCategory, string> = {
-  Chemical: "Kimia",
+  Chemical: "Bahan kimia",
   Anode: "Anoda",
   Water: "Air",
-  Energy: "Energi",
-  WWTPChemical: "Kimia IPAL",
-  Consumable: "Consumable",
+  Energy: "Listrik & energi",
+  WWTPChemical: "Kimia pengolahan air limbah",
+  Consumable: "Bahan habis pakai",
 };
 
 const BASES: Basis[] = ["period", "month", "batch"];

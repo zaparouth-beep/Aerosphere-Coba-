@@ -11,20 +11,22 @@ import { concentrationFactor } from "./units";
 
 export interface LeverDef {
   id: LeverId;
+  /** Everyday label shown by default; `technical` is shown in Mode Ahli. */
   label: string;
+  technical: string;
   description: string;
   affects: string;
 }
 
 export const LEVERS: LeverDef[] = [
-  { id: "dragout", label: "Kurangi drag-out", description: "Perbaikan waktu tiris, drag-out tank, atau rak.", affects: "Kimia tahap B/C/D, beban logam efluen, kimia IPAL, lumpur B3" },
-  { id: "countercurrent", label: "Bilas counter-flow", description: "Tambah tingkat bilas: Q = D × (C₀/Cₙ)^(1/n).", affects: "Air bilas, volume efluen, listrik DI/RO" },
-  { id: "rectifier", label: "Optimasi rectifier", description: "Efisiensi rectifier (mis. SCR → switch-mode).", affects: "kWh rectifier" },
-  { id: "tankCover", label: "Tutup & insulasi tangki", description: "Kurangi kehilangan panas dan kabut.", affects: "kWh heater, emisi Cr(VI) mist, acid mist" },
-  { id: "mistSuppressant", label: "Mist suppressant", description: "Aditif penekan kabut pada bath krom.", affects: "Emisi Cr(VI) mist, acid mist" },
-  { id: "effluentTarget", label: "Peningkatan IPAL", description: "Target konsentrasi efluen baru.", affects: "Konsentrasi efluen, flokulan, lumpur" },
-  { id: "gridFactor", label: "Grid lebih bersih", description: "Faktor emisi listrik baru (PPA/REC).", affects: "Climate change dari listrik" },
-  { id: "bathConcentration", label: "Konsentrasi bath", description: "Turunkan konsentrasi bath dalam control limit.", affects: "Kimia tahap C (kehilangan drag-out)" },
+  { id: "dragout", label: "Kurangi larutan terbawa part", technical: "Drag-out reduction", description: "Perbaikan waktu tiris, drag-out tank, atau rak.", affects: "Bahan kimia tahap B–D, logam di air buangan, kimia pengolahan air limbah, lumpur B3" },
+  { id: "countercurrent", label: "Bilasan bertingkat", technical: "Counter-flow rinse", description: "Tambah tingkat bilas: Q = D × (C₀/Cₙ)^(1/n).", affects: "Air bilas, volume air buangan, listrik air DI/RO" },
+  { id: "rectifier", label: "Perbaiki penyearah arus", technical: "Rectifier efficiency", description: "Efisiensi rectifier (mis. SCR → switch-mode).", affects: "Listrik penyearah arus" },
+  { id: "tankCover", label: "Pasang tutup & insulasi tangki", technical: "Tank cover & insulation", description: "Kurangi kehilangan panas dan kabut.", affects: "Listrik pemanas, kabut krom dan kabut asam" },
+  { id: "mistSuppressant", label: "Tambahkan penekan kabut", technical: "Mist suppressant", description: "Aditif penekan kabut pada bath krom.", affects: "Kabut krom dan kabut asam" },
+  { id: "effluentTarget", label: "Tingkatkan pengolahan air limbah", technical: "Effluent target (WWTP upgrade)", description: "Target konsentrasi efluen baru.", affects: "Logam di air buangan, flokulan, lumpur" },
+  { id: "gridFactor", label: "Pakai listrik lebih bersih", technical: "Grid emission factor", description: "Faktor emisi listrik baru (PPA/REC).", affects: "Jejak karbon dari listrik" },
+  { id: "bathConcentration", label: "Turunkan konsentrasi larutan", technical: "Bath concentration", description: "Turunkan konsentrasi bath dalam control limit.", affects: "Bahan kimia tahap plating yang terbuang" },
 ];
 
 type Draft = Project;

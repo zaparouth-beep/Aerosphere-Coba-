@@ -69,16 +69,16 @@ export function toCanonical(
 ): ConversionResult {
   const parsed = parseUnit(unit);
   const expected = CATEGORY_DIMENSION[category];
-  if (!parsed) return { ok: false, error: `Satuan "${unit}" tidak dikenal` };
+  if (!parsed) return { ok: false, error: `satuan "${unit}" tidak dikenali. Pilih satuan dari daftar (mis. kg, L, kWh)` };
   if (parsed.dim === "air" && expected === "energy") {
     const f = production.compressorKwhPerNm3;
     if (!f || f <= 0) {
-      return { ok: false, error: "Nm³ udara tekan butuh faktor kWh/Nm³ kompresor (isi di tab Produksi)" };
+      return { ok: false, error: "udara tekan dicatat dalam Nm³, jadi perlu faktor kWh per Nm³ kompresor (isi di bagian Produksi)" };
     }
     return { ok: true, value: quantity * f, unit: "kWh", note: `${f} kWh/Nm³` };
   }
   if (parsed.dim !== expected) {
-    return { ok: false, error: `Satuan "${unit}" tidak cocok untuk kategori ${category} (butuh ${CANONICAL[expected]})` };
+    return { ok: false, error: `satuan "${unit}" tidak cocok untuk jenis data ini (seharusnya ${CANONICAL[expected]})` };
   }
   return { ok: true, value: quantity * parsed.factor, unit: CANONICAL[expected] };
 }

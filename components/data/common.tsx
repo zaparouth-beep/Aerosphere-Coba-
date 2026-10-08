@@ -9,6 +9,7 @@ import { Field, NumberInput, Select, TextInput } from "@/components/ui/Input";
 import type { DataMeta, Pedigree, SourceType, StageId } from "@/lib/domain/types";
 import { confidenceOf, defaultPedigree, PEDIGREE_KEYS, pedigreeScore, SOURCE_TIER } from "@/lib/engine/quality";
 import { STAGE_COLOR } from "@/components/charts/palette";
+import { useAppStore } from "@/lib/store/useAppStore";
 import { fmt } from "@/lib/utils/format";
 
 export const STAGE_OPTIONS: StageId[] = ["A", "B", "C", "D", "E", "F"];
@@ -34,10 +35,43 @@ export function StageDot({ id }: { id: StageId }) {
 }
 
 /** Data pedigree editor (FR-04.6, FR-03.7); changes go through the audited store action. */
+const SIMPLE_SOURCE: Array<{ id: SourceType; label: string }> = [
+  { id: "measured", label: "Dari meter / timbangan" },
+  { id: "supplier", label: "Dari faktur / catatan" },
+  { id: "calculated", label: "Dihitung" },
+  { id: "literature", label: "Perkiraan" },
+];
+
 export function MetaCell({ meta, onChange, disabled }: { meta: DataMeta; onChange: (m: DataMeta) => void; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DataMeta>(meta);
+  const expert = useAppStore((s) => s.ui.expertMode);
   const conf = confidenceOf(meta);
+  if (!expert) {
+    // Mode Ringkas: one plain question — where does this number come from? (PRD v1.1 §3.0.3)
+    const options = SIMPLE_SOURCE.some((o) => o.id === meta.sourceType) ? SIMPLE_SOURCE : [...SIMPLE_SOURCE, { id: meta.sourceType, label: SOURCE_TIER[meta.sourceType].label }];
+    return (
+      <div className="flex items-center gap-1.5">
+        <Select
+          value={meta.sourceType}
+          disabled={disabled}
+          aria-label="Asal angka"
+          className="w-[150px] text-xs"
+          onChange={(e) => {
+            const st = e.target.value as SourceType;
+            onChange({ ...meta, sourceType: st, pedigree: defaultPedigree(st) });
+          }}
+        >
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </Select>
+        <ConfidenceBadge value={conf} />
+      </div>
+    );
+  }
   return (
     <div className="flex items-center gap-1.5">
       <Badge tone="neutral" title={SOURCE_TIER[meta.sourceType].label}>

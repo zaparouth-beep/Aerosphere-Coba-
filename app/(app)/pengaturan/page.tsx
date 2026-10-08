@@ -1,14 +1,17 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Database, Download, FileJson, Link2, RefreshCw, ShieldCheck, Trash2, Upload, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button, IconButton } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Callout, Modal } from "@/components/ui/Feedback";
 import { Field, NumberInput, Textarea, TextInput } from "@/components/ui/Input";
+import { LockedFeature } from "@/components/ui/Locked";
 import { Tabs } from "@/components/ui/Tabs";
+import { PlanCards, PlanComparison, SubscriptionSummary } from "@/components/plans/PlanPicker";
+import { hasFeature } from "@/lib/domain/plans";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
 import { can, PERMISSION_LABEL, PERMISSIONS, ROLE_LABEL, ROLES } from "@/lib/domain/permissions";
 import { TEMPLATES } from "@/lib/domain/templates";
@@ -23,7 +26,8 @@ import { downloadBlob, downloadCSV, downloadJSON, fileStamp } from "@/lib/utils/
 import { fmtDate, fmtSig } from "@/lib/utils/format";
 import { stageLabel } from "@/lib/view/helpers";
 
-type Tab = "project" | "method" | "runs" | "access" | "audit";
+type Tab = "paket" | "proyek" | "users" | "keamanan" | "hasil" | "method";
+const TAB_IDS: Tab[] = ["paket", "proyek", "users", "keamanan", "hasil", "method"];
 
 export default function SettingsPage() {
   return (
@@ -35,28 +39,70 @@ export default function SettingsPage() {
 
 function Settings() {
   const search = useSearchParams();
-  const [tab, setTab] = useState<Tab>((search.get("tab") as Tab) || "project");
+  const param = search.get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(param && TAB_IDS.includes(param) ? param : "paket");
+  useEffect(() => {
+    if (param && TAB_IDS.includes(param)) setTab(param);
+  }, [param]);
+  const expertMode = useAppStore((s) => s.ui.expertMode);
   return (
     <Card>
       <Tabs<Tab>
         value={tab}
         onChange={setTab}
         tabs={[
-          { id: "project", label: "Proyek & target" },
-          { id: "method", label: "Metode & database" },
-          { id: "runs", label: "Run & manifest" },
-          { id: "access", label: "Akses & peran" },
-          { id: "audit", label: "Audit log" },
+          { id: "paket", label: "Paket" },
+          { id: "proyek", label: "Proyek & target" },
+          { id: "users", label: "Pengguna & peran" },
+          { id: "keamanan", label: "Keamanan & jejak audit" },
+          { id: "hasil", label: "Hasil hitung tersimpan" },
+          { id: "method", label: "Metode & database (Ahli)" },
         ]}
       />
       <CardBody>
-        {tab === "project" && <ProjectTab />}
-        {tab === "method" && <MethodTab />}
-        {tab === "runs" && <RunsTab />}
-        {tab === "access" && <AccessTab />}
-        {tab === "audit" && <AuditTab />}
+        {tab === "paket" && <PlanTab />}
+        {tab === "proyek" && <ProjectTab />}
+        {tab === "users" && <AccessTab />}
+        {tab === "keamanan" && <AuditTab />}
+        {tab === "hasil" && <RunsTab />}
+        {tab === "method" && (expertMode ? <MethodTab /> : <LockedOrSwitch />)}
       </CardBody>
     </Card>
+  );
+}
+
+function PlanTab() {
+  const account = useAppStore((s) => s.account);
+  return (
+    <div className="space-y-5">
+      {account && (
+        <p className="text-xs text-navy-700/70">
+          Masuk sebagai <b className="text-navy-900">{account.name}</b> ({account.email}) · {account.company}
+        </p>
+      )}
+      <SubscriptionSummary />
+      <PlanCards />
+      <details className="rounded-xl border border-sand-200 p-3">
+        <summary className="cursor-pointer text-xs font-medium text-navy-900">Bandingkan semua fitur</summary>
+        <div className="mt-3">
+          <PlanComparison />
+        </div>
+      </details>
+    </div>
+  );
+}
+
+function LockedOrSwitch() {
+  const subscription = useAppStore((s) => s.subscription);
+  const setExpertMode = useAppStore((s) => s.setExpertMode);
+  if (!hasFeature(subscription, "expertMode")) return <LockedFeature feature="expertMode" title="Metode & database" />;
+  return (
+    <Callout>
+      Pengaturan metode, database, dan pemetaan aliran hanya tampil di Mode Ahli.{" "}
+      <button type="button" className="font-medium text-brand-blue underline" onClick={() => setExpertMode(true)}>
+        Aktifkan Mode Ahli
+      </button>
+    </Callout>
   );
 }
 
@@ -200,7 +246,7 @@ function ProjectTab() {
           </>
         }
       >
-        Proyek aktif akan diganti. Ekspor proyek ke JSON lebih dulu bila ingin menyimpannya. Run terkunci dan audit log tetap tersimpan.
+        Proyek aktif akan diganti. Ekspor proyek ke JSON lebih dulu bila ingin menyimpannya. Hasil hitung tersimpan dan jejak audit tetap ada.
       </Modal>
     </div>
   );
@@ -358,16 +404,16 @@ function RunsTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => runCalculation("draft")}>Run draf</Button>
+        <Button onClick={() => runCalculation("draft")}>Simpan hasil (draf)</Button>
         <Button variant="brand" disabled={!v.readyForOfficialRun} onClick={() => runCalculation("official")}>
-          <ShieldCheck className="h-4 w-4" /> Run resmi
+          <ShieldCheck className="h-4 w-4" /> Simpan hasil resmi
         </Button>
-        {!v.readyForOfficialRun && <span className="text-xs text-navy-700/65">Run resmi butuh scope terkunci, dataset approved, tanpa error, dan semua aliran dipetakan.</span>}
+        {!v.readyForOfficialRun && <span className="text-xs text-navy-700/65">Hasil resmi butuh pengaturan studi dikunci, data disetujui, tanpa kesalahan, dan semua buangan terpetakan.</span>}
       </div>
-      <Table caption="Run terkunci">
+      <Table caption="Hasil hitung tersimpan">
         <THead>
           <tr>
-            <Th>Run</Th>
+            <Th>Nomor hasil</Th>
             <Th>Jenis</Th>
             <Th>Dibuat</Th>
             <Th>Scope · dataset</Th>
@@ -434,13 +480,13 @@ function RunsTab() {
           {!runs.length && (
             <Tr>
               <Td colSpan={7} className="py-6 text-center text-xs text-navy-700/60">
-                Belum ada run. Run mengunci snapshot data, versi metode, versi engine ({ENGINE_VERSION}), dan hash hasil.
+                Belum ada hasil tersimpan. Setiap hasil mengunci salinan data, versi metode, versi engine ({ENGINE_VERSION}), dan hash hasil.
               </Td>
             </Tr>
           )}
         </tbody>
       </Table>
-      <Modal open={!!manifest} title="Run manifest" onClose={() => setManifest(null)}>
+      <Modal open={!!manifest} title="Rincian hasil tersimpan" onClose={() => setManifest(null)}>
         <pre className="num max-h-[60vh] overflow-auto rounded bg-sand-50 p-3 text-[11px]">{manifest}</pre>
       </Modal>
     </div>

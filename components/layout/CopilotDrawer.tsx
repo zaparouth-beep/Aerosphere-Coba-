@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Feedback";
 import { Input } from "@/components/ui/Input";
 import { buildInsights, parseWhatIf } from "@/lib/engine/copilot";
-import { MAX_SCENARIOS, useAppStore } from "@/lib/store/useAppStore";
+import { hasFeature, planLimits } from "@/lib/domain/plans";
+import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
 import { cn } from "@/lib/utils/cn";
 
@@ -24,7 +25,12 @@ export function CopilotDrawer() {
   const createScenarioFrom = useAppStore((s) => s.createScenarioFrom);
   const updateScenario = useAppStore((s) => s.updateScenario);
   const scenarios = useAppStore((s) => s.project.scenarios);
-  const replaceTarget = scenarios.length >= MAX_SCENARIOS ? [...scenarios].reverse().find((s) => s.status !== "approved") : undefined;
+  const subscription = useAppStore((s) => s.subscription);
+  const consumeAiQuestion = useAppStore((s) => s.consumeAiQuestion);
+  const maxScenarios = planLimits(subscription).scenarios;
+  const canEditScenario = hasFeature(subscription, "editScenario");
+  const aiLimit = planLimits(subscription).aiQuestions;
+  const replaceTarget = scenarios.length >= maxScenarios ? [...scenarios].reverse().find((s) => s.status !== "approved") : undefined;
   const router = useRouter();
   const { project, results } = useActiveResults();
   const { outcomes } = useScenarioOutcomes();
@@ -47,24 +53,24 @@ export function CopilotDrawer() {
   };
 
   return (
-    <aside className="no-print fixed inset-y-0 right-0 z-50 flex w-full max-w-[400px] flex-col border-l border-sand-200 bg-white shadow-2xl" aria-label="AI Copilot">
+    <aside className="no-print fixed inset-y-0 right-0 z-50 flex w-full max-w-[400px] flex-col border-l border-sand-200 bg-white shadow-2xl" aria-label="Tanya AeroSphere">
       <div className="flex items-center gap-2 border-b border-sand-200 bg-navy-950 px-4 py-3 text-white">
         <Sparkles className="h-4 w-4 text-brand-gold" />
         <div className="flex-1">
-          <p className="text-sm font-semibold">AeroSphere Copilot</p>
-          <p className="text-[11px] text-white/55">Menafsirkan hasil engine — tidak menghitung angka</p>
+          <p className="text-sm font-semibold">Tanya AeroSphere</p>
+          <p className="text-[11px] text-white/55">Menjelaskan hasil dengan bahasa sehari-hari. Angka selalu dari mesin hitung.</p>
         </div>
-        <button type="button" onClick={() => setUi({ copilotOpen: false })} aria-label="Tutup Copilot" className="text-white/60 hover:text-white">
+        <button type="button" onClick={() => setUi({ copilotOpen: false })} aria-label="Tutup Tanya AeroSphere" className="text-white/60 hover:text-white">
           <X className="h-4 w-4" />
         </button>
       </div>
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         <Callout tone="info">
-          <span className="font-medium">Disusun otomatis – perlu ditinjau.</span> Setiap angka diambil dari payload hasil run dan dicek guardrail;
-          narasi dengan angka bebas ditolak.
+          <span className="font-medium">Disusun otomatis – perlu ditinjau.</span> Setiap angka diambil dari hasil hitung dan diperiksa ulang; kalimat
+          dengan angka yang tidak berasal dari hasil hitung tidak ditampilkan.
         </Callout>
         {insights.rejected.length > 0 && (
-          <Callout tone="warn">{insights.rejected.length} narasi ditolak guardrail karena memuat angka yang bukan dari hasil engine.</Callout>
+          <Callout tone="warn">{insights.rejected.length} penjelasan tidak ditampilkan karena memuat angka yang bukan dari hasil hitung.</Callout>
         )}
         {insights.map((ins) => {
           const d = decisions[ins.id];
@@ -96,27 +102,29 @@ export function CopilotDrawer() {
 
         <div className="rounded-lg border border-brand-teal/30 bg-brand-teal/5 p-3">
           <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-navy-900">
-            <Wand2 className="h-3.5 w-3.5 text-brand-teal" /> What-if dalam bahasa alami
+            <Wand2 className="h-3.5 w-3.5 text-brand-teal" /> Tanya “bagaimana jika…”
           </p>
-          <p className="mb-2 text-[11px] text-navy-700/70">Contoh: “apa yang terjadi bila drag-out turun 20%?” atau “rectifier 75% ke 88%”.</p>
+          <p className="mb-2 text-[11px] text-navy-700/70">Contoh: “bagaimana jika larutan terbawa part turun 20%?” atau “penyearah 75% ke 88%”.
+            {Number.isFinite(aiLimit) && subscription && <> Sisa {Math.max(aiLimit - subscription.aiQuestionsUsed, 0)} pertanyaan di paket Coba.</>}</p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              if (!consumeAiQuestion()) return;
               const p = parseWhatIf(question);
               setProposal(p);
               log("ai", "nl-whatif", p ? "propose-scenario" : "no-match", { newValue: question });
             }}
             className="flex gap-1.5"
           >
-            <Input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Tulis pertanyaan…" aria-label="Pertanyaan what-if" />
+            <Input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Tulis pertanyaan…" aria-label="Pertanyaan bagaimana jika" />
             <Button type="submit" size="md" disabled={!question.trim()}>
-              Susun
+              Tanya
             </Button>
           </form>
-          {proposal === null && <p className="mt-2 text-[11px] text-status-warn">Tidak ada lever yang dikenali. Sebut drag-out, bilas, rectifier, grid, kabut, atau pemanas.</p>}
+          {proposal === null && <p className="mt-2 text-[11px] text-status-warn">Belum ada perbaikan yang dikenali. Sebut larutan terbawa, bilasan, penyearah, listrik, kabut, atau pemanas, beserta angkanya.</p>}
           {proposal && (
             <div className="mt-2 space-y-2">
-              <p className="text-[11px] font-medium text-navy-900">Parameter skenario yang diusulkan (engine yang menghitung):</p>
+              <p className="text-[11px] font-medium text-navy-900">Perbaikan yang diusulkan (mesin hitung yang menghitung hasilnya):</p>
               <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-navy-800">
                 {proposal.summary.map((s) => (
                   <li key={s}>{s}</li>
@@ -125,27 +133,28 @@ export function CopilotDrawer() {
               <Button
                 size="sm"
                 variant="brand"
-                disabled={scenarios.length >= MAX_SCENARIOS && !replaceTarget}
+                disabled={!canEditScenario || (scenarios.length >= maxScenarios && !replaceTarget)}
                 onClick={() => {
                   const description = `Disusun dari: “${question}”`;
                   const ok = replaceTarget
-                    ? updateScenario(replaceTarget.id, { name: "Dari Copilot", levers: proposal.levers, description })
-                    : !!createScenarioFrom("Dari Copilot", proposal.levers, description);
+                    ? updateScenario(replaceTarget.id, { name: "Dari Tanya AeroSphere", levers: proposal.levers, description })
+                    : !!createScenarioFrom("Dari Tanya AeroSphere", proposal.levers, description);
                   if (ok) {
                     setUi({ copilotOpen: false });
-                    router.push("/what-if");
+                    router.push("/simulasi");
                   }
                 }}
               >
-                {replaceTarget ? `Ganti ${replaceTarget.code} dengan saran ini` : "Buat skenario dari saran ini"}
+                {replaceTarget ? `Ganti ${replaceTarget.code} dengan saran ini` : "Buat simulasi dari saran ini"}
               </Button>
-              {scenarios.length >= MAX_SCENARIOS && !replaceTarget && <p className="text-[11px] text-status-warn">Semua slot S1–S3 sudah disetujui; hapus satu skenario dulu.</p>}
+              {!canEditScenario && <p className="text-[11px] text-navy-700/60">Membuat simulasi sendiri tersedia mulai paket Esensial.</p>}
+              {scenarios.length >= maxScenarios && !replaceTarget && <p className="text-[11px] text-status-warn">Semua slot simulasi sudah disetujui; hapus satu dulu.</p>}
             </div>
           )}
         </div>
         <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-navy-700/55">
           <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Versi browser ini memakai aturan deterministik. Integrasi LLM (PRD 2.5) membutuhkan backend agar kunci API tidak terekspos; guardrail yang sama tetap berlaku.
+          Versi demo ini memakai aturan tetap, bukan model bahasa. Versi server memakai model AI dengan pemeriksaan angka yang sama.
         </p>
       </div>
     </aside>

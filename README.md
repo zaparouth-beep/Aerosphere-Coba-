@@ -1,22 +1,24 @@
 # AeroSphere LCA
 
-Process-level LCA + MFCA untuk manufaktur aerospace, dimulai dari lini plating (Aerospace Bandung Facility, FU 1 m² permukaan ter-plating). Implementasi dari *AeroSphere LCA — Technical & Product Requirement Document v1.0* dan pitch deck BUILD 2026.
+Process-level LCA + MFCA untuk manufaktur aerospace, dimulai dari lini plating (Aerospace Bandung Facility, FU 1 m² permukaan ter-plating). Implementasi dari *AeroSphere LCA — Technical & Product Requirement Document* (v1.0 + revisi UX v1.1) dan pitch deck BUILD 2026.
 
-## Modul
+## Alur pengguna (PRD v1.1)
 
-| Kode | Modul | Halaman |
-|---|---|---|
-| M01 | Goal & Scope (wizard 5 langkah, boundary klik, versi & kunci scope, template) | `/goal-scope`, `/pengaturan` |
-| M02–M03 | Peta proses A–F, data ingestion (input manual, template Excel 6 sheet, konversi satuan, basis per periode/bulan/batch) | `/data-proses` |
-| M04 | Validasi (aturan blokir & peringatan, neraca air & logam, benchmark Ni, baku mutu), pedigree matrix, approval dataset | `/kualitas-data` |
-| M05–M06 | Engine LCI → LCIA (kategori inti EF 3.1, background via adapter openLCA, Scope 1/2/3) | `/dampak-lingkungan` |
-| M07 | MFCA ISO 14051 (positive/negative product, 4 kategori biaya, Sankey) | `/aliran-biaya` |
-| M08 | Hotspot (heatmap, ambang, Pareto, skor prioritas, drill-down WHY → WHERE → WHAT IF) | `/hotspot` |
-| M09 | What-if S0–S3 (8 lever terdokumentasi, bridge, decision matrix, tornado ±10%, LCC) | `/what-if` |
-| M10 | Copilot (narasi berbasis aturan dengan guardrail angka, what-if bahasa alami) | panel kanan |
-| M11 | Laporan (ISO 14044, PCF, GRI, PROPER, MFCA, decision brief, one-pager; Excel/CSV/JSON bukti audit) | `/laporan` |
-| M12 | Executive overview (KPI + badge kualitas, tren antar-run, target, rekomendasi) | `/overview` |
-| M13 | RBAC (simulasi klien), audit log hash-chain, run terkunci + re-run check | `/pengaturan` |
+Situs publik `/` (manfaat, 4 langkah, demo interaktif, kalkulator potensi hemat, paket, FAQ) → `/masuk` → `/paket` (Coba langsung aktif 14 hari; paket berbayar menunggu aktivasi admin, disimulasikan di demo) → `/mulai` (profil lini → unggah template atau proyek contoh → hasil pertama) → aplikasi dengan tur 5 langkah. Contoh laporan publik di `/contoh-laporan`.
+
+## Menu aplikasi
+
+| Menu | Pertanyaan | Mode Ringkas (bawaan) | Mode Ahli (Profesional+) |
+|---|---|---|---|
+| Beranda `/beranda` | Bagaimana kondisi lini saya? | Checklist 5 langkah, 4 angka utama + status, titik paling boros, saran, keyakinan | + overview teknis (tren, target, Sankey) |
+| Data Saya `/data` | Data apa yang perlu saya isi? | Isi data, Cek data (pesan bahasa sehari-hari), Setujui data | + pedigree matrix, neraca massa, pemetaan, Goal & Scope |
+| Hasil `/hasil` | Berapa dampak dan biayanya? | 4 angka utama, maks. 2 grafik | + semua kategori EF 3.1, Scope 1/2/3, MFCA |
+| Titik Boros `/titik-boros` | Tahap mana paling bermasalah, kenapa? | Urutan tahap, penyebab, perbaikan yang bisa dicoba | + heatmap, Pareto, bobot prioritas |
+| Simulasi Perbaikan `/simulasi` | Kalau saya ubah ini, apa hasilnya? | Editor perbaikan (Esensial+), tabel sekarang vs perbaikan | + bridge, decision matrix (bobot), tornado |
+| Laporan `/laporan` | Apa yang saya kirim ke atasan/auditor? | Laporan Ringkas Manajemen 2 halaman (watermark “Contoh” di paket Coba) | Teknis (ISO 14044, MFCA) & Kepatuhan (GRI, GHG, PROPER, paket bukti audit Industri) |
+| Bantuan `/bantuan` | Apa arti istilah ini? | Ulangi tur, panduan per menu, kamus istilah, FAQ, Tanya AeroSphere | |
+
+Paket dan hak fitur ada di `lib/domain/plans.ts`; pemeriksaan berjalan di setiap aksi store (ditolak → `PLAN_REQUIRED` di jejak audit), bukan hanya di tombol. Kamus label UI di `lib/content/glossary.ts`; ringkasan Mode Ringkas di `lib/view/summary.ts`. URL lama (`/overview`, `/data-proses`, `/what-if`, …) dialihkan ke menu baru. Modul M01–M13 v1.0 tetap ada sebagai komponen `components/expert/*`.
 
 ## Prinsip yang dijaga di kode
 

@@ -21,13 +21,15 @@ export function Badge({ tone = "neutral", className, children, title }: { tone?:
   );
 }
 
+export const CONFIDENCE_LABEL: Record<Confidence, string> = { High: "Tinggi", Medium: "Sedang", Low: "Rendah" };
+
 /** Confidence never relies on colour alone (PRD 3.1): icon + text. */
 export function ConfidenceBadge({ value, title }: { value: Confidence; title?: string }) {
   const Icon = value === "High" ? CheckCircle2 : value === "Medium" ? CircleDot : AlertTriangle;
   return (
-    <Badge tone={value === "High" ? "green" : value === "Medium" ? "gold" : "red"} title={title ?? `Kualitas data: ${value}`}>
+    <Badge tone={value === "High" ? "green" : value === "Medium" ? "gold" : "red"} title={title ?? `Tingkat keyakinan data: ${CONFIDENCE_LABEL[value]}`}>
       <Icon className="h-3 w-3" aria-hidden />
-      {value}
+      Keyakinan {CONFIDENCE_LABEL[value]}
     </Badge>
   );
 }

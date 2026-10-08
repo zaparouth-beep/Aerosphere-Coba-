@@ -100,12 +100,12 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
     ...project.waste.filter((w) => w.quantityKg < 0).map((w) => ({ id: w.id, name: w.wasteType, tab: "waste" as const })),
     ...project.effluent.filter((e) => e.value < 0).map((e) => ({ id: e.id, name: e.parameter, tab: "effluent" as const })),
   ];
-  for (const n of negatives) add({ code: "NEGATIVE_VALUE", severity: "error", message: `${n.name}: nilai negatif tidak diizinkan`, entityId: n.id, tab: n.tab });
+  for (const n of negatives) add({ code: "NEGATIVE_VALUE", severity: "error", message: `${n.name} bernilai negatif. Pemakaian dan buangan tidak boleh kurang dari nol.`, entityId: n.id, tab: n.tab });
   if (!(lci.referenceFlow > 0)) {
-    add({ code: "FU_ZERO", severity: "error", message: "Reference flow satuan fungsi = 0. Isi produksi (m², part, atau kg) di tab Produksi.", tab: "production" });
+    add({ code: "FU_ZERO", severity: "error", message: "Total luas dilapisi masih nol, jadi angka per m² belum bisa dihitung. Isi luas (atau jumlah part) di bagian Produksi.", tab: "production" });
   }
   if (project.inputs.some((i) => i.basis === "batch") && !(project.production.batches > 0)) {
-    add({ code: "BATCH_ZERO", severity: "error", message: "Ada data per batch tetapi jumlah batch per periode = 0.", tab: "production" });
+    add({ code: "BATCH_ZERO", severity: "error", message: "Ada data yang dicatat per batch, tetapi jumlah batch dalam periode ini masih nol. Isi jumlah batch di bagian Produksi.", tab: "production" });
   }
 
   const stageCompleteness = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 } as Record<StageId, number>;
@@ -121,7 +121,7 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
       const hasEnergyOrChem = rows.some((i) => i.quantity > 0 && (i.category === "Energy" || CHEMICAL_CATEGORIES.includes(i.category)));
       // Utilities (E) and WWTP (F) can be energy-only; every in-boundary stage needs something.
       if (!hasEnergyOrChem) {
-        add({ code: "STAGE_NO_DATA", severity: "error", message: `Tahap ${stage.id} (${stage.name}) ada di boundary tetapi tanpa data energi atau kimia.`, entityId: stage.id, tab: "input" });
+        add({ code: "STAGE_NO_DATA", severity: "error", message: `Tahap ${stage.name} ikut dihitung, tetapi belum ada data listrik atau bahan kimianya. Isi datanya atau keluarkan tahap ini dari perhitungan.`, entityId: stage.id, tab: "input" });
       }
     }
   }
@@ -134,7 +134,10 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
     add({
       code: "WATER_BALANCE",
       severity: "warning",
-      message: `Neraca air tidak tertutup: air masuk ${fmt(inM3)} m³ vs efluen + penguapan ${fmt(outM3)} m³ (selisih ${fmt(Math.abs(inM3 - outM3))} m³).`,
+      message:
+        outM3 > inM3
+          ? `Air buangan dan penguapan (${fmt(outM3)} m³) lebih besar dari air masuk (${fmt(inM3)} m³). Periksa angka air masuk atau volume air buangan.`
+          : `Ada ${fmt(inM3 - outM3)} m³ air masuk yang tidak tercatat keluar (air masuk ${fmt(inM3)} m³, keluar ${fmt(outM3)} m³). Periksa volume air buangan dan penguapan.`,
       tab: "production",
       value: `${fmt(outM3)} m³`,
       reference: `${fmt(inM3)} m³ ±10%`,
@@ -153,7 +156,7 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
       add({
         code: "METAL_BALANCE",
         severity: "warning",
-        message: `Massa lapisan teoritis ${fmt(lci.coatingMassKg)} kg melebihi input logam/kimia tahap C ${fmt(inputKg)} kg. Cek ketebalan, luas, atau data anoda.`,
+        message: `Lapisan logam yang seharusnya terbentuk (${fmt(lci.coatingMassKg)} kg) lebih berat dari logam dan bahan kimia yang dimasukkan di tahap Plating Utama (${fmt(inputKg)} kg). Periksa ketebalan lapisan, luas, atau data anoda.`,
         tab: "production",
       });
     }
@@ -164,33 +167,33 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
   if (/^ni/i.test(project.production.coatingMetal) && project.scope.fuType === "m2" && ref > 0 && Math.abs(project.production.coatingThicknessUm - 150) <= 30) {
     const kwh = lci.totals.energyKwh / ref;
     if (kwh < NI_BENCHMARK.kwh[0] || kwh > NI_BENCHMARK.kwh[1]) {
-      add({ code: "BENCHMARK_ENERGY", severity: "warning", message: `Energi ${fmt(kwh)} kWh/m² di luar benchmark Ni 150 µm (${NI_BENCHMARK.kwh[0]}–${NI_BENCHMARK.kwh[1]} kWh/m²).`, tab: "input" });
+      add({ code: "BENCHMARK_ENERGY", severity: "warning", message: `Listrik ${fmt(kwh)} kWh per m² berada di luar kisaran literatur untuk lapisan nikel 150 µm (${NI_BENCHMARK.kwh[0]}–${NI_BENCHMARK.kwh[1]} kWh per m²). Periksa angka meter.`, tab: "input" });
     }
     const water = lci.totals.waterL / ref;
     if (water < NI_BENCHMARK.waterL[0] || water > NI_BENCHMARK.waterL[1]) {
-      add({ code: "BENCHMARK_WATER", severity: "warning", message: `Air ${fmt(water)} L/m² di luar benchmark (${NI_BENCHMARK.waterL[0]}–${NI_BENCHMARK.waterL[1]} L/m²).`, tab: "input" });
+      add({ code: "BENCHMARK_WATER", severity: "warning", message: `Air ${fmt(water)} liter per m² berada di luar kisaran literatur (${NI_BENCHMARK.waterL[0]}–${NI_BENCHMARK.waterL[1]} liter per m²). Periksa angka flowmeter.`, tab: "input" });
     }
   }
 
   // Effluent limits (FR-04.5) → compliance findings.
   for (const e of project.effluent) {
     if (e.limit !== undefined && e.limit > 0 && e.value > e.limit && concentrationFactor(e.unit) !== null) {
-      add({ code: "EFFLUENT_LIMIT", severity: "warning", compliance: true, message: `${e.parameter} ${fmt(e.value)} ${e.unit} melebihi baku mutu ${fmt(e.limit)} ${e.unit}.`, entityId: e.id, tab: "effluent", value: `${fmt(e.value)} ${e.unit}`, reference: `${fmt(e.limit)} ${e.unit}` });
+      add({ code: "EFFLUENT_LIMIT", severity: "warning", compliance: true, message: `${e.parameter} di air buangan ${fmt(e.value)} ${e.unit}, melebihi batas yang diizinkan (${fmt(e.limit)} ${e.unit}).`, entityId: e.id, tab: "effluent", value: `${fmt(e.value)} ${e.unit}`, reference: `${fmt(e.limit)} ${e.unit}` });
     }
   }
   if (project.effluent.every((e) => e.limit === undefined)) {
-    add({ code: "EFFLUENT_LIMIT_EMPTY", severity: "info", message: "Baku mutu efluen belum diisi, jadi kepatuhan belum dapat dicek.", tab: "effluent" });
+    add({ code: "EFFLUENT_LIMIT_EMPTY", severity: "info", message: "Batas baku mutu air buangan belum diisi, jadi kepatuhan belum bisa dicek. Isi batasnya sesuai izin pembuangan fasilitas.", tab: "effluent" });
   }
 
   if (project.prices.isDemo) {
-    add({ code: "PRICE_DEMO", severity: "warning", message: "Harga satuan masih harga dataset demo. Ganti dengan harga riil sebelum dipakai untuk keputusan.", tab: "prices" });
+    add({ code: "PRICE_DEMO", severity: "warning", message: "Harga yang dipakai masih harga contoh. Ganti dengan harga dari faktur sebelum angka biaya dipakai untuk keputusan.", tab: "prices" });
   }
   if (unmapped.length > 0) {
-    add({ code: "UNMAPPED", severity: "warning", message: `${unmapped.length} aliran belum dipetakan ke dataset background (diblokir pada run resmi): ${unmapped.slice(0, 6).join(", ")}${unmapped.length > 6 ? ", …" : ""}.`, tab: "mapping" });
+    add({ code: "UNMAPPED", severity: "warning", message: `${unmapped.length} bahan belum punya data dampak dari database, jadi jejak karbonnya belum terhitung: ${unmapped.slice(0, 6).join(", ")}${unmapped.length > 6 ? ", …" : ""}. Hasil tetap bisa dilihat, tetapi belum bisa dijadikan hasil resmi.`, tab: "mapping" });
   }
   const lowRows = project.inputs.filter((i) => i.quantity > 0 && confidenceOf(i.meta) === "Low");
   if (lowRows.length > 0) {
-    add({ code: "DQ_LOW", severity: "info", message: `${lowRows.length} input berkualitas data Low (Tier 4–5): ${lowRows.slice(0, 5).map((r) => r.name).join(", ")}${lowRows.length > 5 ? ", …" : ""}.`, tab: "input" });
+    add({ code: "DQ_LOW", severity: "info", message: `${lowRows.length} angka masih perkiraan (keyakinan rendah): ${lowRows.slice(0, 5).map((r) => r.name).join(", ")}${lowRows.length > 5 ? ", …" : ""}. Ganti dengan data meter atau faktur bila ada.`, tab: "input" });
   }
 
   const accepted = project.dataset.acceptedWarnings;
