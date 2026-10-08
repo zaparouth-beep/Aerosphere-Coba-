@@ -9,6 +9,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Feedback";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
 import { can } from "@/lib/domain/permissions";
+import { hasFeature } from "@/lib/domain/plans";
 import { indicatorsOf } from "@/lib/engine/calculate";
 import { hashOf } from "@/lib/engine/hash";
 import { SCOPE_LABEL, type GhgScope } from "@/lib/engine/lcia";
@@ -25,32 +26,43 @@ import { stageLabel } from "@/lib/view/helpers";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
-export default function LaporanPage() {
+const LAYER_TEMPLATES: Record<"teknis" | "kepatuhan", ReportTemplateId[]> = {
+  teknis: ["iso14044", "mfca", "decision", "onepager"],
+  kepatuhan: ["pcf", "gri", "proper"],
+};
+
+export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "kepatuhan" }) {
   const { project, results, run } = useActiveResults();
   const { outcomes } = useScenarioOutcomes();
   const events = useAppStore((s) => s.events);
   const user = useAppStore((s) => s.user);
   const log = useAppStore((s) => s.log);
-  const [template, setTemplate] = useState<ReportTemplateId>("iso14044");
+  const subscription = useAppStore((s) => s.subscription);
+  const setUi = useAppStore((s) => s.setUi);
+  const templates = REPORT_TEMPLATES.filter((t) => LAYER_TEMPLATES[layer].includes(t.id));
+  const [template, setTemplate] = useState<ReportTemplateId>(LAYER_TEMPLATES[layer][0]!);
   const generatedAt = useMemo(() => new Date().toISOString(), []);
   const ctx: ReportContext = { project, results, run, outcomes, events, generatedAt, generatedBy: user.name };
   const allowed = can(user.role, "generateReport") || user.role === "Auditor";
   const history = events.filter((e) => e.action === "generate-report").slice(-10).reverse();
   const tpl = REPORT_TEMPLATES.find((t) => t.id === template)!;
 
-  const record = (format: string, content: unknown) => log("report", template, "generate-report", { newValue: { template: tpl.label, format, run: run?.id ?? "DRAFT", fileHash: hashOf(content) } });
+  const record = (format: string, content: unknown) => {
+    setUi({ reportDownloaded: true });
+    log("report", template, "generate-report", { newValue: { template: tpl.label, format, run: run?.id ?? "DRAFT", fileHash: hashOf(content) } });
+  };
 
   return (
     <div className="space-y-6">
       <div className="no-print space-y-4">
         {!run && (
           <Callout tone="warn">
-            Laporan final dibuat dari <b>run terkunci</b> agar angka identik dengan dashboard dan dapat diverifikasi lewat ID run. Saat ini yang dipakai adalah draf langsung, sehingga
-            laporan diberi watermark DRAF. Pilih run di bar konteks atau tekan “Run kalkulasi”.
+            Laporan final dibuat dari <b>hasil tersimpan</b> agar angkanya sama dengan layar dan bisa dicek lewat nomor hasil. Saat ini yang dipakai adalah data terkini, sehingga
+            laporan diberi tanda DRAF. Pilih hasil tersimpan di bar atas atau tekan “Hitung hasil”.
           </Callout>
         )}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {REPORT_TEMPLATES.map((t) => (
+          {templates.map((t) => (
             <button
               key={t.id}
               type="button"
@@ -67,7 +79,7 @@ export default function LaporanPage() {
         <Card>
           <CardHeader
             title="Ekspor"
-            subtitle={`Sumber: ${run ? `${run.id} (hash ${run.resultHash.slice(0, 12)}…)` : "draf langsung"} · bahasa: Indonesia`}
+            subtitle={`Sumber: ${run ? `Hasil #${run.id} (hash ${run.resultHash.slice(0, 12)}…)` : "data terkini (draf)"} · bahasa: Indonesia`}
             action={
               <>
                 <Button
@@ -104,7 +116,7 @@ export default function LaporanPage() {
                 >
                   <FileDown className="h-3.5 w-3.5" /> CSV LCI
                 </Button>
-                <Button
+                {layer === "kepatuhan" && hasFeature(subscription, "auditEvidence") && <Button
                   size="sm"
                   variant="secondary"
                   onClick={() => {
@@ -114,13 +126,13 @@ export default function LaporanPage() {
                   }}
                 >
                   <Braces className="h-3.5 w-3.5" /> Paket bukti audit (JSON)
-                </Button>
+                </Button>}
               </>
             }
           />
           <CardBody>
             <p className="text-[11px] text-navy-700/60">
-              Setiap file yang dibuat dicatat di audit trail beserta hash isinya. Ekspor JSON-LD openLCA dan PDF server-side (WeasyPrint/Typst) membutuhkan backend
+              Setiap file yang dibuat dicatat di jejak audit beserta hash isinya. Ekspor JSON-LD openLCA dan PDF server-side (WeasyPrint/Typst) membutuhkan backend
               (PRD 3.4); versi browser memakai cetak ke PDF.
             </p>
             {history.length > 0 && (

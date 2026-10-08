@@ -254,6 +254,9 @@ export interface Scenario {
   capexRp: number;
   extraOpexRpPerPeriod: number;
   lifetimeYears: number;
+  /** Qualitative effort and timeline for the management summary (PRD v1.1 §3.5), set by the team. */
+  effort?: "rendah" | "sedang" | "tinggi";
+  timeline?: string;
   status: "draft" | "recommended" | "approved";
   approvedBy?: string;
   approvedAt?: string;

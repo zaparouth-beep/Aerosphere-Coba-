@@ -73,8 +73,8 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "hot-energy",
       kind: "hotspot",
-      title: "Hotspot energi",
-      text: render("Tahap {{hot.energy.stage}} menyumbang {{hot.energy.share}} konsumsi energi lini (intensitas total {{lci.energy.perFu}}).", values),
+      title: "Titik boros listrik",
+      text: render("Tahap {{hot.energy.stage}} memakai {{hot.energy.share}} dari seluruh listrik lini. Rata-rata pemakaian listrik {{lci.energy.perFu}}.", values),
       refs: ["run.lci.byStage.energy", "run.lci.intensity.energy"],
     }));
   }
@@ -82,8 +82,8 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "hot-waste",
       kind: "hotspot",
-      title: "Hotspot limbah B3",
-      text: render("Tahap {{hot.waste.stage}} menghasilkan {{hot.waste.share}} limbah B3 per periode.", values),
+      title: "Titik boros limbah berbahaya",
+      text: render("Tahap {{hot.waste.stage}} menghasilkan {{hot.waste.share}} dari limbah berbahaya (B3) lini.", values),
       refs: ["run.lci.byStage.waste"],
     }));
   }
@@ -97,8 +97,8 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "impact-cc",
       kind: "impact",
-      title: "Climate change",
-      text: render("Climate change {{cc.perFu}}; kontributor terbesar {{cc.topSource}} ({{cc.topShare}}).", values),
+      title: "Jejak karbon",
+      text: render("Jejak karbon {{cc.perFu}}. Penyumbang terbesar: {{cc.topSource}} ({{cc.topShare}}).", values),
       refs: ["run.lcia.perFu.cc", "run.lcia.bySource"],
     }));
   }
@@ -113,9 +113,9 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "cost-loss",
       kind: "cost",
-      title: "Kerugian material (MFCA)",
+      title: "Biaya bahan yang terbuang",
       text: render(
-        "Negative product bernilai {{mfca.loss}} ({{mfca.lossShare}} biaya); terbesar di {{mfca.topStage}} sebesar {{mfca.topLoss}}. Material yang tidak menjadi produk: {{mfca.materialLoss}}.",
+        "Bahan, listrik, dan pengolahan yang terbuang bernilai {{mfca.loss}} ({{mfca.lossShare}} dari biaya). Terbesar di tahap {{mfca.topStage}}: {{mfca.topLoss}}. Bahan yang tidak menjadi produk: {{mfca.materialLoss}}.",
         values,
       ),
       refs: ["run.mfca.costLossRp", "run.mfca.stages"],
@@ -131,7 +131,7 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     kind: "quality",
     title: "Kesiapan data",
     text: render(
-      "Kelengkapan input {{dq.completeness}}, {{dq.errors}} error, dan {{dq.unmapped}} aliran belum dipetakan ke background. Hasil LCIA hanya sah untuk aliran yang sudah dipetakan.",
+      "Data terisi {{dq.completeness}}, ada {{dq.errors}} kesalahan, dan {{dq.unmapped}} jenis buangan belum punya faktor dampak. Angka dampak hanya lengkap bila semua buangan sudah punya faktor.",
       values,
     ),
     refs: ["run.validation", "run.lcia.unmapped"],
@@ -148,8 +148,8 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "recommendation",
       kind: "recommendation",
-      title: "Rekomendasi skenario",
-      text: render("{{rec.name}} memberi kombinasi terbaik: climate change {{rec.cc}}, air {{rec.water}}, hemat biaya {{rec.cost}} per periode.", values),
+      title: "Perbaikan yang disarankan",
+      text: render("{{rec.name}} memberi hasil terbaik: jejak karbon {{rec.cc}}, air {{rec.water}}, hemat biaya {{rec.cost}} per periode.", values),
       refs: ["scenario.compare"],
     }));
   }
@@ -165,35 +165,35 @@ export function parseWhatIf(text: string): { levers: LeverSettings; summary: str
     const m = t.match(re);
     return m ? Number(m[1]) : null;
   };
-  const drag = num(/drag[\s-]?out[^\d]*(\d+(?:\.\d+)?)\s*%/);
+  const drag = num(/(?:drag[\s-]?out|larutan terbawa)[^\d]*(\d+(?:\.\d+)?)\s*%/);
   if (drag !== null) {
     levers.dragout = { reductionPct: drag };
-    summary.push(`Kurangi drag-out ${drag}%`);
+    summary.push(`Kurangi larutan terbawa part ${drag}%`);
   }
   const rinse = num(/(?:bilas|rinse)[^\d]*(\d+)\s*(?:tingkat|tahap|stage)/);
   if (rinse !== null) {
     levers.countercurrent = { stagesOld: 2, stagesNew: rinse, ratio: 1000 };
-    summary.push(`Bilas counter-flow 2 → ${rinse} tingkat`);
+    summary.push(`Bilasan bertingkat: 2 → ${rinse} tangki`);
   }
-  const rect = t.match(/rectifier[^\d]*(\d+(?:\.\d+)?)\s*%?[^\d]+(\d+(?:\.\d+)?)\s*%/);
+  const rect = t.match(/(?:rectifier|penyearah)[^\d]*(\d+(?:\.\d+)?)\s*%?[^\d]+(\d+(?:\.\d+)?)\s*%/);
   if (rect) {
     levers.rectifier = { etaOld: Number(rect[1]), etaNew: Number(rect[2]) };
-    summary.push(`Efisiensi rectifier ${rect[1]}% → ${rect[2]}%`);
+    summary.push(`Efisiensi penyearah arus ${rect[1]}% → ${rect[2]}%`);
   }
   const grid = num(/(?:grid|listrik)[^\d]*(0\.\d+)/);
   if (grid !== null) {
     levers.gridFactor = { kgCO2ePerKwh: grid };
-    summary.push(`Faktor grid ${grid} kg CO₂e/kWh`);
+    summary.push(`Listrik lebih bersih: ${grid} kg CO₂e/kWh`);
   }
   const mist = num(/(?:mist|kabut)[^\d]*(\d+(?:\.\d+)?)\s*%/);
   if (mist !== null) {
     levers.mistSuppressant = { reductionPct: mist };
-    summary.push(`Mist suppressant ${mist}%`);
+    summary.push(`Penekan kabut: kabut −${mist}%`);
   }
   const heat = num(/(?:heater|pemanas|tutup tangki)[^\d]*(\d+(?:\.\d+)?)\s*%/);
   if (heat !== null) {
     levers.tankCover = { heatReductionPct: heat, mistReductionPct: 0 };
-    summary.push(`Tutup tangki: panas −${heat}%`);
+    summary.push(`Tutup & insulasi tangki: panas −${heat}%`);
   }
   return summary.length ? { levers, summary } : null;
 }

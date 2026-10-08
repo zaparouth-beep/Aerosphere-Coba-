@@ -3,6 +3,8 @@ import type { LucideIcon } from "lucide-react";
 import type { Confidence } from "@/lib/domain/types";
 import { cn } from "@/lib/utils/cn";
 import { ConfidenceBadge } from "./Badge";
+import { InfoTip } from "./InfoTip";
+import { StatusPill, type StatusWord } from "./Status";
 
 export function KpiCard({
   label,
@@ -15,6 +17,9 @@ export function KpiCard({
   hint,
   href,
   tone = "default",
+  info,
+  status,
+  sublabel,
 }: {
   label: string;
   value: string;
@@ -26,6 +31,10 @@ export function KpiCard({
   hint?: React.ReactNode;
   href?: string;
   tone?: "default" | "warn";
+  info?: string | { what: string; why?: string; action?: string };
+  status?: StatusWord;
+  /** Small technical caption (Mode Ahli). */
+  sublabel?: string;
 }) {
   const good = delta ? (deltaGoodWhenNegative ? delta.value < 0 : delta.value > 0) : false;
   const body = (
@@ -37,14 +46,19 @@ export function KpiCard({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-navy-700/60">{label}</span>
+        <span className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-navy-700/60">
+          {label}
+          {info && (typeof info === "string" ? <InfoTip k={info} /> : <InfoTip title={label} {...info} />)}
+        </span>
         {Icon && <Icon className="h-4 w-4 shrink-0 text-brand-teal" aria-hidden />}
       </div>
       <div className="mt-2 flex flex-wrap items-baseline gap-x-1">
         <span className="num text-2xl font-semibold tracking-tight text-navy-900">{value}</span>
         {unit && <span className="text-xs text-navy-700/60">{unit}</span>}
       </div>
+      {sublabel && <p className="text-[10px] text-navy-700/45">{sublabel}</p>}
       <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-2">
+        {status && <StatusPill status={status} />}
         {confidence && <ConfidenceBadge value={confidence} />}
         {delta && delta.value !== 0 && (
           <span className={cn("num text-[11px] font-medium", good ? "text-status-ok" : "text-status-danger")}>{delta.text}</span>

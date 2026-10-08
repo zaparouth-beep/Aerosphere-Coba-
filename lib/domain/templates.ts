@@ -184,9 +184,9 @@ function emptyPrices(): PriceBook {
 export function presetScenarios(): Scenario[] {
   const base = { capexRp: 0, extraOpexRpPerPeriod: 0, lifetimeYears: 5, status: "draft" as const };
   return [
-    { id: "S1", code: "S1", name: "Kurangi drag-out 20%", description: "20% reduction chemical drag-out (deck What-if).", levers: { dragout: { reductionPct: 20 } }, ...base },
-    { id: "S2", code: "S2", name: "Optimasi air bilas", description: "Bilas counter-flow 2 → 3 tingkat.", levers: { countercurrent: { stagesOld: 2, stagesNew: 3, ratio: 1000 } }, ...base },
-    { id: "S3", code: "S3", name: "Efisiensi rectifier", description: "Rectifier 75% → 88% (switch-mode).", levers: { rectifier: { etaOld: 75, etaNew: 88 } }, ...base },
+    { id: "S1", code: "S1", name: "Kurangi larutan terbawa part 20%", description: "Waktu tiris lebih lama dan tangki penampung sehingga larutan yang ikut terangkat part berkurang 20%.", levers: { dragout: { reductionPct: 20 } }, effort: "rendah", timeline: "1–3 bulan", ...base },
+    { id: "S2", code: "S2", name: "Pasang bilasan bertingkat", description: "Air bilas dipakai ulang dari tangki bersih ke tangki kotor, dari 2 menjadi 3 tingkat.", levers: { countercurrent: { stagesOld: 2, stagesNew: 3, ratio: 1000 } }, effort: "sedang", timeline: "3–6 bulan", ...base },
+    { id: "S3", code: "S3", name: "Perbaiki penyearah arus", description: "Ganti penyearah arus ke tipe switch-mode, efisiensi 75% menjadi 88%.", levers: { rectifier: { etaOld: 75, etaNew: 88 } }, effort: "sedang", timeline: "3–6 bulan", ...base },
   ];
 }
 
