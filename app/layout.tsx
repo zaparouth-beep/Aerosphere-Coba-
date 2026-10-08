@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swa
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "AeroSphere LCA — Temukan tahap paling boros di lini pelapisan Anda",
-  description: "AeroSphere membantu pabrik pelapisan logam komponen pesawat mengetahui tahap paling boros, berapa rupiahnya, dan perbaikan apa yang paling layak.",
+  title: "AeroSphere LCA — Keberlanjutan proses manufaktur",
+  description: "AeroSphere membantu industri manufaktur pesawat menemukan tahap proses paling boros, berapa rupiahnya, dan perbaikan yang paling layak melalui metode LCA terintegrasi. Percontohan: lini pelapisan logam.",
 };
 
 export const viewport: Viewport = { themeColor: "#070d2e" };
