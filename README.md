@@ -39,3 +39,13 @@ npm run build:pages  # bundle statis untuk GitHub Pages (basePath /Aerosphere-Co
 ## Batasan versi browser
 
 Data tersimpan di `localStorage` browser. Backend PRD (FastAPI, PostgreSQL/Timescale, Keycloak SSO/MFA, MQTT/ERP, LLM, PDF server-side, JSON-LD openLCA) belum termasuk; RBAC di sini simulasi untuk demo dan uji alur, bukan kontrol keamanan.
+
+## Deploy
+
+| Tujuan | Perintah | Folder hasil |
+|---|---|---|
+| GitHub Pages (`/Aerosphere-Coba-/`) | `npm run build:pages` | `out/` → branch `gh-pages` |
+| Netlify / hosting di root domain | `npm run build:static` (otomatis lewat `netlify.toml`) | `out/` |
+
+Build GitHub Pages memakai base path `/Aerosphere-Coba-`, jadi folder `out/` dari build itu **tidak** bisa diunggah ke Netlify. Untuk Netlify cukup hubungkan repo; `netlify.toml` mengatur perintah build dan folder publish.
+
