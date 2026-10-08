@@ -93,7 +93,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           <div>
             <Image src={`${BASE}/brand/mark-white.png`} alt="" width={32} height={32} className="h-8 w-8" unoptimized />
             <p className="mt-2 text-sm font-semibold text-white">AeroSphere LCA</p>
-            <p className="mt-1 leading-relaxed">Temukan tahap paling boros di lini pelapisan logam Anda dan perbaikan yang paling layak.</p>
+            <p className="mt-1 leading-relaxed">Temukan tahap paling boros di proses manufaktur Anda, berapa rupiahnya, dan perbaikan yang paling layak. Percontohan: lini pelapisan logam.</p>
           </div>
           <div className="space-y-1.5">
             <p className="font-semibold text-white">Produk</p>

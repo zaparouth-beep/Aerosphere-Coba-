@@ -26,6 +26,7 @@ const STEPS = [
 ];
 
 const FAQ = [
+  { q: "Apakah hanya untuk lini pelapisan logam?", a: "Saat ini lini pelapisan logam (plating) komponen pesawat menjadi proyek percontohan: template data, tahap proses, dan simulasi perbaikannya sudah siap. Metode LCA yang sama akan diperluas bertahap ke lini proses manufaktur pesawat lainnya." },
   { q: "Data apa saja yang perlu saya siapkan?", a: "Catatan pemakaian listrik, air, dan bahan kimia per bulan, berat limbah B3 dari manifest, serta total luas permukaan yang dilapisi. Template Excel menuntun kolom yang perlu diisi." },
   { q: "Apakah saya perlu paham LCA?", a: "Tidak. Mode Ringkas memakai bahasa sehari-hari dan setiap angka punya penjelasan “Apa ini?”. Mode Ahli tersedia untuk engineer dan auditor." },
   { q: "Dari mana angka hasilnya?", a: "Dari mesin hitung yang sama untuk semua pengguna, dengan faktor yang sumbernya tercatat. Asisten AI hanya menjelaskan angka, tidak mengarang angka." },
@@ -41,15 +42,14 @@ export function Landing() {
         <div className="pointer-events-none absolute -bottom-40 left-10 h-96 w-96 rounded-full bg-brand-blue/20 blur-3xl" aria-hidden />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:grid-cols-[1.2fr_1fr] md:py-24">
           <div>
-            <h1 className="text-3xl font-semibold leading-tight md:text-[44px]">
-              Jangan hanya tahu totalnya. <span className="bg-brand-gradient bg-clip-text text-transparent">Temukan sumbernya.</span>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-gold">Untuk keberlanjutan proses manufaktur Anda</p>
+            <h1 className="mt-3 text-2xl font-semibold leading-tight md:text-[34px]">
+              Temukan tahap paling boros di proses, berapa rupiahnya, dan perbaikan apa yang paling layak di industri manufaktur Anda melalui metode{" "}
+              <span className="bg-brand-gradient bg-clip-text text-transparent">LCA terintegrasi</span>.
             </h1>
-            <p className="mt-4 text-sm font-semibold tracking-wide text-brand-gold md:text-base" lang="en">
-              See the Hotspot. Measure the Impact. Improve the Process.
-            </p>
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/70 md:text-base">
-              AeroSphere menelusuri penggunaan energi, material, air, limbah, dan biaya hingga level proses—agar Anda tahu di mana hotspot terjadi,
-              seberapa besar dampaknya, dan perbaikan mana yang paling layak dilakukan.
+              AeroSphere menghitung jejak karbon, pemakaian air, limbah berbahaya, dan biaya per m² dari data yang sudah Anda punya, lalu menunjukkan
+              perbaikan dengan hasil terbesar.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/masuk?daftar=1" className="inline-flex items-center gap-2 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:opacity-95">
@@ -63,6 +63,10 @@ export function Landing() {
               </a>
             </div>
             <p className="mt-6 text-xs text-white/50">14 hari gratis · tanpa kartu kredit · proyek contoh siap dicoba</p>
+            <p className="mt-3 max-w-xl rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs leading-relaxed text-white/70">
+              <span className="font-semibold text-brand-gold">Proyek percontohan:</span> lini pelapisan logam (plating) komponen pesawat. Lini proses
+              manufaktur pesawat lainnya menyusul.
+            </p>
           </div>
           <div className="flex justify-center">
             <div className="rounded-3xl bg-white p-8 shadow-2xl">
@@ -192,7 +196,7 @@ function DemoSection() {
     <section id="demo" className="scroll-mt-20 border-y border-sand-200 bg-white py-16">
       <div className="mx-auto max-w-6xl px-4">
         <p className="text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-teal">Demo interaktif</p>
-        <h2 className="mt-1 text-center text-2xl font-semibold text-navy-900">Lini contoh: pelapisan hard chrome, 250 m² per tahun</h2>
+        <h2 className="mt-1 text-center text-2xl font-semibold text-navy-900">Proyek percontohan: lini pelapisan hard chrome, 250 m² per tahun</h2>
         <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-navy-700/70">
           Angka di bawah dihitung langsung oleh mesin hitung AeroSphere dari data contoh. Tekan ikon <InfoTip what="Ikon ini menjelaskan arti setiap angka dalam tiga baris." /> untuk penjelasan.
         </p>
@@ -291,7 +295,7 @@ function SavingsCalculator() {
             <Calculator className="h-3.5 w-3.5" /> Kalkulator potensi hemat
           </p>
           <h2 className="mt-1 text-2xl font-semibold text-navy-900">Perkiraan untuk lini Anda</h2>
-          <p className="mt-2 text-sm text-navy-700/75">Isi pengeluaran bulanan lini pelapisan Anda (rupiah per bulan).</p>
+          <p className="mt-2 text-sm text-navy-700/75">Isi pengeluaran bulanan lini proses Anda (rupiah per bulan). Perkiraan memakai hasil lini pelapisan percontohan.</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {fields.map((f) => (
               <label key={f.key} className="block text-xs text-navy-800">
