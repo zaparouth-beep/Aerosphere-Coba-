@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { findDemoAccount, passwordHash } from "@/lib/domain/accounts";
 import { can, type Permission } from "@/lib/domain/permissions";
 import { effectiveStatus, hasFeature, minimumPlanFor, PLAN_BY_ID, planLimits, type Feature, type PlanId, type Subscription } from "@/lib/domain/plans";
 import { parseProject } from "@/lib/domain/schema";
@@ -79,6 +80,8 @@ interface State {
   events: AuditEvent[];
   user: { name: string; role: Role };
   account: Account | null;
+  /** Account registered in this browser (password kept only as a salted hash). */
+  registered: { account: Account; hash: string; subscription?: Subscription | null; onboardingDone?: boolean } | null;
   subscription: Subscription | null;
   onboardingDone: boolean;
   nextSteps: NextStep[];
@@ -89,6 +92,9 @@ interface State {
   dismissNotice: (id: string) => void;
   setUser: (name: string, role: Role) => void;
   signIn: (account: Omit<Account, "createdAt">) => void;
+  /** Sign in with email + password: demo accounts or the account registered in this browser. */
+  signInWithPassword: (email: string, password: string) => { ok: true; next: string } | { ok: false; error: string };
+  register: (account: Omit<Account, "createdAt">, password: string) => { ok: true } | { ok: false; error: string };
   signOut: () => void;
   choosePlan: (plan: PlanId) => void;
   activatePlan: () => boolean;
@@ -194,6 +200,11 @@ export const useAppStore = create<State>()(
         }
         return true;
       };
+      /** Keep the registered account's plan when a demo account takes over this browser. */
+      const snapshotRegistered = () => {
+        const { registered, account, subscription, onboardingDone } = get();
+        if (registered && account && account.email === registered.account.email) set({ registered: { ...registered, subscription, onboardingDone } });
+      };
       const mutate = (fn: (p: Project) => void) =>
         set((s) => {
           const project = structuredClone(s.project);
@@ -207,6 +218,7 @@ export const useAppStore = create<State>()(
         events: [],
         user: { name: "Pengguna demo", role: "Admin" },
         account: null,
+        registered: null,
         subscription: null,
         onboardingDone: false,
         nextSteps: [],
@@ -251,7 +263,64 @@ export const useAppStore = create<State>()(
           set((s) => ({ account: acc, user: { ...s.user, name: acc.name || acc.email } }));
           get().log("session", acc.email, "sign-in");
         },
+        signInWithPassword: (email, password) => {
+          const demo = findDemoAccount(email, password);
+          if (demo) {
+            snapshotRegistered();
+            const now = new Date();
+            const def = PLAN_BY_ID.get(demo.plan)!;
+            const acc: Account = { name: demo.name, email: demo.email, company: demo.company, createdAt: now.toISOString() };
+            set((s) => ({
+              account: acc,
+              user: { name: demo.name, role: demo.role },
+              subscription: {
+                plan: demo.plan,
+                status: demo.plan === "coba" ? "trial" : "active",
+                startedAt: now.toISOString(),
+                periodEnd: def.limits.trialDays ? new Date(now.getTime() + def.limits.trialDays * 86_400_000).toISOString() : undefined,
+                uploadsUsed: 0,
+                aiQuestionsUsed: 0,
+              },
+              onboardingDone: true,
+              ui: { ...s.ui, onboarded: true, expertMode: false, tourStep: demo.tour ? 0 : null },
+            }));
+            get().log("session", demo.email, "sign-in", { reason: `akun demo (${def.name})` });
+            return { ok: true, next: "/beranda" };
+          }
+          const reg = get().registered;
+          const e = email.trim().toLowerCase();
+          if (reg && reg.account.email === e && reg.hash === passwordHash(e, password)) {
+            set((s) => ({
+              account: reg.account,
+              user: { ...s.user, name: reg.account.name },
+              ...(reg.subscription !== undefined ? { subscription: reg.subscription, onboardingDone: !!reg.onboardingDone } : {}),
+            }));
+            get().log("session", e, "sign-in");
+            const status = effectiveStatus(get().subscription);
+            return { ok: true, next: !get().subscription || status === "pending" ? "/paket" : !get().onboardingDone ? "/mulai" : "/beranda" };
+          }
+          get().log("session", e || "-", "sign-in-failed");
+          return { ok: false, error: "Email atau kata sandi salah." };
+        },
+        register: (account, password) => {
+          if (password.length < 8) return { ok: false, error: "Kata sandi minimal 8 karakter." };
+          const email = account.email.trim().toLowerCase();
+          if (findDemoAccount(email, password) || email.endsWith("@aerosphere.demo")) return { ok: false, error: "Email ini dipakai akun demo. Gunakan email lain." };
+          const acc: Account = { name: account.name.trim(), email, company: account.company.trim(), createdAt: nowIso() };
+          const prev = get().registered;
+          // A new person registering in this browser starts clean.
+          const fresh = !prev || prev.account.email !== email;
+          set((s) => ({
+            registered: { account: acc, hash: passwordHash(email, password) },
+            account: acc,
+            user: { name: acc.name, role: "Admin" },
+            ...(fresh ? { subscription: null, onboardingDone: false, nextSteps: [], ui: { ...s.ui, expertMode: false, tourStep: null } } : {}),
+          }));
+          get().log("session", email, "register");
+          return { ok: true };
+        },
         signOut: () => {
+          snapshotRegistered();
           get().log("session", get().account?.email ?? "-", "sign-out");
           set({ account: null });
         },
@@ -757,6 +826,7 @@ export const useAppStore = create<State>()(
         events: s.events,
         user: s.user,
         account: s.account,
+        registered: s.registered,
         subscription: s.subscription,
         onboardingDone: s.onboardingDone,
         nextSteps: s.nextSteps,

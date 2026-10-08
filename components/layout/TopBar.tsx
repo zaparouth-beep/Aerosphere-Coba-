@@ -136,7 +136,8 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
                 type="button"
                 onClick={() => {
                   signOut();
-                  router.push("/");
+                  // Full navigation so the app gate does not redirect to /masuk first.
+                  window.location.assign(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/`);
                 }}
                 className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-status-danger hover:bg-status-danger/5"
               >
