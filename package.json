@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build:pages": "STATIC_EXPORT=1 NEXT_PUBLIC_BASE_PATH=/Aerosphere-Coba- next build"
+    "build:pages": "STATIC_EXPORT=1 NEXT_PUBLIC_BASE_PATH=/Aerosphere-Coba- next build",
+    "build:static": "STATIC_EXPORT=1 next build"
   },
   "dependencies": {
     "clsx": "^2.1.1",
