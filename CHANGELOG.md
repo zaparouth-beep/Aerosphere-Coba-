@@ -2,6 +2,24 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## M6 — Laporan Kajian LCA format PROPER (Bagian 8) · 2026-10-10
+
+M6 dikerjakan atas permintaan langsung, sebelum M2–M5.
+
+### Ditambahkan
+- Tab utama **"Laporan Kajian LCA"** di menu Laporan. Laporan Ringkas Manajemen pindah ke tab kedua "Ringkasan untuk manajemen" (§5.5).
+- Urutan bagian mengikuti laporan acuan: judul, kalimat pembuka + daftar standar (§8.1.2), Tujuan, Ruang Lingkup (kalimat grave wajib, satuan fungsi 1 m²), Kesimpulan dengan daftar butir dua kolom per Titik Cradle / Gate / Grave ("Tidak dikaji (di luar lingkup)") dan kalimat penutup EPD.
+- **Tabel Ringkasan Evaluasi Dampak Proses Inti**: kelompok Dampak Primer / Sekunder / Pemakaian Energi; kolom No, Kategori, Satuan (%), Metode, lalu satu kolom per tahap A–F. Baris induk "terdiri dari:" untuk 6, 7, 12. Dua desimal, sel terbesar per baris ditebalkan. GWP demo: 10,20 · 8,11 · 38,53 · 17,20 · 6,41 · 19,56 (sama dengan baris golden §8.1.6).
+- Kategori tanpa faktor ditulis **"belum dihitung¹"** dengan catatan kaki (13 dari 16 baris), tidak pernah 0. GWP, AP, EP diisi sementara dari `screening_v1` dengan tanda ², dan komponen tanpa faktor dicatat di ³.
+- Gaya laporan acuan kedua: tabel **nilai absolut per 1 m² dan per periode** (hulu/cradle, proses inti/gate, total; notasi 7,39E+00), tabel inventori utama, dan **Indikator Kualitas Data** (jumlah data, % primer vs sekunder, rincian asal data, profil faktor, tingkat keyakinan).
+- **Kesimpulan Dampak Tertinggi dan Kemungkinan Alasannya** (§8.1.8): per kategori ada tahap tertinggi, pemicu dari engine (dikelompokkan per sumber, listrik dengan nama alat), dan alasan teknis dari pustaka §7 (`lib/content/reasons.ts`, ID/EN). Kalimat lintas kategori tanpa normalisasi ditulis apa adanya. Tiga rekomendasi dengan hemat Rp dan perubahan jejak karbon. Ada juga daftar sumber alasan teknis.
+- Kaki halaman di setiap halaman: nomor hasil, profil faktor + versi nilai, tanggal, "Rahasia – Tenant", "Belum melalui tinjauan kritis pihak ketiga".
+- Bahasa: **Bahasa Indonesia / English / Dwibahasa** (Inggris dicetak miring di bawah teks Indonesia).
+- Ekspor **PDF A4** (`@page` A4, margin 2 cm, logo di kepala halaman, kepala dan kaki halaman berulang, baris tabel tidak terpotong; ID dan EN masing-masing 4 halaman) dan **Excel** (sheet `Laporan`, `Tabel_Dampak_%`, `Nilai_Absolut`, `Kesimpulan`, `Data_Input`, `Faktor`). Nama file memuat kelas informasi.
+- Engine: `buildStudyModel` (`lib/engine/study.ts`). `RunResult` mendapat `areaPlatedM2` dan `dataQuality`, kontribusi membawa `deviceRole`, dan tabel faktor punya `label` tampilan.
+- Tes `tests/report/lca_study_report.test.ts` (16 tes). Ditulis dulu dan gagal sebelum implementasi.
+- Tangkapan layar di `docs/screenshots/`: halaman A4 (ID 4, EN 4, Dwibahasa 9) dan tampilan layar penuh per bahasa.
+
 ## M1 — Engine + golden (A1, A2) · 2026-10-10
 
 ### Ditambahkan

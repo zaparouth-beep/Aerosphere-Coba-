@@ -1,4 +1,4 @@
-import { dataConfidence } from "./confidence";
+import { dataConfidence, dataQuality } from "./confidence";
 import { computeCosts } from "./costs";
 import { findHotspots, type IndicatorInput } from "./hotspot";
 import { computeImpacts } from "./impacts";
@@ -96,6 +96,7 @@ export function runAnalysis(input: ProjectInput, factors: FactorSet): RunResult 
 
   return {
     factorVersion: factors.version,
+    areaPlatedM2: area,
     perStage,
     totals,
     perFU,
@@ -103,6 +104,7 @@ export function runAnalysis(input: ProjectInput, factors: FactorSet): RunResult 
     hotspots,
     waste: costs.waste,
     dataConfidence: dataConfidence(active, impacts.find((i) => i.category === "gwp"), factors, warnings),
+    dataQuality: dataQuality(active),
     warnings,
     trace: trace.steps,
   };

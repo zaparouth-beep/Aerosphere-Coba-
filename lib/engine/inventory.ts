@@ -68,7 +68,7 @@ export function scalesWithOf(category: ComponentCategory, name: string, stage: s
 
 const AIR_KEY: Record<string, string> = { acid_mist: "air.acid_mist", crvi_air: "air.cr6" };
 
-function coatingType(text: string): ProjectInput["coatingType"] {
+export function coatingType(text: string): ProjectInput["coatingType"] {
   if (/hard\s*chrom/i.test(text)) return "hard_chrome";
   if (/anodi/i.test(text)) return "anodize_chromic";
   if (/zn\s*-?\s*ni|zinc.?nickel/i.test(text)) return "zinc_nickel";
@@ -76,6 +76,9 @@ function coatingType(text: string): ProjectInput["coatingType"] {
   if (/nickel|nikel|\bni\b/i.test(text)) return "nickel";
   return "other";
 }
+
+/** Coating type of a project, as used in the engine input and the reason keys (§7). */
+export const coatingTypeOf = (project: Project) => coatingType(`${project.coatingType} ${project.template}`);
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 
@@ -161,7 +164,7 @@ export function toProjectInput(project: Project, lci: LciResult = computeLci(pro
     periodStart: "",
     periodEnd: "",
     periodLabel: project.periodLabel,
-    coatingType: coatingType(`${project.coatingType} ${project.template}`),
+    coatingType: coatingTypeOf(project),
     areaPlatedM2: lci.referenceFlow,
     components,
     prices: {

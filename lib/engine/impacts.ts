@@ -37,7 +37,7 @@ export function computeImpacts(
       const upstream = UPSTREAM[c.category];
       if (upstream) {
         const f = flowFactor(set, c.flowKey, cat.key);
-        if (typeof f === "number") contributions.push({ componentId: c.id, name: c.name, stage: c.stage, source: upstream, value: c.quantity * f, point: "cradle" });
+        if (typeof f === "number") contributions.push({ componentId: c.id, name: c.name, stage: c.stage, source: upstream, value: c.quantity * f, point: "cradle", deviceRole: c.deviceRole });
         else if (c.quantity > 0) missing.push(c.name);
         continue;
       }

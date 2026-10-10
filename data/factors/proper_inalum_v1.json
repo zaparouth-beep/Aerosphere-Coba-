@@ -1,5 +1,6 @@
 {
  "version": "proper_inalum_v1@pending",
+ "label": "PROPER v1",
  "profile": "proper_inalum_v1",
  "status": "empty",
  "_note": "Diisi oleh pipeline openLCA (spesifikasi 4.2.3, milestone M9). Sampai saat itu semua faktor null sehingga semua kategori 'belum dihitung'.",

@@ -110,6 +110,8 @@ export interface FactorFlow {
 
 export interface FactorSet {
   version: string;
+  /** Name shown in the app and reports. */
+  label?: string;
   profile: ProjectInput["methodProfile"];
   status: "screening" | "verified" | "empty";
   categories: FactorCategory[];
@@ -140,6 +142,7 @@ export interface ComponentContribution {
   value: number;
   /** "cradle" = upstream factor (production of inputs); "gate" = direct emission at the line. */
   point: "cradle" | "gate";
+  deviceRole?: DeviceRole;
 }
 
 export interface ImpactResult {
@@ -217,8 +220,19 @@ export interface EngineWarning {
   message: string;
 }
 
+/** Pusri-style data-quality indicator: primary = company-specific (measured, weighed, lab, invoice, own calculation). */
+export interface DataQuality {
+  count: number;
+  primaryCount: number;
+  secondaryCount: number;
+  primaryPct: number;
+  secondaryPct: number;
+  bySource: Record<DataSource, number>;
+}
+
 export interface RunResult {
   factorVersion: string;
+  areaPlatedM2: number;
   perStage: Record<StageCode, StageResult>;
   totals: Totals;
   perFU: Totals;
@@ -226,6 +240,7 @@ export interface RunResult {
   hotspots: HotspotFinding[];
   waste: WasteValueResult;
   dataConfidence: "high" | "medium" | "low";
+  dataQuality: DataQuality;
   warnings: EngineWarning[];
   trace: TraceStep[];
 }

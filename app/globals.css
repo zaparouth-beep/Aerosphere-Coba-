@@ -22,7 +22,33 @@ body {
   outline-offset: 2px;
 }
 
+@page {
+  size: A4;
+  margin: 2cm;
+}
+
 @media print {
+  html,
+  body,
+  body > div,
+  main {
+    background: #ffffff !important;
+  }
+  .study-report {
+    font-size: 10px;
+  }
+  .study-report thead {
+    display: table-header-group;
+  }
+  .study-report tfoot {
+    display: table-footer-group;
+  }
+  .study-table tr {
+    break-inside: avoid;
+  }
+  .study-table thead {
+    display: table-header-group;
+  }
   .no-print {
     display: none !important;
   }

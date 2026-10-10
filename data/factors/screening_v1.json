@@ -1,5 +1,6 @@
 {
  "version": "screening_v1@2026-10-11",
+ "label": "Skrining v1",
  "profile": "screening_v1",
  "status": "screening",
  "_note": "Faktor skrining tim (docs/AEROSPHERE_SPEC.md 4.2.1). Wajib diberi label 'skrining' di UI dan laporan, dan diganti hasil pipeline openLCA sebelum diklaim sebagai hasil LCA formal. null = belum dihitung, bukan 0.",

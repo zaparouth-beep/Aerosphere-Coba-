@@ -2,7 +2,7 @@
 
 **Tanggal:** 10 Oktober 2026 · **Commit yang diaudit:** `fc48d56` (branch `claude/loving-edison-bnbrzq`, sama dengan yang ter-deploy)
 **Acuan:** `docs/AEROSPHERE_SPEC.md` v1.0, laporan LCA INALUM 2025 (ID & EN), laporan LCA Pusri 2025.
-**Status:** M0 selesai (audit). **M1 selesai** (lihat Bagian 0 dan `CHANGELOG.md`). Pertanyaan Bagian 6 masih terbuka; M1 memakai asumsi Q1-b dan Q2-b.
+**Status:** M0 selesai (audit). **M1 selesai.** **M6 selesai** (dikerjakan atas permintaan sebelum M2–M5). Lihat Bagian 0 dan `CHANGELOG.md`. Pertanyaan Bagian 6 masih terbuka; M1 memakai asumsi Q1-b dan Q2-b.
 
 ---
 
@@ -12,7 +12,9 @@
 | --- | --- | --- |
 | M0 | Selesai | Audit, spesifikasi, rencana |
 | M1 | Selesai (10 Okt 2026) | Engine `runAnalysis` + tabel faktor berversi + golden. Semua nilai golden §4.8.2 cocok (toleransi ±0,01); tidak ada golden yang diubah. 67/67 tes lulus; typecheck, lint, build statis bersih; 0 error console di 15 halaman aplikasi (Ringkas & Ahli) + landing + contoh laporan |
-| M2–M7 | Belum mulai | Menunggu persetujuan |
+| M2–M5 | Belum mulai | Menunggu persetujuan |
+| M6 | Selesai (10 Okt 2026) | Laporan Kajian LCA format PROPER (ID/EN/Dwibahasa, PDF A4, Excel 6 sheet). 83/83 tes lulus; typecheck, lint, build bersih; 0 error console. Tangkapan layar di `docs/screenshots/` |
+| M7 | Belum mulai | |
 
 **Catatan M1 (penyimpangan & hal yang perlu diputuskan):**
 
@@ -26,6 +28,22 @@
 8. **Proyek tersimpan lama** di browser tidak dimigrasi ke pemetaan proksi (Mode Ahli EF 3.1 untuk proyek lama tetap listrik saja). Perlu keputusan apakah dimigrasi otomatis.
 9. **Angka statis** di landing (mockup), deck, dan banner masih 2,37 kg/m² dan 97%; tidak diubah karena di luar izin. Kalkulator dan contoh laporan yang dihitung engine ikut berubah otomatis.
 10. **L1 (drag-out)** masih Rp3.180.000/tahun; golden Rp2.960.000 dijadwalkan di M5. Tes e2e Bagian 11 (Playwright di repo) dijadwalkan di M2/M7 sesuai rencana; M1 dicek dengan skrip Playwright di luar repo.
+
+**Catatan M6 (penyimpangan & hal yang perlu diputuskan):**
+
+1. **File acuan.** `docs/referensi/` tidak ada di repo (Q15). Struktur saya ambil dari salinan teks kedua laporan acuan yang dibagikan di sesi sebelumnya, bukan dari PDF-nya. Tidak ada angka, nama perusahaan, nama orang, atau tanda tangan dari laporan acuan yang masuk ke aplikasi; tes memeriksa teks laporan tidak memuat nama perusahaan acuan.
+2. **Nama profil.** Spesifikasi menamai profil `proper_inalum_v1`, padahal nama perusahaan acuan tidak boleh masuk aplikasi. Di laporan profil ditampilkan sebagai "PROPER v1 (pending)" (field `label` baru). ID internal dan nama file JSON belum diganti, menunggu keputusan apakah diganti, mis. `proper_v1`.
+3. **Baris golden §8.1.6 berjumlah 100,01** bila dibulatkan biasa, sedangkan aturan tabel minta "setiap baris berjumlah 100,00%". Golden tidak diubah; tampilan memakai pembulatan biasa sehingga sama dengan golden. Tes memeriksa jumlah 100 pada nilai sebelum pembulatan. Bila harus tepat 100,00, perlu pembulatan largest-remainder, dan D akan menjadi 17,19 (berbeda dari golden).
+4. **Kategori dari skrining.** Hanya GWP, AP, dan EP yang diisi dari `screening_v1`, sesuai §4.2.2. ADP fosil ada di faktor skrining tetapi tetap "belum dihitung". Perlu konfirmasi.
+5. **Water footprint "belum dihitung"**, walaupun volume air diketahui, karena belum ada faktor karakterisasi. Pemakaian air tetap ada di tabel inventori utama.
+6. **AP dan EP berstatus sebagian.** Air proses tidak punya faktor AP/EP (di §4.2.1 tertulis "—"), sehingga dicatat sebagai komponen tanpa faktor (³). Perlu keputusan: "—" berarti tidak berlaku atau tetap dicatat sebagai missing.
+7. **Titik Gate memuat GWP, AP, dan EP** karena aturan "ada tahap dengan share ≥ 30%" selalu terpenuhi oleh Pelapisan utama, walaupun kontribusi gate langsung hanya 0–6%. Mohon konfirmasi.
+8. **Pustaka alasan teknis §7** (`lib/content/reasons.ts`) dibuat sekarang karena dibutuhkan laporan; seharusnya bagian M4. Teks Inggris saya terjemahkan sendiri.
+9. **Kesimpulan per kategori memuat dua alasan teknis** bila dua pemicu teratas sama-sama punya alasan. Contoh §8.1.8 hanya memuat alasan listrik.
+10. **Rekomendasi** memakai simulasi yang ada sekarang (L1 masih Rp3.180.000, golden M5 Rp2.960.000). Nama dan deskripsi simulasi tetap berbahasa Indonesia di versi English.
+11. **Kaki halaman di halaman terakhir PDF** berada di bawah isi, bukan di dasar halaman (keterbatasan `tfoot` di Chromium).
+12. **Hasil lama** (sebelum mesin hitung 2.2.0) menampilkan pesan agar menekan "Hitung hasil".
+13. **Laporan Kajian memakai istilah teknis** (GWP, CML-IA, dan seterusnya) di Mode Ringkas, karena itu isi format laporan acuan. Perlu konfirmasi.
 
 ---
 
