@@ -2,6 +2,26 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Titik Boros dikerjakan ulang (§5.3 baru) · 2026-10-10
+
+### Diubah
+- Halaman **Titik Boros** sekarang punya tiga area dengan satu sistem warna kelas porsi: Merah = titik boros (≥ ambang), Oranye = tinggi (20% – < ambang), Kuning = sedang (10–<20%), Hijau = rendah (>0–<10%), Abu-abu = tidak ada atau belum dihitung. Setiap warna disertai label dan ikon, kontras teks ≥ 4,5:1, dan ada satu legenda di atas.
+  - **A:** batang bertumpuk 100% per indikator (4 dampak dengan faktor + air, limbah B3, nilai terbuang). Segmen A–F berwarna kelas, segmen merah diberi outline tebal dan label "TITIK BOROS", total per m² di kanan, tooltip berisi dua pemicu terbesar, dan catatan "12 kategori dampak lain belum dihitung".
+  - **B:** tabel heatmap dengan baris yang sama. Persen di Mode Ringkas; toggle "% / nilai" per m² di Mode Ahli. Sel terbesar dicetak tebal. Tombol "Unduh tabel (Excel)" dan "Salin".
+  - **C:** kotak per tahap diurutkan dari kelas paling parah, berisi di mana boros, pemicu, alasan teknis (§7) dengan sumber, dan simulasi yang bisa dicoba beserta tombol "Lihat perhitungannya".
+  - Interaksi antar-area lewat hover dan klik. Tata letak 12 kolom (7/5) pada ≥ 1280 px, bertumpuk di bawahnya.
+- Ambang titik boros sekarang **pengaturan proyek** (`Project.hotspotThresholdPct`, Pengaturan → Proyek, bawaan 30%). Ambang ini ikut ke run, bukan lagi slider di UI.
+- Simulasi Perbaikan membuka skenario dari `?skenario=<id>`.
+
+### Dihapus
+- Daftar "Urutan tahap paling bermasalah" dengan skor, panel "Kenapa …?", dan detail Mode Ahli lama (`ExpertHotspot`: heatmap, Pareto, slider bobot prioritas).
+
+### Ditambahkan
+- Engine `buildTitikBoros` dan `severityOf` (`lib/engine/titikBoros.ts`); teks dan format di `lib/view/titikBoros.ts`; ekspor Excel di `lib/io/titikBorosExport.ts`.
+- Tes unit: `tests/titik-boros/` (17 tes: kelas, ambang, nilai uji, urutan kotak, jumlah 100%, kontras warna).
+- **E2E Playwright di repo** (`playwright.config.ts`, `tests/e2e/titik-boros.spec.ts`, `npm run test:e2e` setelah `npm run build:static`): desktop dan HP, interaksi, semua tombol, Mode Ahli, ambang 40%, tanpa istilah teknis di Mode Ringkas, tanpa error console.
+- Tangkapan layar `docs/screenshots/titik-boros-desktop.png`, `-desktop-sorot.png`, dan `-hp.png` (`SCREENSHOTS=1 npm run test:e2e`).
+
 ## M6 — Laporan Kajian LCA format PROPER (Bagian 8) · 2026-10-10
 
 M6 dikerjakan atas permintaan langsung, sebelum M2–M5.

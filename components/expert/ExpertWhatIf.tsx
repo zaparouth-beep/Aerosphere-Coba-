@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BadgeCheck, Lock, Plus, Star, Trash2 } from "lucide-react";
 import { DecisionBubble, Tornado, Waterfall } from "@/components/charts/Charts";
 import { CATEGORICAL } from "@/components/charts/palette";
@@ -90,6 +90,16 @@ export default function WhatIfPage() {
   const approveScenario = useAppStore((s) => s.approveScenario);
   const runCalculation = useAppStore((s) => s.runCalculation);
   const [activeId, setActiveId] = useState<string | null>(project.scenarios[0]?.id ?? null);
+  // "Lihat perhitungannya" from Titik Boros opens /simulasi?skenario=<id>.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("skenario");
+    if (id && project.scenarios.some((s) => s.id === id)) {
+      setActiveId(id);
+      requestAnimationFrame(() => document.getElementById("detail-simulasi")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    }
+    // Only on first load of the page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [bridgeMetric, setBridgeMetric] = useState<"cc" | "cost">("cc");
   const [tornadoMetric, setTornadoMetric] = useState<"cc" | "cost" | "energy">("cc");
   const [weights, setWeights] = useState<Weights>({ cc: 40, cost: 30, water: 15, waste: 15 });
@@ -169,7 +179,7 @@ export default function WhatIfPage() {
         </Card>
 
         {active && activeOutcome ? (
-          <Card>
+          <Card id="detail-simulasi">
             <CardHeader
               eyebrow={expert ? `Skenario ${active.code}` : undefined}
               title={active.name}

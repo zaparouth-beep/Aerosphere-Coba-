@@ -12,7 +12,8 @@
 | --- | --- | --- |
 | M0 | Selesai | Audit, spesifikasi, rencana |
 | M1 | Selesai (10 Okt 2026) | Engine `runAnalysis` + tabel faktor berversi + golden. Semua nilai golden §4.8.2 cocok (toleransi ±0,01); tidak ada golden yang diubah. 67/67 tes lulus; typecheck, lint, build statis bersih; 0 error console di 15 halaman aplikasi (Ringkas & Ahli) + landing + contoh laporan |
-| M2–M5 | Belum mulai | Menunggu persetujuan |
+| M2, M3, M5 | Belum mulai | Menunggu persetujuan |
+| M4 (Titik Boros) | Selesai (10 Okt 2026) | Dikerjakan ulang dengan tata letak baru (menggantikan §5.3 lama). 100 tes unit + 5 e2e (desktop & HP) lulus; 0 error console. Tangkapan layar `docs/screenshots/titik-boros-*.png` |
 | M6 | Selesai (10 Okt 2026) | Laporan Kajian LCA format PROPER (ID/EN/Dwibahasa, PDF A4, Excel 6 sheet). 83/83 tes lulus; typecheck, lint, build bersih; 0 error console. Tangkapan layar di `docs/screenshots/` |
 | M7 | Belum mulai | |
 

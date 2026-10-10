@@ -538,25 +538,63 @@ Setiap tahap A–F tampil sebagai kartu yang bisa dibuka-tutup, berisi tabel: Ko
 - Inventaris tombol per halaman dibuat dalam tes e2e (Playwright): klik setiap `button` dan `a[href]` yang terlihat; gagal bila tidak ada perubahan state, navigasi, dialog, atau unduhan, atau bila ada error di console.
 - Tombol yang memang belum tersedia (mis. fitur paket lebih tinggi) harus `disabled` + tooltip alasannya + tautan "Lihat paket".
 
-### 5.3 Titik Boros — grafik jelas + alasan
+### 5.3 Titik Boros — grafik, tabel, dan kotak penjelasan berwarna
 
-Tata letak dari atas ke bawah:
+*(Diperbarui 10 Okt 2026, menggantikan tata letak sebelumnya. Daftar "Urutan tahap paling bermasalah" dengan skor dan panel "Kenapa …?" dihapus.)*
 
-1. **Pemilih indikator** (chip): Jejak karbon · Nilai terbuang (Rp) · Pemakaian air · Limbah berbahaya. Mode Ahli menambah semua kategori dampak.
-2. **Grafik utama** (lebar penuh, tinggi ±360 px):
-   - Batang horizontal per tahap A–F, diurutkan dari terbesar, ditumpuk per pemicu (listrik / bahan kimia / air / emisi langsung / limbah) dengan legenda.
-   - Garis putus-putus vertikal pada 30% total berlabel "Ambang titik boros (30%)".
-   - Tahap yang menjadi titik boros: **outline merah 3 px**, latar batang tetap berwarna, label **"TITIK BOROS #1"** di ujung batang, ikon peringatan. Tahap lain diredam (abu-abu muda) agar kontras.
-   - Angka absolut dan persen di ujung setiap batang.
-   - Tidak bergantung warna saja: titik boros juga diberi pola arsir dan teks.
-3. **Kalimat jawaban** di bawah grafik: "Pelapisan utama menyumbang 38,5% jejak karbon lini — terbesar dari enam tahap."
-4. **Kartu penjelasan per titik boros** (satu kartu per tahap yang ditandai), berisi tiga bagian:
-   - **Kenapa ini titik boros (data)**: share, nilai absolut, 3 pemicu terbesar beserta angkanya, perbandingan dengan rata-rata tahap lain. Contoh: "Bahan kimia 150 kg menyumbang 375 kg CO₂e (53%) dan listrik 550 kWh menyumbang 337 kg CO₂e (47%) dari tahap ini."
-   - **Alasan teknis (kenapa bisa boros)**: diambil dari pustaka alasan (Bagian 7) sesuai jenis lapisan dan pemicu, lengkap dengan sumber.
-   - **Yang bisa dilakukan**: 1–3 tuas perbaikan relevan dengan tombol "Lihat perhitungannya".
-5. Mode Ahli: heatmap tahap × kategori dan tabel kontribusi komponen.
+Semua angka berasal dari run engine (`buildTitikBoros` di `lib/engine/titikBoros.ts`). Saat hasil lama dibuka, ketiga area memakai run tersebut.
 
-Kriteria penerimaan: dengan fixture demo, indikator jejak karbon menandai hanya tahap C; indikator air menandai A dan D; indikator limbah B3 menandai F.
+**Sistem warna** (sama di grafik, tabel, dan kotak). Kelas ditentukan oleh porsi (share) tahap dalam satu indikator:
+
+| Kelas | Syarat | Warna (latar / teks) | Label |
+| --- | --- | --- | --- |
+| Merah | share ≥ ambang (bawaan 30%, dari Pengaturan → Proyek, §4.6) | #A61B1B / putih | Titik boros, ikon segitiga peringatan |
+| Oranye | 20% sampai < ambang | #E8731A / gelap | Tinggi, ikon panah ganda |
+| Kuning | 10% sampai < 20% | #FBE27A / gelap | Sedang, ikon panah |
+| Hijau | > 0% sampai < 10% | #7CC48F / gelap | Rendah, ikon panah turun |
+| Abu-abu | 0 atau belum dihitung | #E4E2DC + arsir / gelap | Tidak ada, ikon garis |
+
+Kecerahan L* merah 36, oranye 61, hijau 73, kuning 90. Kontras teks ≥ 4,5:1 di semua warna (diuji otomatis). Setiap warna selalu disertai teks atau ikon. Satu legenda di atas halaman berlaku untuk ketiga area.
+
+**Tata letak** (≥ 1280 px). Di bawah lebar itu ketiga area ditumpuk berurutan.
+
+- **Area A (atas, lebar penuh): batang horizontal bertumpuk 100%**, satu per indikator.
+  - Kelompok "Dampak lingkungan": Jejak karbon, Potensi hujan asam, Potensi pencemaran nutrien air, Pemakaian bahan bakar fosil (abiotik fosil). Hanya kategori yang sudah punya faktor yang tampil.
+  - Kelompok "Pemakaian & buangan": Pemakaian air, Limbah berbahaya (B3), Nilai terbuang (Rp).
+  - Segmen berurutan tetap A–F, dipisah garis tipis. Warna segmen = kelas, bukan warna tahap.
+  - Label kode tahap + persen di dalam segmen bila lebarnya ≥ 8%. Segmen merah diberi outline tebal dan label "TITIK BOROS" di bawahnya.
+  - Di kanan setiap batang ada total per 1 m².
+  - Tooltip (hover atau fokus keyboard) berisi nama tahap, nilai per m², persen, kelas, dan dua pemicu terbesar.
+  - Catatan di bawah grafik: "X kategori dampak lain belum dihitung (faktor belum tersedia)."
+- **Area B (bawah kiri, 7/12): tabel heatmap.** Baris dan kelompoknya sama dengan Area A.
+  - Kolom: Indikator | Satuan | A–F (kode + nama pendek, nama lengkap di tooltip) | Total per m² (tanpa warna).
+  - Mode Ringkas: persen satu desimal dengan warna kelas; nilai absolut di tooltip.
+  - Mode Ahli: toggle "% / nilai", dengan nilai per m² maksimal 3 angka penting. Nama teknis kategori hanya muncul di tooltip Mode Ahli.
+  - Sel terbesar per baris dicetak tebal. Tombol "Unduh tabel (Excel)" dan "Salin" (teks bertab).
+- **Area C (bawah kanan, 5/12): kotak penjelasan per tahap.**
+  - Urutan kotak: status (kelas tertinggi tahap di semua indikator yang tampil), lalu jumlah indikator di kelas itu, lalu rata-rata share.
+  - Garis tepi dan badge mengikuti warna status. Kotak Hijau/Abu-abu tertutup di "Lihat tahap lain (n)".
+  - Isi kotak:
+    1. Judul nama tahap + badge.
+    2. Di mana boros: indikator Merah/Oranye beserta persennya.
+    3. Pemicunya: 2–3 komponen terbesar per periode, dari indikator pertama tempat tahap mencapai statusnya.
+    4. Kenapa bisa boros: alasan teknis Bagian 7 beserta sumbernya, atau "Alasan teknis belum tersedia untuk kombinasi ini."
+    5. Yang bisa dicoba: 1–2 simulasi yang memakai tuas relevan dan menghemat biaya, dengan tombol "Lihat perhitungannya" yang membuka `/simulasi?skenario=<id>`.
+  - Di atas kotak ada kalimat ringkasan: "{tahap} adalah titik boros terbesar: merah di {n} dari {m} indikator."
+
+**Interaksi.**
+
+- Hover pada segmen menyorot sel tabel dan kotak tahap yang sama; hover pada sel tabel juga sebaliknya.
+- Klik kotak (atau nama tahapnya) menyorot kolom tahap di tabel dan segmennya di semua batang.
+- Pemilih periode dan "Bandingkan dengan" di bar atas tetap berlaku.
+
+**Nilai uji** (fixture `plating_demo_v1`, `screening_v1`; `tests/titik-boros/` dan `tests/e2e/titik-boros.spec.ts`):
+
+- Jejak karbon: A 10,2% Kuning · B 8,1% Hijau · C 38,5% Merah · D 17,2% Kuning · E 6,4% Hijau · F 19,6% Kuning.
+- Pemakaian air: A 53,8% Merah · D 46,2% Merah · B, C, E, F Abu-abu.
+- Limbah B3: F 50% Merah · C 15% Kuning · D 12% Kuning · A 10% Kuning · B 8% Hijau · E 5% Hijau.
+- Kotak pertama berstatus Merah. C, F, A, dan D masing-masing Merah di minimal satu indikator.
+- Setiap baris persen berjumlah 100% (±0,1).
 
 ### 5.4 Simulasi Perbaikan — rekomendasi realistis dengan perhitungan & bukti
 

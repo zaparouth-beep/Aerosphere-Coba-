@@ -65,7 +65,7 @@ export interface StudyModel {
 
 const empty = <T>(v: T): Record<StageCode, T> => ({ A: v, B: v, C: v, D: v, E: v, F: v });
 
-function driversOf(impact: ImpactResult, stage: StageCode): StudyDriver[] {
+export function driversOf(impact: ImpactResult, stage: StageCode): StudyDriver[] {
   const groups = new Map<SourceGroup, StudyDriver>();
   for (const c of impact.contributions) {
     if (c.stage !== stage) continue;

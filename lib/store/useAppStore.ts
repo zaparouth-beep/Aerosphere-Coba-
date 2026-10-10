@@ -43,7 +43,6 @@ interface Ui {
   compareScenarioId: string | null;
   fuView: "perFu" | "total";
   hotspotWeights: HotspotWeights;
-  hotspotThreshold: number;
   copilotOpen: boolean;
   insightDecisions: Record<string, "accepted" | "rejected">;
   onboarded: boolean;
@@ -109,7 +108,7 @@ interface State {
 
   loadTemplate: (templateId: string) => boolean;
   importProject: (raw: unknown) => boolean;
-  updateProjectMeta: (patch: Partial<Pick<Project, "name" | "facility" | "client" | "periodLabel" | "periodMonths" | "partName" | "substrate" | "coatingType">>) => boolean;
+  updateProjectMeta: (patch: Partial<Pick<Project, "name" | "facility" | "client" | "periodLabel" | "periodMonths" | "partName" | "substrate" | "coatingType" | "hotspotThresholdPct">>) => boolean;
 
   updateScope: (patch: Partial<Scope>) => boolean;
   lockScope: () => boolean;
@@ -227,7 +226,6 @@ export const useAppStore = create<State>()(
           compareScenarioId: null,
           fuView: "perFu",
           hotspotWeights: DEFAULT_WEIGHTS,
-          hotspotThreshold: 30,
           copilotOpen: false,
           insightDecisions: {},
           onboarded: false,

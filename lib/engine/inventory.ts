@@ -179,6 +179,7 @@ export function toProjectInput(project: Project, lci: LciResult = computeLci(pro
       otherFixedRpPerPeriod: p.depreciationRpPerPeriod,
     },
     methodProfile: "screening_v1",
+    hotspotThresholdPct: project.hotspotThresholdPct,
     effluentMeasuredM3: project.production.effluentVolumeM3 > 0 ? project.production.effluentVolumeM3 : undefined,
   };
 }
