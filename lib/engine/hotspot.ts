@@ -96,3 +96,40 @@ export function pareto(items: Array<{ name: string; stageId: StageId; value: num
     return { ...i, sharePct: total > 0 ? (i.value / total) * 100 : 0, cumulativePct: total > 0 ? (cum / total) * 100 : 0, top20: idx < topN };
   });
 }
+
+/* ----------------------- Titik boros rule (spec §4.6) ---------------------- */
+
+export interface IndicatorInput {
+  indicator: string;
+  /** Value per stage; stages with 0 are ranked but never flagged. */
+  perStage: Record<StageId, number>;
+  /** Per-component contributions used to name the top-3 drivers of a stage. */
+  contributions: Array<{ componentId: string; name: string; stage: StageId; value: number }>;
+}
+
+/** A stage is a titik boros when its share ≥ threshold or it ranks first. */
+export function findHotspots(inputs: IndicatorInput[], thresholdPct = 30): HotspotFindingLite[] {
+  return inputs.map(({ indicator, perStage, contributions }) => {
+    const total = STAGE_IDS.reduce((s, id) => s + Math.max(perStage[id], 0), 0);
+    const ranking = STAGE_IDS.map((stage) => ({ stage, value: perStage[stage], share: total > 0 ? (Math.max(perStage[stage], 0) / total) * 100 : 0 }))
+      .sort((a, b) => b.share - a.share)
+      .map((r, i) => {
+        const stageTotal = Math.max(r.value, 0);
+        const drivers = contributions
+          .filter((c) => c.stage === r.stage && c.value > 0)
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 3)
+          .map((c) => ({ componentId: c.componentId, name: c.name, value: c.value, sharePct: stageTotal > 0 ? (c.value / stageTotal) * 100 : 0 }));
+        return { ...r, rank: i + 1, drivers };
+      });
+    const flagged = total > 0 ? ranking.filter((r) => r.value > 0 && (r.share >= thresholdPct || r.rank === 1)) : [];
+    return { indicator, thresholdPct, ranking, flagged };
+  });
+}
+
+export interface HotspotFindingLite {
+  indicator: string;
+  thresholdPct: number;
+  ranking: Array<{ stage: StageId; value: number; share: number; rank: number; drivers: Array<{ componentId: string; name: string; value: number; sharePct: number }> }>;
+  flagged: HotspotFindingLite["ranking"];
+}

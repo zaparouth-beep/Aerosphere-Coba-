@@ -1,0 +1,251 @@
+{
+ "version": "proper_inalum_v1@pending",
+ "profile": "proper_inalum_v1",
+ "status": "empty",
+ "_note": "Diisi oleh pipeline openLCA (spesifikasi 4.2.3, milestone M9). Sampai saat itu semua faktor null sehingga semua kategori 'belum dihitung'.",
+ "categories": [
+  {
+   "no": "1",
+   "key": "gwp",
+   "labelId": "Global warming potential",
+   "labelEn": "Global warming potential",
+   "unit": "kg CO₂ eq",
+   "method": "IPCC 2021 GWP100",
+   "group": "primary"
+  },
+  {
+   "no": "2",
+   "key": "odp",
+   "labelId": "Potensi penipisan ozon",
+   "labelEn": "Ozone depletion potential",
+   "unit": "kg CFC-11 eq",
+   "method": "ReCiPe 2016 Midpoint (H)",
+   "group": "primary"
+  },
+  {
+   "no": "3",
+   "key": "ap",
+   "labelId": "Potensi hujan asam",
+   "labelEn": "Acidification potential",
+   "unit": "kg SO₂ eq",
+   "method": "ReCiPe 2016 Midpoint (H)",
+   "group": "primary"
+  },
+  {
+   "no": "4",
+   "key": "ep",
+   "labelId": "Potensi eutrofikasi",
+   "labelEn": "Eutrophication potential",
+   "unit": "kg PO₄ eq",
+   "method": "CML-IA baseline",
+   "group": "primary"
+  },
+  {
+   "no": "5",
+   "key": "pocp",
+   "labelId": "Photochemical oxidation",
+   "labelEn": "Photochemical oxidation",
+   "unit": "kg C₂H₄ eq",
+   "method": "CML-IA baseline",
+   "group": "secondary"
+  },
+  {
+   "no": "6a",
+   "key": "adp_fossil",
+   "labelId": "Penurunan abiotik (fosil)",
+   "labelEn": "Abiotic depletion (fossil fuels)",
+   "unit": "MJ",
+   "method": "CML-IA baseline",
+   "group": "secondary"
+  },
+  {
+   "no": "6b",
+   "key": "adp_nonfossil",
+   "labelId": "Penurunan abiotik (non-fosil)",
+   "labelEn": "Abiotic depletion (non-fossil)",
+   "unit": "kg Sb eq",
+   "method": "CML-IA baseline",
+   "group": "secondary"
+  },
+  {
+   "no": "7a",
+   "key": "eco_terrestrial",
+   "labelId": "Ekotoksisitas darat",
+   "labelEn": "Terrestrial ecotoxicity",
+   "unit": "kg 1,4-DCB",
+   "method": "ReCiPe 2016 Midpoint (H)",
+   "group": "secondary"
+  },
+  {
+   "no": "7b",
+   "key": "eco_freshwater",
+   "labelId": "Ekotoksisitas air tawar",
+   "labelEn": "Freshwater ecotoxicity",
+   "unit": "kg 1,4-DCB",
+   "method": "ReCiPe 2016 Midpoint (H)",
+   "group": "secondary"
+  },
+  {
+   "no": "7c",
+   "key": "eco_marine",
+   "labelId": "Ekotoksisitas laut",
+   "labelEn": "Marine ecotoxicity",
+   "unit": "kg 1,4-DCB",
+   "method": "ReCiPe 2016 Midpoint (H)",
+   "group": "secondary"
+  },
+  {
+   "no": "8",
+   "key": "carcinogenic",
+   "labelId": "Karsinogenik",
+   "labelEn": "Carcinogenic",
+   "unit": "kg 1,4-DCB",
+   "method": "ReCiPe 2016 Midpoint (H)",
+   "group": "secondary"
+  },
+  {
+   "no": "9",
+   "key": "toxicity",
+   "labelId": "Toksisitas",
+   "labelEn": "Toxicity",
+   "unit": "kg 1,4-DB eq",
+   "method": "CML-IA baseline",
+   "group": "secondary"
+  },
+  {
+   "no": "10",
+   "key": "water_footprint",
+   "labelId": "Water footprint",
+   "labelEn": "Water footprint",
+   "unit": "m³",
+   "method": "ReCiPe 2016 Midpoint (H), water consumption",
+   "group": "secondary"
+  },
+  {
+   "no": "11",
+   "key": "land_use",
+   "labelId": "Land use change",
+   "labelEn": "Land use change",
+   "unit": "m²a crop eq",
+   "method": "ReCiPe 2016 Midpoint (H)",
+   "group": "secondary"
+  },
+  {
+   "no": "12a",
+   "key": "ced_nonrenewable",
+   "labelId": "Cumulative Energy Demand — tidak terbarukan",
+   "labelEn": "Cumulative Energy Demand — non-renewable",
+   "unit": "MJ",
+   "method": "CED",
+   "group": "energy"
+  },
+  {
+   "no": "12b",
+   "key": "ced_renewable",
+   "labelId": "Cumulative Energy Demand — terbarukan",
+   "labelEn": "Cumulative Energy Demand — renewable",
+   "unit": "MJ",
+   "method": "CED",
+   "group": "energy"
+  }
+ ],
+ "flows": {
+  "elec.grid_id": {
+   "unit": "kWh",
+   "dataset": "belum diisi",
+   "source": "Pipeline openLCA (M9)",
+   "status": "missing",
+   "factors": {
+    "gwp": null,
+    "odp": null,
+    "ap": null,
+    "ep": null,
+    "pocp": null,
+    "adp_fossil": null,
+    "adp_nonfossil": null,
+    "eco_terrestrial": null,
+    "eco_freshwater": null,
+    "eco_marine": null,
+    "carcinogenic": null,
+    "toxicity": null,
+    "water_footprint": null,
+    "land_use": null,
+    "ced_nonrenewable": null,
+    "ced_renewable": null
+   }
+  },
+  "chem.generic": {
+   "unit": "kg",
+   "dataset": "belum diisi",
+   "source": "Pipeline openLCA (M9)",
+   "status": "missing",
+   "factors": {
+    "gwp": null,
+    "odp": null,
+    "ap": null,
+    "ep": null,
+    "pocp": null,
+    "adp_fossil": null,
+    "adp_nonfossil": null,
+    "eco_terrestrial": null,
+    "eco_freshwater": null,
+    "eco_marine": null,
+    "carcinogenic": null,
+    "toxicity": null,
+    "water_footprint": null,
+    "land_use": null,
+    "ced_nonrenewable": null,
+    "ced_renewable": null
+   }
+  },
+  "chem.wwtp": {
+   "unit": "kg",
+   "dataset": "belum diisi",
+   "source": "Pipeline openLCA (M9)",
+   "status": "missing",
+   "factors": {
+    "gwp": null,
+    "odp": null,
+    "ap": null,
+    "ep": null,
+    "pocp": null,
+    "adp_fossil": null,
+    "adp_nonfossil": null,
+    "eco_terrestrial": null,
+    "eco_freshwater": null,
+    "eco_marine": null,
+    "carcinogenic": null,
+    "toxicity": null,
+    "water_footprint": null,
+    "land_use": null,
+    "ced_nonrenewable": null,
+    "ced_renewable": null
+   }
+  },
+  "water.process": {
+   "unit": "L",
+   "dataset": "belum diisi",
+   "source": "Pipeline openLCA (M9)",
+   "status": "missing",
+   "factors": {
+    "gwp": null,
+    "odp": null,
+    "ap": null,
+    "ep": null,
+    "pocp": null,
+    "adp_fossil": null,
+    "adp_nonfossil": null,
+    "eco_terrestrial": null,
+    "eco_freshwater": null,
+    "eco_marine": null,
+    "carcinogenic": null,
+    "toxicity": null,
+    "water_footprint": null,
+    "land_use": null,
+    "ced_nonrenewable": null,
+    "ced_renewable": null
+   }
+  }
+ },
+ "directEmissionCF": {}
+}

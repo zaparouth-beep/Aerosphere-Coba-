@@ -1,0 +1,107 @@
+{
+ "version": "screening_v1@2026-10-11",
+ "profile": "screening_v1",
+ "status": "screening",
+ "_note": "Faktor skrining tim (docs/AEROSPHERE_SPEC.md 4.2.1). Wajib diberi label 'skrining' di UI dan laporan, dan diganti hasil pipeline openLCA sebelum diklaim sebagai hasil LCA formal. null = belum dihitung, bukan 0.",
+ "categories": [
+  {
+   "key": "gwp",
+   "labelId": "Jejak karbon",
+   "labelEn": "Global warming potential",
+   "unit": "kg CO₂e",
+   "method": "IPCC GWP100 (skrining)",
+   "group": "primary"
+  },
+  {
+   "key": "ap",
+   "labelId": "Potensi hujan asam",
+   "labelEn": "Acidification potential",
+   "unit": "kg SO₂e",
+   "method": "Skrining tim",
+   "group": "primary"
+  },
+  {
+   "key": "ep",
+   "labelId": "Potensi eutrofikasi",
+   "labelEn": "Eutrophication potential",
+   "unit": "kg PO₄e",
+   "method": "Skrining tim",
+   "group": "primary"
+  },
+  {
+   "key": "adp_fossil",
+   "labelId": "Penurunan abiotik (fosil)",
+   "labelEn": "Abiotic depletion (fossil)",
+   "unit": "MJ",
+   "method": "Skrining tim",
+   "group": "secondary"
+  }
+ ],
+ "flows": {
+  "elec.grid_id": {
+   "unit": "kWh",
+   "dataset": "Listrik grid JAMALI",
+   "source": "GWP: faktor grid JAMALI 0,613 tCO₂/MWh (GEC/JCM 2022); AP, EP, ADP: skrining tim. Perbarui ke faktor ESDM terbaru sebelum pilot.",
+   "status": "screening",
+   "factors": {
+    "gwp": 0.613,
+    "ap": 0.004,
+    "ep": 0.0005,
+    "adp_fossil": 10.5
+   }
+  },
+  "chem.generic": {
+   "unit": "kg",
+   "dataset": "Bahan kimia proses, anoda, consumable (generik)",
+   "source": "Skrining tim",
+   "status": "screening",
+   "factors": {
+    "gwp": 2.5,
+    "ap": 0.012,
+    "ep": 0.003,
+    "adp_fossil": 35
+   }
+  },
+  "chem.wwtp": {
+   "unit": "kg",
+   "dataset": "Bahan kimia IPAL (generik)",
+   "source": "Skrining tim",
+   "status": "screening",
+   "factors": {
+    "gwp": 2.5,
+    "ap": 0.012,
+    "ep": 0.003,
+    "adp_fossil": 25
+   }
+  },
+  "water.process": {
+   "unit": "L",
+   "dataset": "Air proses / DI (generik)",
+   "source": "Skrining tim",
+   "status": "screening",
+   "factors": {
+    "gwp": 0.0003,
+    "ap": null,
+    "ep": null,
+    "adp_fossil": null
+   }
+  }
+ },
+ "directEmissionCF": {
+  "air.acid_mist": {
+   "ap": 0.77
+  },
+  "effluent.cod": {
+   "ep": 0.022
+  }
+ },
+ "adpMineralKgSbEqPerKgMetal": {
+  "_note": "CML-IA; verifikasi ulang terhadap paket metode openLCA. Belum dipakai: komposisi logam anoda belum diisi.",
+  "Cd": 0.157,
+  "Pb": 0.00634,
+  "Cu": 0.00137,
+  "Zn": 0.000538,
+  "Cr": 0.000443,
+  "Ni": 6.53e-05
+ }
+}

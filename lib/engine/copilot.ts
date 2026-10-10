@@ -1,4 +1,4 @@
-import type { LeverSettings, Project } from "@/lib/domain/types";
+import type { LeverSettings, Project, StageId } from "@/lib/domain/types";
 import type { Results } from "./calculate";
 import { STAGE_IDS } from "./lci";
 import { SOURCE_LABEL, type SourceKey } from "./lcia";
@@ -103,22 +103,23 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     }));
   }
 
-  const lossStage = [...r.mfca.stages].sort((a, b) => b.costLossRp - a.costLossRp)[0];
-  if (lossStage && r.mfca.costLossRp > 0) {
-    values["mfca.loss"] = rp(r.mfca.costLossRp);
-    values["mfca.lossShare"] = `${n((r.mfca.costLossRp / r.mfca.totalCostRp) * 100)}%`;
-    values["mfca.topStage"] = `${lossStage.stageId}. ${stageName(lossStage.stageId)}`;
-    values["mfca.topLoss"] = rp(lossStage.costLossRp);
-    values["mfca.materialLoss"] = `${n(r.mfca.materialLossKg)} kg`;
+  // Wasted value (§4.5): chemicals, water and B3 handling; energy and labour are not waste.
+  const w = r.analysis?.waste;
+  const wasteStage = w ? (Object.entries(w.perStage) as Array<[StageId, number]>).sort((a, b) => b[1] - a[1])[0] : undefined;
+  if (w && wasteStage && w.totalRp > 0) {
+    values["waste.value"] = rp(w.totalRp);
+    values["waste.share"] = `${n(w.pctOfCost)}%`;
+    values["waste.topStage"] = `${wasteStage[0]}. ${stageName(wasteStage[0])}`;
+    values["waste.topValue"] = rp(wasteStage[1]);
     tryPush(() => ({
       id: "cost-loss",
       kind: "cost",
-      title: "Biaya bahan yang terbuang",
+      title: "Nilai yang terbuang",
       text: render(
-        "Bahan, listrik, dan pengolahan yang terbuang bernilai {{mfca.loss}} ({{mfca.lossShare}} dari biaya). Terbesar di tahap {{mfca.topStage}}: {{mfca.topLoss}}. Bahan yang tidak menjadi produk: {{mfca.materialLoss}}.",
+        "Bahan kimia, air, dan pengolahan limbah yang terbuang bernilai {{waste.value}} ({{waste.share}} dari biaya proses). Terbesar di tahap {{waste.topStage}}: {{waste.topValue}}.",
         values,
       ),
-      refs: ["run.mfca.costLossRp", "run.mfca.stages"],
+      refs: ["run.analysis.waste.totalRp", "run.analysis.waste.perStage"],
     }));
   }
 

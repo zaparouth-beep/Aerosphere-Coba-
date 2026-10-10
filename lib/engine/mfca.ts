@@ -61,6 +61,17 @@ function emptyCost(): Record<MfcaCostKey, { positive: number; negative: number }
   };
 }
 
+/** B3 transport per period: Σ distance per destination × trips × Rp/km. */
+export function wasteTransportRp(project: Project): number {
+  const destinations = new Map<string, number>();
+  for (const w of project.waste) {
+    const key = w.destination.trim().toLowerCase();
+    destinations.set(key, Math.max(destinations.get(key) ?? 0, w.transportKm));
+  }
+  const trips = project.prices.wasteTripsPerPeriod > 0 ? project.prices.wasteTripsPerPeriod : 0;
+  return [...destinations.values()].reduce((s, km) => s + km, 0) * trips * project.prices.wasteTransportRpPerKm;
+}
+
 /**
  * Material balance: Input = positive product + negative product (ISO 14051).
  * Positive product is the deposited coating (m = ρ·A·t) at the main plating
@@ -99,13 +110,7 @@ export function computeMfca(project: Project, lci: LciResult, ccTotalKg: number)
   // Waste: treatment per kg + transport per destination trip, shared by mass.
   const wasteFlows = lci.flows.filter((f) => f.kind === "waste" && f.inBoundary);
   const wasteMass = wasteFlows.reduce((s, f) => s + f.quantity, 0);
-  const destinations = new Map<string, number>();
-  for (const w of project.waste) {
-    const key = w.destination.trim().toLowerCase();
-    destinations.set(key, Math.max(destinations.get(key) ?? 0, w.transportKm));
-  }
-  const trips = project.prices.wasteTripsPerPeriod > 0 ? project.prices.wasteTripsPerPeriod : 0;
-  const transportTotal = [...destinations.values()].reduce((s, km) => s + km, 0) * trips * project.prices.wasteTransportRpPerKm;
+  const transportTotal = wasteTransportRp(project);
   for (const f of wasteFlows) {
     const treat = f.quantity * project.prices.wasteTreatmentRpPerKg;
     const transport = wasteMass > 0 ? transportTotal * (f.quantity / wasteMass) : 0;

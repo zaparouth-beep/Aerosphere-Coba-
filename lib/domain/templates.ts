@@ -1,6 +1,7 @@
-import { defaultBackgrounds, defaultMethodPackage } from "@/lib/engine/method";
+import { defaultBackgrounds, defaultMethodPackage, SCREENING_PROXIES } from "@/lib/engine/method";
 import { defaultPedigree } from "@/lib/engine/quality";
 import type {
+  BackgroundMapping,
   AirEmission,
   Basis,
   DataMeta,
@@ -90,10 +91,16 @@ function input(
     unit,
     basis,
     meta: m,
-    mapping: gridMapped
-      ? { status: "proxy", datasetId: "bg-grid-jamali", rationale: "Listrik dibeli dari grid JAMALI; faktor hanya climate change." }
-      : { status: "unmapped" },
+    mapping: gridMapped ? { status: "proxy", datasetId: "bg-grid-jamali", rationale: "Listrik dibeli dari grid JAMALI; faktor hanya climate change." } : screeningMapping(category),
   };
+}
+
+/** Default mapping of non-energy inputs to the screening proxies (fix A1). */
+function screeningMapping(category: InputCategory): BackgroundMapping {
+  const proxy = SCREENING_PROXIES.find((p) => p.categories.includes(category));
+  return proxy
+    ? { status: "proxy", datasetId: proxy.datasetId, rationale: "Faktor skrining tim (screening_v1); ganti dengan dataset openLCA sebelum klaim formal." }
+    : { status: "unmapped" };
 }
 
 function catalogInputs(quantities: Record<number, number>, m: (no: number) => DataMeta): InputFlow[] {

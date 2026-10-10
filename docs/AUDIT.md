@@ -2,7 +2,30 @@
 
 **Tanggal:** 10 Oktober 2026 · **Commit yang diaudit:** `fc48d56` (branch `claude/loving-edison-bnbrzq`, sama dengan yang ter-deploy)
 **Acuan:** `docs/AEROSPHERE_SPEC.md` v1.0, laporan LCA INALUM 2025 (ID & EN), laporan LCA Pusri 2025.
-**Status:** audit saja. Tidak ada kode yang diubah. Bagian 6 berisi pertanyaan yang perlu diputuskan sebelum M1.
+**Status:** M0 selesai (audit). **M1 selesai** (lihat Bagian 0 dan `CHANGELOG.md`). Pertanyaan Bagian 6 masih terbuka; M1 memakai asumsi Q1-b dan Q2-b.
+
+---
+
+## 0. Status milestone
+
+| Milestone | Status | Catatan |
+| --- | --- | --- |
+| M0 | Selesai | Audit, spesifikasi, rencana |
+| M1 | Selesai (10 Okt 2026) | Engine `runAnalysis` + tabel faktor berversi + golden. Semua nilai golden §4.8.2 cocok (toleransi ±0,01); tidak ada golden yang diubah. 67/67 tes lulus; typecheck, lint, build statis bersih; 0 error console di 15 halaman aplikasi (Ringkas & Ahli) + landing + contoh laporan |
+| M2–M7 | Belum mulai | Menunggu persetujuan |
+
+**Catatan M1 (penyimpangan & hal yang perlu diputuskan):**
+
+1. **Golden "GWP bahan kimia 1.255,0"** mencakup kimia proses + kimia IPAL (1.003,75 + 251,25). Engine memisahkannya per sumber (`chemical`, `wwtp_chemical`); tes menjumlahkan keduanya. Angka golden tidak diubah.
+2. **Q5 (limbah B3 tanpa faktor):** GWP berstatus `partial` dan 6 komponen limbah B3 tercatat sebagai "belum dihitung"; totalnya tetap 1.848,495 sesuai golden. Cara menampilkan status partial di UI belum dibuat.
+3. **Q3 (EF 3.1 Mode Ahli):** climate change di Mode Ahli sekarang memakai proksi skrining yang sama (kimia, IPAL, air) supaya Mode Ahli = Mode Ringkas. Kategori EF 3.1 lain hanya dari listrik. Perlu konfirmasi.
+4. **Q6 (pemetaan sumber data):** `measured→meter`, `supplier→invoice`, `calculated→estimate`, `database/literature→literature`, limbah terukur → `weighing`. Keyakinan engine untuk demo = **sedang**, sedangkan kartu "Seberapa yakin" di Beranda (rumus pedigree lama) masih menulis **Tinggi**. Belum diseragamkan karena kartu itu bagian M3.
+5. **Efluen:** demo mengisi volume efluen terukur, jadi engine memakai angka terukur bila > 0; golden memakai 0,9 × air (5,85 m³) dan tes golden memakai fixture tanpa angka terukur.
+6. **Faktor listrik proyek** menimpa faktor GWP listrik skrining (versi diberi akhiran `+grid=…`). Tanpa ini tuas "Pakai listrik lebih bersih" tidak lagi berpengaruh.
+7. **Sensitivitas:** baris teratas berubah dari faktor grid ke volume produksi (konsekuensi A1, bukan galat). Tes lama diperbarui.
+8. **Proyek tersimpan lama** di browser tidak dimigrasi ke pemetaan proksi (Mode Ahli EF 3.1 untuk proyek lama tetap listrik saja). Perlu keputusan apakah dimigrasi otomatis.
+9. **Angka statis** di landing (mockup), deck, dan banner masih 2,37 kg/m² dan 97%; tidak diubah karena di luar izin. Kalkulator dan contoh laporan yang dihitung engine ikut berubah otomatis.
+10. **L1 (drag-out)** masih Rp3.180.000/tahun; golden Rp2.960.000 dijadwalkan di M5. Tes e2e Bagian 11 (Playwright di repo) dijadwalkan di M2/M7 sesuai rencana; M1 dicek dengan skrip Playwright di luar repo.
 
 ---
 
