@@ -142,10 +142,7 @@ test("buttons: Excel, copy, other stages, lever link", async ({ page, context },
 test("Mode Ahli: % / nilai toggle and threshold from project settings", async ({ page }, info) => {
   test.skip(info.project.name === "mobile", "covered on desktop");
   await loginDemo(page);
-  // The demo account is on the Coba plan; switch to Profesional with the simulated admin activation.
-  await go(page, "/pengaturan?tab=paket");
-  await page.getByRole("button", { name: "Pilih Profesional" }).click();
-  await page.getByRole("button", { name: /Aktifkan sekarang/ }).click();
+  // The demo account has every feature (Industri plan), so Mode Ahli is open.
   await page.getByRole("radio", { name: /Ahli/ }).click();
 
   await go(page, "/titik-boros");
@@ -163,4 +160,19 @@ test("Mode Ahli: % / nilai toggle and threshold from project settings", async ({
   await go(page, "/titik-boros");
   await expect(page.getByLabel("Legenda warna")).toContainText("≥ 40%");
   await expect(page.getByTestId("cell-gwp-C")).toHaveAttribute("data-severity", "orange");
+});
+
+test("demo account has every feature (jury demo)", async ({ page }, info) => {
+  test.skip(info.project.name === "mobile", "covered on desktop");
+  await loginDemo(page);
+  await expect(page.locator("aside")).toContainText("Industri");
+  await page.getByRole("radio", { name: /Ahli/ }).click();
+  await expect(page.getByRole("radio", { name: /Ahli/ })).toHaveAttribute("aria-checked", "true");
+  await go(page, "/laporan");
+  for (const tab of ["Teknis", "Kepatuhan"]) {
+    await page.getByRole("tab", { name: new RegExp(tab) }).click();
+    await expect(page.locator("main").getByText("Lihat paket")).toHaveCount(0);
+  }
+  await page.getByRole("tab", { name: /Laporan Kajian LCA/ }).click();
+  await expect(page.locator("article.study-report")).not.toContainText("Contoh");
 });
