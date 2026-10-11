@@ -73,3 +73,23 @@ test("a document with only inputs cannot be applied", async ({ page }) => {
   await row.getByLabel(/Jenis/).selectOption("waste");
   await expect(page.getByTestId("import-apply")).toBeEnabled();
 });
+
+test("Excel: a normal workbook and one written by an ERP (prefixed XML) are both read", async ({ page }) => {
+  const ExcelJS = (await import("exceljs")).default;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Data");
+  [["Nama bahan", "Tahap", "Jumlah", "Satuan"], ["INPUT"], ["Nikel sulfat", "C", 12, "kg"], ["OUTPUT"], ["Lumpur IPAL (limbah B3)", "F", 40, "kg"]].forEach((r) => ws.addRow(r));
+  const normal = Buffer.from(await wb.xlsx.writeBuffer());
+
+  await loginDemo(page);
+  await go(page, "/data");
+  for (const file of [{ name: "biasa.xlsx", buffer: normal }, fixture("erp-prefix.xlsx")]) {
+    await page.getByTestId("document-upload").setInputFiles(typeof file === "string" ? file : { ...file, mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const review = page.getByTestId("import-review");
+    await expect(review).toBeVisible({ timeout: 20_000 });
+    await expect(review).toContainText("Input dan output lengkap");
+    await expect(page.getByTestId("import-apply")).toBeEnabled();
+    await page.getByRole("button", { name: "Batal" }).click();
+    await expect(review).toBeHidden();
+  }
+});
