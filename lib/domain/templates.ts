@@ -96,7 +96,7 @@ function input(
 }
 
 /** Default mapping of non-energy inputs to the screening proxies (fix A1). */
-function screeningMapping(category: InputCategory): BackgroundMapping {
+export function screeningMapping(category: InputCategory): BackgroundMapping {
   const proxy = SCREENING_PROXIES.find((p) => p.categories.includes(category));
   return proxy
     ? { status: "proxy", datasetId: proxy.datasetId, rationale: "Faktor skrining tim (screening_v1); ganti dengan dataset openLCA sebelum klaim formal." }

@@ -301,6 +301,15 @@ export interface Targets {
   discountRatePct: number;
 }
 
+export interface ExternalImpact {
+  /** Impact category key when recognised (gwp, ap, ep, …). */
+  key?: string;
+  label: string;
+  value: number;
+  unit: string;
+  source: string;
+}
+
 export interface Project {
   schemaVersion: 2;
   id: string;
@@ -315,6 +324,8 @@ export interface Project {
   coatingType: string;
   /** Share (%) at which a stage counts as a titik boros (spec §4.6); default 30. */
   hotspotThresholdPct?: number;
+  /** Impact results found in an uploaded document (other software); shown for comparison only, never used in calculations. */
+  externalImpacts?: ExternalImpact[];
   scope: Scope;
   scopeHistory: Scope[];
   stages: Stage[];

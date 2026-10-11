@@ -227,3 +227,44 @@ export function Contents() {
     </nav>
   );
 }
+
+/** Impact results found in an uploaded document, next to the engine's own totals (never mixed into calculations). */
+export function ExternalImpactsCard({ project, run }: { project: Project; run: RunResult }) {
+  const items = project.externalImpacts ?? [];
+  if (!items.length) return null;
+  return (
+    <Card id="pembanding" className="scroll-mt-36">
+      <CardHeader title="Pembanding dari dokumen" subtitle={`Hasil dampak yang tertulis di ${items[0]!.source}, berdampingan dengan hitungan AeroSphere (per periode)`} />
+      <CardBody>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs" data-testid="external-impacts">
+            <thead className="text-left text-[11px] text-navy-700/65">
+              <tr>
+                <th className="py-1.5 pr-3">Kategori</th>
+                <th className="py-1.5 pr-3 text-right">Angka di dokumen</th>
+                <th className="py-1.5 text-right">Hitungan AeroSphere</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((x, i) => {
+                const own = x.key ? run.impacts.find((imp) => imp.category === x.key) : undefined;
+                return (
+                  <tr key={i} className="border-t border-sand-100">
+                    <td className="py-1.5 pr-3 text-navy-900">{x.label}</td>
+                    <td className="num py-1.5 pr-3 text-right">
+                      {fmt3(x.value)} {x.unit}
+                    </td>
+                    <td className="num py-1.5 text-right text-navy-900">{own && own.total !== null ? `${fmt3(own.total)} ${own.unit}` : <span className="text-navy-700/55">belum dihitung</span>}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-[11px] text-navy-700/60">
+          Angka dokumen hanya pembanding dan tidak dipakai dalam perhitungan. Perbedaan bisa berasal dari batas kajian, faktor, atau satuan fungsi yang berbeda.
+        </p>
+      </CardBody>
+    </Card>
+  );
+}

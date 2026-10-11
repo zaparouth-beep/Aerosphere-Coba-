@@ -545,6 +545,16 @@ Setiap tahap A–F tampil sebagai kartu yang bisa dibuka-tutup, berisi tabel: Ko
 - **Ekspor Excel**: satu file `.xlsx` berisi sheet `Ringkasan` (semua run) lalu **satu sheet per run** (`R-0001`, `R-0002`, …) berisi input dan hasil. Ini memenuhi permintaan "disimpan di sheet lain".
 - Phase 1: simpan di IndexedDB (bukan localStorage, karena kuota). Batas 100 run per proyek; peringatan di 90.
 
+#### 5.2.5a Unggah dokumen apa pun (Excel, CSV, PDF, Word)
+
+- Tombol **"Unggah dokumen"** menerima `.xlsx`, `.csv`, `.pdf` (berteks, bukan hasil scan) dan `.docx`, maksimal 25 MB. File templat AeroSphere tetap memakai pengimpor templat lama.
+- Isi file dibaca di browser (`lib/io/docExtract.ts`) lalu diterjemahkan oleh **pembaca otomatis berbasis aturan** (`lib/io/smartReader.ts`): kenali kolom nama/jumlah/satuan/tahap, bagian INPUT/OUTPUT, satuan, format angka Indonesia/Inggris, baris PDF yang selnya bergeser, dan tabel kedua di halaman yang sama.
+- **Analisis dengan AI** (opsional): bila situs memasang kunci API, isi dokumen dikirim ke Claude lewat Netlify Function `/api/ai-import` **hanya setelah pengguna mencentang persetujuan**. Setiap angka dari AI dicocokkan dengan angka yang tertulis di dokumen; angka yang tidak ditemukan ditandai dan tidak dipakai. AI tidak menghitung dampak.
+- Dokumen wajib berisi **input dan output**. Tanpa salah satunya tombol penerapan dinonaktifkan dengan alasan.
+- Layar **Tinjau baris**: semua baris bisa diubah (jenis, kategori, nama, jumlah, satuan, tahap) atau tidak dipakai; keyakinan Yakin/Ragu/Tidak dikenali.
+- **Ganti data proyek** membuat versi data baru; data lama disimpan sebagai cadangan (maks. 5) dan bisa dikembalikan dengan "Kembalikan data sebelum unggah". Run lama tidak berubah.
+- Hasil dampak dari software lain di dokumen disimpan sebagai **pembanding** dan tampil di Hasil ("Pembanding dari dokumen"); angkanya tidak pernah dipakai dalam perhitungan.
+
 #### 5.2.6 Semua tombol harus berfungsi
 
 - Inventaris tombol per halaman dibuat dalam tes e2e (Playwright): klik setiap `button` dan `a[href]` yang terlihat; gagal bila tidak ada perubahan state, navigasi, dialog, atau unduhan, atau bila ada error di console.
