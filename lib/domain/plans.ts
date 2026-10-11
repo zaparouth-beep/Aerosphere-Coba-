@@ -26,7 +26,8 @@ export interface PlanDef {
   id: PlanId;
   name: string;
   audience: string;
-  price: string;
+  /** Short headline under the audience line on the plan card. */
+  tagline: string;
   projects: string;
   users: string;
   deployment: string;
@@ -43,7 +44,7 @@ export const PLANS: PlanDef[] = [
     id: "coba",
     name: "Coba",
     audience: "Calon klien, juri, demo",
-    price: "Gratis 14 hari",
+    tagline: "Gratis 14 hari",
     projects: "1 (proyek contoh + 1 unggahan)",
     users: "1",
     deployment: "Cloud",
@@ -62,7 +63,7 @@ export const PLANS: PlanDef[] = [
     id: "esensial",
     name: "Esensial",
     audience: "Pabrik kecil, 1 lini",
-    price: "Diisi tim",
+    tagline: "Temukan Titik Boros Utama",
     projects: "1",
     users: "3",
     deployment: "Cloud",
@@ -81,7 +82,7 @@ export const PLANS: PlanDef[] = [
     id: "profesional",
     name: "Profesional",
     audience: "Tim EHS/ESG, beberapa lini",
-    price: "Diisi tim",
+    tagline: "Analisis Mendalam, Keputusan Lebih Tepat",
     projects: "Hingga 5",
     users: "10",
     deployment: "Cloud",
@@ -100,7 +101,7 @@ export const PLANS: PlanDef[] = [
     id: "industri",
     name: "Industri",
     audience: "Grup manufaktur, data sensitif",
-    price: "Penawaran khusus",
+    tagline: "Solusi Sesuai Kebutuhan Perusahaan",
     projects: "Sesuai kontrak",
     users: "Sesuai kontrak",
     deployment: "Cloud atau on-premise",
