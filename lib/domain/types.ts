@@ -313,6 +313,8 @@ export interface Project {
   partName: string;
   substrate: string;
   coatingType: string;
+  /** Share (%) at which a stage counts as a titik boros (spec §4.6); default 30. */
+  hotspotThresholdPct?: number;
   scope: Scope;
   scopeHistory: Scope[];
   stages: Stage[];

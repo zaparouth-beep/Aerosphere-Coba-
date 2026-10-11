@@ -1,0 +1,536 @@
+{
+ "_comment": "Fixture golden spesifikasi Bagian 4.8.1 (data demo lini plating 250 m2/tahun). Jangan diubah tanpa mengubah spesifikasi.",
+ "projectId": "golden-plating-demo-v1",
+ "name": "Lini plating demo",
+ "facility": "Fasilitas demo",
+ "periodStart": "2026-01-01",
+ "periodEnd": "2026-12-31",
+ "coatingType": "hard_chrome",
+ "areaPlatedM2": 250,
+ "components": [
+  {
+   "id": "c01",
+   "stage": "A",
+   "category": "chemical",
+   "name": "Degreaser alkali",
+   "flowKey": "chem.generic",
+   "quantity": 30,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c02",
+   "stage": "A",
+   "category": "chemical",
+   "name": "H2SO4",
+   "flowKey": "chem.generic",
+   "quantity": 25,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c03",
+   "stage": "A",
+   "category": "chemical",
+   "name": "HCl",
+   "flowKey": "chem.generic",
+   "quantity": 15,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c04",
+   "stage": "B",
+   "category": "chemical",
+   "name": "Ni/Cu strike chemical",
+   "flowKey": "chem.generic",
+   "quantity": 60,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c05",
+   "stage": "C",
+   "category": "chemical",
+   "name": "CrO3 / asam kromat",
+   "flowKey": "chem.generic",
+   "quantity": 40,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c06",
+   "stage": "C",
+   "category": "chemical",
+   "name": "Garam nikel",
+   "flowKey": "chem.generic",
+   "quantity": 25,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c07",
+   "stage": "C",
+   "category": "chemical",
+   "name": "Kimia kadmium",
+   "flowKey": "chem.generic",
+   "quantity": 20,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c08",
+   "stage": "C",
+   "category": "chemical",
+   "name": "Natrium hipofosfit",
+   "flowKey": "chem.generic",
+   "quantity": 15,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c09",
+   "stage": "C",
+   "category": "chemical",
+   "name": "Elektrolit anodizing",
+   "flowKey": "chem.generic",
+   "quantity": 20,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c10",
+   "stage": "C",
+   "category": "chemical",
+   "name": "Brightener/aditif",
+   "flowKey": "chem.generic",
+   "quantity": 10,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c11",
+   "stage": "D",
+   "category": "chemical",
+   "name": "Chromate/passivation",
+   "flowKey": "chem.generic",
+   "quantity": 90,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c12",
+   "stage": "C",
+   "category": "anode",
+   "name": "Anoda Ni/Cd/Pb/Zn",
+   "flowKey": "chem.generic",
+   "quantity": 20,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c13",
+   "stage": "A",
+   "category": "water",
+   "name": "Air proses/bilas",
+   "flowKey": "water.process",
+   "quantity": 3500,
+   "unit": "L",
+   "source": "meter"
+  },
+  {
+   "id": "c14",
+   "stage": "D",
+   "category": "water",
+   "name": "Air DI/RO",
+   "flowKey": "water.process",
+   "quantity": 3000,
+   "unit": "L",
+   "source": "meter"
+  },
+  {
+   "id": "c15",
+   "stage": "C",
+   "category": "electricity",
+   "name": "Listrik rectifier",
+   "flowKey": "elec.grid_id",
+   "quantity": 300,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "rectifier"
+  },
+  {
+   "id": "c16",
+   "stage": "C",
+   "category": "electricity",
+   "name": "Pemanas bath",
+   "flowKey": "elec.grid_id",
+   "quantity": 150,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "heater"
+  },
+  {
+   "id": "c17",
+   "stage": "C",
+   "category": "electricity",
+   "name": "Chiller",
+   "flowKey": "elec.grid_id",
+   "quantity": 100,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "chiller"
+  },
+  {
+   "id": "c18",
+   "stage": "D",
+   "category": "electricity",
+   "name": "Oven HE-relief",
+   "flowKey": "elec.grid_id",
+   "quantity": 150,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "oven"
+  },
+  {
+   "id": "c19",
+   "stage": "E",
+   "category": "electricity",
+   "name": "Ventilasi/scrubber",
+   "flowKey": "elec.grid_id",
+   "quantity": 80,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "ventilation"
+  },
+  {
+   "id": "c20",
+   "stage": "E",
+   "category": "electricity",
+   "name": "Pompa/agitator",
+   "flowKey": "elec.grid_id",
+   "quantity": 40,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "pump"
+  },
+  {
+   "id": "c21",
+   "stage": "E",
+   "category": "electricity",
+   "name": "Udara tekan",
+   "flowKey": "elec.grid_id",
+   "quantity": 25,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "compressed_air"
+  },
+  {
+   "id": "c22",
+   "stage": "E",
+   "category": "electricity",
+   "name": "DI/RO",
+   "flowKey": "elec.grid_id",
+   "quantity": 40,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "di_ro"
+  },
+  {
+   "id": "c23",
+   "stage": "F",
+   "category": "electricity",
+   "name": "IPAL",
+   "flowKey": "elec.grid_id",
+   "quantity": 80,
+   "unit": "kWh",
+   "source": "meter",
+   "deviceRole": "wwtp"
+  },
+  {
+   "id": "c24",
+   "stage": "F",
+   "category": "wwtp_chemical",
+   "name": "Pereduksi Cr(VI)",
+   "flowKey": "chem.wwtp",
+   "quantity": 35,
+   "unit": "kg",
+   "source": "invoice",
+   "scalesWith": "dragout_load"
+  },
+  {
+   "id": "c25",
+   "stage": "F",
+   "category": "wwtp_chemical",
+   "name": "NaOCl/oksidator",
+   "flowKey": "chem.wwtp",
+   "quantity": 30,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c26",
+   "stage": "F",
+   "category": "wwtp_chemical",
+   "name": "NaOH/kapur",
+   "flowKey": "chem.wwtp",
+   "quantity": 35,
+   "unit": "kg",
+   "source": "invoice",
+   "scalesWith": "dragout_load"
+  },
+  {
+   "id": "c27",
+   "stage": "F",
+   "category": "wwtp_chemical",
+   "name": "Koagulan/flokulan",
+   "flowKey": "chem.wwtp",
+   "quantity": 25,
+   "unit": "kg",
+   "source": "invoice",
+   "scalesWith": "effluent_volume"
+  },
+  {
+   "id": "c28",
+   "stage": "A",
+   "category": "consumable",
+   "name": "Masking",
+   "flowKey": "chem.generic",
+   "quantity": 5,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c29",
+   "stage": "E",
+   "category": "consumable",
+   "name": "Filter/cartridge",
+   "flowKey": "chem.generic",
+   "quantity": 1,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c30",
+   "stage": "E",
+   "category": "consumable",
+   "name": "Consumable lain",
+   "flowKey": "chem.generic",
+   "quantity": 1,
+   "unit": "kg",
+   "source": "invoice"
+  },
+  {
+   "id": "c31",
+   "stage": "A",
+   "category": "waste_b3",
+   "name": "Limbah B3 tahap A",
+   "flowKey": "waste.b3",
+   "quantity": 20,
+   "unit": "kg",
+   "source": "weighing"
+  },
+  {
+   "id": "c32",
+   "stage": "B",
+   "category": "waste_b3",
+   "name": "Limbah B3 tahap B",
+   "flowKey": "waste.b3",
+   "quantity": 16,
+   "unit": "kg",
+   "source": "weighing"
+  },
+  {
+   "id": "c33",
+   "stage": "C",
+   "category": "waste_b3",
+   "name": "Limbah B3 tahap C",
+   "flowKey": "waste.b3",
+   "quantity": 30,
+   "unit": "kg",
+   "source": "weighing"
+  },
+  {
+   "id": "c34",
+   "stage": "D",
+   "category": "waste_b3",
+   "name": "Limbah B3 tahap D",
+   "flowKey": "waste.b3",
+   "quantity": 24,
+   "unit": "kg",
+   "source": "weighing"
+  },
+  {
+   "id": "c35",
+   "stage": "E",
+   "category": "waste_b3",
+   "name": "Limbah B3 tahap E",
+   "flowKey": "waste.b3",
+   "quantity": 10,
+   "unit": "kg",
+   "source": "weighing"
+  },
+  {
+   "id": "c36",
+   "stage": "F",
+   "category": "waste_b3",
+   "name": "Limbah B3 tahap F",
+   "flowKey": "waste.b3",
+   "quantity": 100,
+   "unit": "kg",
+   "source": "weighing",
+   "scalesWith": "dragout_load"
+  },
+  {
+   "id": "c37",
+   "stage": "C",
+   "category": "air_emission",
+   "name": "Kabut Cr(VI)",
+   "flowKey": "air.cr6",
+   "quantity": 0.15,
+   "unit": "kg",
+   "source": "estimate"
+  },
+  {
+   "id": "c38",
+   "stage": "A",
+   "category": "air_emission",
+   "name": "Kabut asam",
+   "flowKey": "air.acid_mist",
+   "quantity": 0.8,
+   "unit": "kg",
+   "source": "estimate"
+  },
+  {
+   "id": "c39",
+   "stage": "C",
+   "category": "air_emission",
+   "name": "H2",
+   "flowKey": "air.h2",
+   "quantity": 12,
+   "unit": "kg",
+   "source": "estimate"
+  },
+  {
+   "id": "c40",
+   "stage": "A",
+   "category": "air_emission",
+   "name": "VOC",
+   "flowKey": "air.voc",
+   "quantity": 0.5,
+   "unit": "kg",
+   "source": "estimate"
+  },
+  {
+   "id": "c41",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "pH",
+   "flowKey": "effluent.ph",
+   "quantity": 7.2,
+   "unit": "-",
+   "source": "lab"
+  },
+  {
+   "id": "c42",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "TSS",
+   "flowKey": "effluent.tss",
+   "quantity": 25,
+   "unit": "mg/L",
+   "source": "lab"
+  },
+  {
+   "id": "c43",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "COD",
+   "flowKey": "effluent.cod",
+   "quantity": 40,
+   "unit": "mg/L",
+   "source": "lab"
+  },
+  {
+   "id": "c44",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "Cr total",
+   "flowKey": "effluent.cr",
+   "quantity": 0.8,
+   "unit": "mg/L",
+   "source": "lab"
+  },
+  {
+   "id": "c45",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "Cr(VI)",
+   "flowKey": "effluent.cr6",
+   "quantity": 0.5,
+   "unit": "mg/L",
+   "source": "lab"
+  },
+  {
+   "id": "c46",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "Cd",
+   "flowKey": "effluent.cd",
+   "quantity": 0.02,
+   "unit": "mg/L",
+   "source": "lab"
+  },
+  {
+   "id": "c47",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "Ni",
+   "flowKey": "effluent.ni",
+   "quantity": 0.3,
+   "unit": "mg/L",
+   "source": "lab"
+  },
+  {
+   "id": "c48",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "Zn",
+   "flowKey": "effluent.zn",
+   "quantity": 0.15,
+   "unit": "mg/L",
+   "source": "lab"
+  },
+  {
+   "id": "c49",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "Cu",
+   "flowKey": "effluent.cu",
+   "quantity": 0.1,
+   "unit": "mg/L",
+   "source": "lab"
+  },
+  {
+   "id": "c50",
+   "stage": "F",
+   "category": "effluent_param",
+   "name": "Sianida",
+   "flowKey": "effluent.cn",
+   "quantity": 0,
+   "unit": "mg/L",
+   "source": "lab"
+  }
+ ],
+ "prices": {
+  "electricityRpPerKWh": 1500,
+  "waterRpPerL": 15,
+  "chemicalRpPerKg": 45000,
+  "wwtpChemicalRpPerKg": 20000,
+  "consumableRpPerKg": 30000,
+  "b3TreatmentRpPerKg": 8000,
+  "b3TransportRpPerPeriod": 2520000,
+  "laborRpPerPeriod": 25000000
+ },
+ "methodProfile": "screening_v1"
+}

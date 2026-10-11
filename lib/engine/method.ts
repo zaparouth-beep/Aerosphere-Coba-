@@ -1,4 +1,5 @@
-import type { BackgroundDataset, ImpactId, ImpactVector, MethodPackage } from "@/lib/domain/types";
+import type { BackgroundDataset, ImpactId, ImpactVector, InputCategory, MethodPackage } from "@/lib/domain/types";
+import { SCREENING_V1 } from "./factors";
 
 export interface ImpactCategory {
   id: ImpactId;
@@ -106,7 +107,30 @@ export function defaultBackgrounds(): BackgroundDataset[] {
       licenseScope: "Publik",
       importedAt: "2026-10-07",
     },
+    ...SCREENING_PROXIES.map((p) => ({
+      id: p.datasetId,
+      name: p.name,
+      provider: `Faktor skrining tim (${SCREENING_V1.version})`,
+      version: SCREENING_V1.version,
+      geography: "GLO (generik)",
+      refUnit: SCREENING_V1.flows[p.flowKey]!.unit as BackgroundDataset["refUnit"],
+      // Climate change only: the screening AP/EP use CML units (kg SO₂e, kg PO₄e), not EF 3.1.
+      factors: { cc: SCREENING_V1.flows[p.flowKey]!.factors.gwp as number },
+      licenseScope: "Skrining — ganti dengan data openLCA sebelum klaim formal",
+      importedAt: "2026-10-11",
+    })),
   ];
 }
+
+/**
+ * Proxy background datasets built from the screening factor table (fix A1):
+ * process chemicals, anodes, consumables, WWTP chemicals and water get the
+ * same climate-change factor as the engine, so Mode Ahli agrees with Mode Ringkas.
+ */
+export const SCREENING_PROXIES: Array<{ datasetId: string; name: string; flowKey: string; categories: InputCategory[] }> = [
+  { datasetId: "bg-screen-chem", name: "Bahan kimia proses, anoda, consumable (skrining)", flowKey: "chem.generic", categories: ["Chemical", "Anode", "Consumable"] },
+  { datasetId: "bg-screen-wwtp", name: "Bahan kimia IPAL (skrining)", flowKey: "chem.wwtp", categories: ["WWTPChemical"] },
+  { datasetId: "bg-screen-water", name: "Air proses / DI (skrining)", flowKey: "water.process", categories: ["Water"] },
+];
 
 export const GRID_SENSITIVITY_RANGE = { low: 0.61, high: 0.87 } as const;

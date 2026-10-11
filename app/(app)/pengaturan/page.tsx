@@ -149,6 +149,9 @@ function ProjectTab() {
           <Field label="Jenis lapisan">
             <TextInput value={project.coatingType} onCommit={(v) => updateProjectMeta({ coatingType: v })} />
           </Field>
+          <Field label="Ambang titik boros (%)" hint="Tahap dengan porsi sebesar ini atau lebih ditandai merah di Titik Boros. Bawaan 30%.">
+            <NumberInput ariaLabel="Ambang titik boros (%)" value={project.hotspotThresholdPct ?? 30} min={1} onCommit={(v) => updateProjectMeta({ hotspotThresholdPct: Math.min(100, Math.max(1, v ?? 30)) })} />
+          </Field>
         </div>
       </section>
 

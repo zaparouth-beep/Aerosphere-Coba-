@@ -13,18 +13,21 @@ import { Callout } from "@/components/ui/Feedback";
 import { LockedFeature } from "@/components/ui/Locked";
 import { Segmented, Tabs } from "@/components/ui/Tabs";
 import { hasFeature } from "@/lib/domain/plans";
-import type { MfcaCostKey } from "@/lib/engine/mfca";
+import type { WasteValueResult } from "@/lib/engine/types";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults, useComparison } from "@/lib/store/useResults";
 import { fmt, fmtRpShort } from "@/lib/utils/format";
 import { confidenceFor } from "@/lib/view/helpers";
 import { headlines, stageValues, type HeadlineKey } from "@/lib/view/summary";
 
-const COST_LABEL: Record<MfcaCostKey, string> = {
-  material: "Bahan kimia & air",
-  energy: "Listrik & energi",
-  system: "Tenaga kerja & penyusutan",
-  waste: "Pengolahan limbah",
+/** Wasted-value items (spec §4.5); energy and labour are operating cost, not waste. */
+const WASTE_LABEL: Record<keyof WasteValueResult["items"], string> = {
+  processChemicalRp: "Bahan kimia proses",
+  wwtpChemicalRp: "Bahan kimia IPAL",
+  consumableRp: "Bahan habis pakai",
+  b3TreatmentRp: "Pengolahan limbah B3",
+  b3TransportRp: "Transport limbah B3",
+  waterRp: "Air",
 };
 
 export default function Page() {
@@ -90,12 +93,11 @@ function Ringkas() {
   const unit = metric === "cc" ? ` kg CO₂e/${fu}` : metric === "water" ? ` L/${fu}` : metric === "waste" ? ` kg/${fu}` : `/${fu}`;
 
   const ref = results.lci.referenceFlow || NaN;
-  const costs = (Object.keys(COST_LABEL) as MfcaCostKey[]).map((k) => ({
-    key: k,
-    used: results.mfca.totals[k].positive / ref,
-    lost: results.mfca.totals[k].negative / ref,
-  }));
-  const lossPct = results.mfca.totalCostRp > 0 ? (results.mfca.costLossRp / results.mfca.totalCostRp) * 100 : 0;
+  const waste = results.analysis?.waste;
+  const wasteItems = waste
+    ? (Object.keys(WASTE_LABEL) as Array<keyof WasteValueResult["items"]>).map((k) => ({ key: k, value: waste.items[k] / ref })).filter((x) => x.value > 0)
+    : [];
+  const lossPct = waste?.pctOfCost ?? 0;
 
   const confByMetric: Record<HeadlineKey, ReturnType<typeof confidenceFor>> = {
     cc: confidenceFor(project, ["Energy", "Chemical", "Anode"]),
@@ -141,17 +143,17 @@ function Ringkas() {
         </Card>
         <Card>
           <CardHeader
-            title="Biaya bahan yang terbuang"
+            title="Nilai yang terbuang"
             info="mfca"
-            subtitle={`${fmt(lossPct, 0)}% dari biaya proses tidak menjadi produk (per ${fu}).`}
+            subtitle={`${fmt(lossPct, 1)}% dari biaya proses (per ${fu}).`}
           />
           <CardBody>
             <BarList
-              items={costs.map((c) => ({ label: `${COST_LABEL[c.key]} — terbuang`, value: c.lost, color: "#D55E00", note: `dari ${fmtRpShort(c.used + c.lost)}` }))}
+              items={wasteItems.map((c) => ({ label: WASTE_LABEL[c.key], value: c.value, color: "#D55E00" }))}
               format={(v) => fmtRpShort(v)}
             />
             <p className="mt-3 text-[11px] text-navy-700/60">
-              Terbuang = bagian bahan, energi, dan biaya lain yang menjadi limbah, larutan terbawa, atau air buangan, bukan lapisan di produk.
+              Terbuang = bahan kimia, air, bahan habis pakai, serta pengolahan dan transport limbah B3. Listrik dan tenaga kerja dihitung sebagai biaya operasi, bukan nilai terbuang.
             </p>
           </CardBody>
         </Card>

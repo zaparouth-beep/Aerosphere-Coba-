@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
         {ready && <ContextBar />}
-        <main id="main" className="flex-1 px-4 py-6 md:px-8">
+        <main id="main" className="flex-1 px-4 py-6 md:px-8 print:p-0">
           {ready ? (
             children
           ) : (

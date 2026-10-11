@@ -33,6 +33,8 @@ export interface RunManifest {
   methodRelease: string;
   backgroundHash: string;
   engineVersion: string;
+  /** Factor table version used by the engine (§3.1); absent for runs before 2.2.0. */
+  factorVersion?: string;
   scenarioId?: string;
   leverSet?: LeverSettings;
   createdBy: string;
@@ -71,6 +73,7 @@ export function createRun(
       methodRelease: project.method.release,
       backgroundHash: hashOf(project.backgrounds),
       engineVersion: ENGINE_VERSION,
+      factorVersion: results.analysis?.factorVersion,
       scenarioId: opts.scenarioId,
       leverSet: opts.levers,
       createdBy: opts.actor,

@@ -1,159 +1,85 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { ArrowRight, Flame } from "lucide-react";
-import { STAGE_COLOR } from "@/components/charts/palette";
-import ExpertHotspot from "@/components/expert/ExpertHotspot";
+import { useEffect, useMemo, useState } from "react";
+import { HeatTable, Legend, NO_FOCUS, StackedChart, StageBoxes, type Focus } from "@/components/titik-boros/TitikBoros";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
-import { InfoTip } from "@/components/ui/InfoTip";
-import { LockedFeature } from "@/components/ui/Locked";
-import { hasFeature } from "@/lib/domain/plans";
-import type { StageId } from "@/lib/domain/types";
-import { LEVERS, type LeverDef } from "@/lib/engine/scenario";
+import { Callout } from "@/components/ui/Feedback";
+import { buildTitikBoros } from "@/lib/engine/titikBoros";
+import type { StageCode } from "@/lib/engine/types";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { useActiveResults } from "@/lib/store/useResults";
-import { cn } from "@/lib/utils/cn";
-import { fmt, fmtRpShort } from "@/lib/utils/format";
-import { plainStage } from "@/lib/view/summary";
+import { useActiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
+import { downloadBlob } from "@/lib/utils/export";
+import { tableTsv } from "@/lib/view/titikBoros";
 
-const STAGE_LEVERS: Record<StageId, Array<LeverDef["id"]>> = {
-  A: ["countercurrent", "dragout"],
-  B: ["dragout", "countercurrent"],
-  C: ["dragout", "bathConcentration", "mistSuppressant", "tankCover"],
-  D: ["dragout", "countercurrent"],
-  E: ["rectifier", "tankCover", "gridFactor"],
-  F: ["effluentTarget"],
-};
-
-const METRIC_LABEL: Record<string, string> = {
-  energy: "listrik",
-  water: "air",
-  chemical: "bahan kimia",
-  waste: "limbah B3",
-  costLoss: "biaya terbuang",
-  cc: "jejak karbon",
-};
-
+/**
+ * Titik Boros: A = 100 % stacked bars per indicator, B = heatmap table,
+ * C = coloured explanation boxes per stage. One colour system (severity of a
+ * stage's share in an indicator) across all three; numbers from the run.
+ */
 export default function Page() {
-  const { project, results } = useActiveResults();
+  const { project, results, run } = useActiveResults();
+  const { outcomes } = useScenarioOutcomes();
   const expert = useAppStore((s) => s.ui.expertMode);
   const seen = useAppStore((s) => s.ui.seenHotspot);
   const setUi = useAppStore((s) => s.setUi);
-  const subscription = useAppStore((s) => s.subscription);
+  const notify = useAppStore((s) => s.notify);
+  const [focus, setFocus] = useState<Focus>(NO_FOCUS);
+  const [pinned, setPinned] = useState<StageCode | null>(null);
   useEffect(() => {
     if (!seen) setUi({ seenHotspot: true });
   }, [seen, setUi]);
 
-  const ranking = results.hotspot.priority;
-  const [selected, setSelected] = useState<StageId>(ranking[0]?.stageId ?? "A");
-  const ref = results.lci.referenceFlow || NaN;
+  const model = useMemo(() => (results.analysis ? buildTitikBoros(results.analysis, { thresholdPct: project.hotspotThresholdPct }) : null), [results, project.hotspotThresholdPct]);
 
-  const why = (["energy", "water", "chemical", "waste", "costLoss", "cc"] as const)
-    .map((m) => ({ m, share: results.hotspot.share[selected][m] ?? 0 }))
-    .filter((x) => x.share > 0)
-    .sort((a, b) => b.share - a.share)
-    .slice(0, 3);
-  const items = results.mfca.lines
-    .filter((l) => l.stageId === selected && l.costRp > 0)
-    .sort((a, b) => b.costRp - a.costRp)
-    .slice(0, 4);
-  const levers = STAGE_LEVERS[selected].map((id) => LEVERS.find((l) => l.id === id)!).filter(Boolean);
+  if (!model) {
+    return (
+      <Callout tone="warn">
+        Hasil ini dibuat dengan mesin hitung versi lama, jadi titik boros per tahap belum bisa ditampilkan. Tekan “Hitung hasil” di bar atas untuk membuat hasil baru.
+      </Callout>
+    );
+  }
+
+  const resultLabel = run ? `Hasil #${run.id}` : "data terkini (belum disimpan)";
+  const onExcel = async () => {
+    const { buildTitikBorosWorkbook } = await import("@/lib/io/titikBorosExport");
+    const blob = await buildTitikBorosWorkbook(project, model, resultLabel);
+    downloadBlob(blob, `Titik-boros_${run?.id ?? "DRAF"}_Rahasia-Tenant.xlsx`, blob.type);
+  };
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(tableTsv(project, model));
+      notify("success", "Tabel titik boros disalin. Tempel di Excel atau dokumen.");
+    } catch {
+      notify("error", "Browser tidak mengizinkan menyalin. Pakai tombol Unduh tabel (Excel).");
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr]">
-        <Card>
-          <CardHeader
-            title="Urutan tahap paling bermasalah"
-            info={{
-              what: "Skor gabungan dari dampak lingkungan, biaya terbuang, kemudahan perbaikan, dan risiko kepatuhan.",
-              why: "Tahap teratas memberi hasil terbesar bila diperbaiki.",
-              action: "Klik tahap untuk melihat penyebab dan perbaikan yang bisa dicoba.",
-            }}
-          />
-          <CardBody className="space-y-2">
-            {ranking.map((r, i) => (
-              <button
-                key={r.stageId}
-                type="button"
-                onClick={() => setSelected(r.stageId)}
-                aria-pressed={selected === r.stageId}
-                className={cn(
-                  "flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors",
-                  selected === r.stageId ? "border-navy-900 bg-sand-50" : "border-sand-200 hover:border-sand-300",
-                )}
-              >
-                <span className="num flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white" style={{ background: STAGE_COLOR[r.stageId] }}>
-                  {i + 1}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-navy-900">{plainStage(project, r.stageId)}</span>
-                  <span className="block h-1.5 rounded-full bg-sand-100">
-                    <span className="block h-1.5 rounded-full bg-status-danger/70" style={{ width: `${Math.min(r.score, 100)}%` }} />
-                  </span>
-                </span>
-                <span className="num text-sm font-semibold text-navy-900">{fmt(r.score, 0)}</span>
-                {i === 0 && <Flame className="h-4 w-4 text-status-danger" aria-label="Paling bermasalah" />}
-              </button>
-            ))}
-            <p className="text-[11px] text-navy-700/55">Skor 0–100; makin tinggi makin layak diperbaiki lebih dulu.</p>
-          </CardBody>
-        </Card>
+    <div className="space-y-4">
+      <Card>
+        <CardBody className="py-3">
+          <Legend thresholdPct={model.thresholdPct} />
+        </CardBody>
+      </Card>
 
-        <Card>
-          <CardHeader title={`Kenapa ${plainStage(project, selected)}?`} subtitle="Bagian tahap ini dari total lini" />
-          <CardBody className="space-y-5">
-            <ul className="space-y-2">
-              {why.map((w) => (
-                <li key={w.m} className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="text-navy-800">Bagian dari seluruh {METRIC_LABEL[w.m]} lini</span>
-                  <span className="num font-semibold text-navy-900">{fmt(w.share, 0)}%</span>
-                </li>
-              ))}
-              {!why.length && <li className="text-xs text-navy-700/60">Tahap ini belum punya data pemakaian.</li>}
-            </ul>
-            {items.length > 0 && (
-              <div>
-                <p className="mb-2 flex items-center gap-1 text-xs font-semibold text-navy-900">
-                  Pengeluaran terbesar di tahap ini <InfoTip k="costPerM2" />
-                </p>
-                <ul className="space-y-1 text-xs">
-                  {items.map((it) => (
-                    <li key={it.id} className="flex justify-between gap-3 rounded-md bg-sand-50 px-2 py-1.5">
-                      <span className="truncate text-navy-800">{it.name}</span>
-                      <span className="num shrink-0 font-medium text-navy-900">{fmtRpShort(it.costRp / ref)} per {results.lci.fuLabel}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div>
-              <p className="mb-2 text-xs font-semibold text-navy-900">Yang bisa dicoba</p>
-              <ul className="space-y-2">
-                {levers.map((l) => (
-                  <li key={l.id} className="rounded-lg border border-sand-200 p-2.5 text-xs">
-                    <p className="font-medium text-navy-900">{l.label}</p>
-                    <p className="text-navy-700/65">Berpengaruh ke: {l.affects}</p>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/simulasi" className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-brand-blue hover:underline">
-                Hitung di Simulasi Perbaikan <ArrowRight className="h-3 w-3" />
-              </Link>
-            </div>
-          </CardBody>
-        </Card>
+      <Card>
+        <CardHeader
+          title="Porsi tiap tahap per indikator"
+          subtitle={`Satu batang = 100% satu indikator (${resultLabel}). Angka di kanan = total per 1 m² permukaan dilapisi.`}
+        />
+        <CardBody>
+          <StackedChart project={project} model={model} focus={focus} pinned={pinned} onFocus={setFocus} expert={expert} />
+        </CardBody>
+      </Card>
+
+      <div className="grid gap-4 xl:grid-cols-12">
+        <div className="xl:col-span-7">
+          <HeatTable project={project} model={model} focus={focus} pinned={pinned} onFocus={setFocus} expert={expert} onExcel={onExcel} onCopy={onCopy} />
+        </div>
+        <div className="xl:col-span-5">
+          <StageBoxes project={project} model={model} outcomes={outcomes} focus={focus} pinned={pinned} onFocus={setFocus} onPin={setPinned} />
+        </div>
       </div>
-
-      {expert ? (
-        <section className="space-y-3 border-t border-sand-300 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-navy-700/60">Detail Mode Ahli</h2>
-          <ExpertHotspot />
-        </section>
-      ) : (
-        !hasFeature(subscription, "expertMode") && <LockedFeature feature="expertMode" title="Heatmap, Pareto, dan pengaturan bobot prioritas" />
-      )}
     </div>
   );
 }

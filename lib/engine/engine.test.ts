@@ -86,11 +86,11 @@ describe("validation", () => {
 });
 
 describe("LCIA", () => {
-  it("climate change from mapped grid electricity only", () => {
+  it("climate change counts electricity, chemicals and water (A1, golden §4.8.2)", () => {
     const r = calculate(hardChromeDemo());
-    close(r.lcia.totals.cc, 965 * 0.613, 1e-9);
+    close(r.lcia.totals.cc, 1848.495, 1e-6);
     close(r.lcia.ghgScopes.scope2, 965 * 0.613, 1e-9);
-    expect(r.lcia.unmapped.length).toBeGreaterThan(0);
+    expect(r.lcia.unmapped.length).toBe(0);
   });
 
   it("gate-to-gate excludes background", () => {
@@ -144,8 +144,11 @@ describe("scenarios", () => {
   });
 
   it("sensitivity ranks parameters", () => {
+    // Since A1 chemicals count too, so production volume (area) swings carbon per m² most.
     const s = sensitivity(hardChromeDemo(), (i) => i.perFu.cc);
-    expect(s.rows[0]!.parameter).toMatch(/grid|Listrik/);
+    expect(s.rows[0]!.parameter).toMatch(/Volume produksi/);
+    const grid = s.rows.find((r) => /grid/.test(r.parameter))!;
+    expect(grid.high).toBeGreaterThan(grid.low);
   });
 });
 

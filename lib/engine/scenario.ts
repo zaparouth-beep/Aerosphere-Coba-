@@ -166,7 +166,7 @@ export interface ScenarioOutcome {
 }
 
 function deltaOf(base: Indicators, s: Indicators): ScenarioOutcome["delta"] {
-  const keys = ["energyKwh", "waterL", "chemicalKg", "wasteKg", "effluentM3", "ccKg", "costRp", "costLossRp"] as const;
+  const keys = ["energyKwh", "waterL", "chemicalKg", "wasteKg", "effluentM3", "ccKg", "costRp", "costLossRp", "wasteValueRp"] as const;
   return Object.fromEntries(
     keys.map((k) => [k, { abs: s[k] - base[k], pct: base[k] !== 0 ? ((s[k] - base[k]) / base[k]) * 100 : 0 }]),
   ) as ScenarioOutcome["delta"];

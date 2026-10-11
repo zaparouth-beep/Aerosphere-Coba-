@@ -95,11 +95,24 @@ export function worstStage(project: Project, r: Results, heads: Headline[]): Wor
   const t = r.lci.totals;
   if (t.energyKwh + t.waterL + t.chemicalKg + t.wasteKg <= 0) return null;
   const metric: Record<HeadlineKey, "cc" | "water" | "waste" | "costLoss"> = { cc: "cc", water: "water", waste: "waste", cost: "costLoss" };
+  const shareOf = (key: HeadlineKey, s: StageId): number => {
+    const a = r.analysis;
+    if (!a) return r.hotspot.share[s][metric[key]] ?? 0;
+    // New engine (§4.5–4.6): carbon from the screening GWP, cost from the wasted value.
+    const values = (pick: (st: StageId) => number) => {
+      const total = STAGE_IDS.reduce((t, x) => t + pick(x), 0);
+      return total > 0 ? (pick(s) / total) * 100 : 0;
+    };
+    if (key === "cc") return a.impacts.find((i) => i.category === "gwp")?.share[s] ?? 0;
+    if (key === "water") return values((x) => a.perStage[x].waterL);
+    if (key === "waste") return values((x) => a.perStage[x].wasteB3Kg);
+    return values((x) => a.waste.perStage[x]);
+  };
   const candidates = heads
     .map((h) => {
       let best: StageId = STAGE_IDS[0]!;
-      for (const s of STAGE_IDS) if ((r.hotspot.share[s][metric[h.key]] ?? 0) > (r.hotspot.share[best][metric[h.key]] ?? 0)) best = s;
-      return { h, stageId: best, share: r.hotspot.share[best][metric[h.key]] ?? 0 };
+      for (const s of STAGE_IDS) if (shareOf(h.key, s) > shareOf(h.key, best)) best = s;
+      return { h, stageId: best, share: shareOf(h.key, best) };
     })
     .filter((c) => c.share > 0);
   if (!candidates.length) return null;
@@ -107,7 +120,7 @@ export function worstStage(project: Project, r: Results, heads: Headline[]): Wor
   const pick = worsened[0] ?? [...candidates].sort((a, b) => b.share - a.share)[0]!;
   return {
     key: pick.h.key,
-    indicator: pick.h.key === "cost" ? "biaya bahan yang terbuang" : pick.h.label.toLowerCase(),
+    indicator: pick.h.key === "cost" ? "nilai yang terbuang" : pick.h.label.toLowerCase(),
     stageId: pick.stageId,
     stageName: plainStage(project, pick.stageId),
     sharePct: pick.share,
@@ -167,7 +180,10 @@ export function overallConfidence(project: Project): { level: Confidence; senten
 export function conclusion(r: Results, worst: WorstStage | null, actions: Action[], fmtRp: (v: number) => string, fmtPct: (v: number) => string): string[] {
   const out: string[] = [];
   if (worst) out.push(`Tahap ${worst.stageName} paling boros: ${fmtPct(worst.sharePct)} dari ${worst.indicator}.`);
-  if (r.mfca.totalCostRp > 0) {
+  if (r.analysis && r.analysis.totals.costRp > 0) {
+    // §4.5: chemicals, water and B3 handling only; energy and labour are operating cost, not waste.
+    out.push(`Bahan kimia, air, dan pengolahan limbah yang terbuang bernilai ${fmtPct(r.analysis.waste.pctOfCost)} dari biaya proses.`);
+  } else if (r.mfca.totalCostRp > 0) {
     out.push(`Bahan dan energi yang terbuang bernilai ${fmtPct((r.mfca.costLossRp / r.mfca.totalCostRp) * 100)} dari biaya proses.`);
   }
   if (actions[0]) out.push(`Perbaikan terbaik: ${actions[0].action.toLowerCase()}, hemat sekitar ${fmtRp(actions[0].savingRpYear)} per tahun.`);
