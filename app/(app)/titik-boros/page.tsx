@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BarChart3, GitFork } from "lucide-react";
+import { FlowExplorer } from "@/components/flow/FlowExplorer";
 import { HeatTable, Legend, NO_FOCUS, StackedChart, StageBoxes, type Focus } from "@/components/titik-boros/TitikBoros";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Callout } from "@/components/ui/Feedback";
@@ -25,6 +27,7 @@ export default function Page() {
   const notify = useAppStore((s) => s.notify);
   const [focus, setFocus] = useState<Focus>(NO_FOCUS);
   const [pinned, setPinned] = useState<StageCode | null>(null);
+  const [view, setView] = useState<"batang" | "alur">("batang");
   useEffect(() => {
     if (!seen) setUi({ seenHotspot: true });
   }, [seen, setUi]);
@@ -64,11 +67,48 @@ export default function Page() {
 
       <Card>
         <CardHeader
-          title="Porsi tiap tahap per indikator"
-          subtitle={`Satu batang = 100% satu indikator (${resultLabel}). Angka di kanan = total per 1 m² permukaan dilapisi.`}
+          title={view === "batang" ? "Porsi tiap tahap per indikator" : "Alur: dari sumber ke tahap ke total lini"}
+          subtitle={
+            view === "batang"
+              ? `Satu batang = 100% satu indikator (${resultLabel}). Angka di kanan = total per 1 m² permukaan dilapisi.`
+              : `Pilih indikator, arahkan kursor ke pita untuk angka, klik kotak untuk saran dan telusuri lebih dalam (${resultLabel}).`
+          }
+          action={
+            <div className="inline-flex rounded-lg border border-sand-200 p-0.5 text-xs" role="radiogroup" aria-label="Tampilan grafik">
+              {(
+                [
+                  ["batang", "Batang 100%", BarChart3],
+                  ["alur", "Alur", GitFork],
+                ] as const
+              ).map(([id, l, I]) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={view === id}
+                  onClick={() => setView(id)}
+                  className={view === id ? "inline-flex items-center gap-1 rounded-md bg-navy-900 px-2 py-1 text-white" : "inline-flex items-center gap-1 rounded-md px-2 py-1 text-navy-800"}
+                >
+                  <I className="h-3.5 w-3.5" /> {l}
+                </button>
+              ))}
+            </div>
+          }
         />
         <CardBody>
-          <StackedChart project={project} model={model} focus={focus} pinned={pinned} onFocus={setFocus} expert={expert} />
+          {view === "batang" ? (
+            <StackedChart project={project} model={model} focus={focus} pinned={pinned} onFocus={setFocus} expert={expert} />
+          ) : (
+            <FlowExplorer
+              project={project}
+              run={results.analysis!}
+              outcomes={outcomes}
+              thresholdPct={project.hotspotThresholdPct}
+              highlightStage={pinned ?? (focus.source !== "chart" ? focus.stage : null)}
+              onHoverStage={(st) => setFocus(st ? { stage: st, key: null, source: "box" } : NO_FOCUS)}
+              testId="tb-flow"
+            />
+          )}
         </CardBody>
       </Card>
 

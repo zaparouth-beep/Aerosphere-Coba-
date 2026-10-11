@@ -2,6 +2,30 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Hasil, Titik Boros, dan Simulasi dengan konsep alur interaktif · 2026-10-11
+
+Konsep diambil dari analisis video "How to automate LCAs with Makersite" (`docs/ANALISIS_VIDEO_MAKERSITE.md`).
+
+### Ditambahkan
+- **Hasil**: ringkasan berbentuk kartu.
+  - Kartu Informasi, donat jejak karbon per tahap, dan donat nilai terbuang per pos, masing-masing dengan total di tengah dan kotak saran.
+  - Alur bahan & energi dengan ubin indikator.
+  - Siklus hidup: dibeli vs. di lini; pemakaian dan akhir masa pakai tidak dikaji.
+  - Daftar isi lengket di kanan.
+- **Titik Boros**: tampilan **Alur** di samping Batang 100%.
+  - Diagram sumber → tahap → total yang bisa di-hover dan diklik.
+  - Panel **Saran & alat** untuk kotak yang dipilih.
+  - **Telusuri lebih dalam** ke komponen, dengan breadcrumb dan "Kembali ke tampilan awal".
+- **Simulasi**: **Coba perubahan**.
+  - Terapkan satu perbaikan ke alur dengan perubahan per kotak (▼/▲ %) dan tombol Sebelum/Sesudah.
+  - Panel **Analitik perubahan** dengan chip Δ dan pin untuk membandingkan beberapa perbaikan.
+- Engine:
+  - `lib/engine/flow.ts`: `buildFlow`, `compareFlows`, `lifeCycleSplit`, `wasteItems`.
+  - `RunResult.useContributions`: kontribusi per komponen untuk air, limbah B3, dan nilai terbuang.
+- Komponen: `components/flow/FlowSankey.tsx` (diagram SVG sendiri), `FlowExplorer.tsx`, `components/hasil/Overview.tsx`, `components/simulasi/ChangeLab.tsx`.
+- Tes: `tests/flow/flow.test.ts` (10 tes: kekekalan alur, nilai golden, drill-in, sebelum/sesudah, siklus hidup) dan `tests/e2e/alur.spec.ts` (Hasil, Titik Boros Alur, Simulasi). Helper e2e dipindah ke `tests/e2e/helpers.ts`.
+- Tangkapan layar: `docs/screenshots/hasil-*.png`, `titik-boros-alur*.png`, dan `simulasi-coba-perubahan.png`.
+
 ## Akun demo dengan semua fitur (uji dewan juri) · 2026-10-11
 
 - Akun demo publik (`demo@aerosphere.demo`) sekarang memakai paket **Industri**: semua fitur terbuka (Mode Ahli, Laporan Teknis & Kepatuhan, bobot keputusan, simulasi tanpa batas), tanpa tanda "Contoh" dan tanpa batas uji coba 14 hari. Halaman Masuk menjelaskan hal ini.

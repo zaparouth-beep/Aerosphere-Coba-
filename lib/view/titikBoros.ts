@@ -69,7 +69,7 @@ export const perFuText = (v: number, row: Pick<TitikBorosRow, "unit">) => `${fmt
 
 export const periodWord = (project: Project) => (project.periodMonths === 12 ? "per tahun" : "per periode");
 
-const ROLE: Record<DeviceRole, string> = {
+export const ROLE: Record<DeviceRole, string> = {
   rectifier: "penyearah arus",
   heater: "pemanas",
   chiller: "chiller",
@@ -81,7 +81,7 @@ const ROLE: Record<DeviceRole, string> = {
   wwtp: "pengolahan air limbah",
 };
 
-const KIND: Record<string, string> = {
+export const KIND: Record<string, string> = {
   electricity: "Listrik",
   chemical: "Bahan kimia",
   wwtp_chemical: "Bahan kimia pengolahan air limbah",

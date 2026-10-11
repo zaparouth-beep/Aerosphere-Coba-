@@ -497,6 +497,18 @@ Kriteria penerimaan:
 - Ukuran teks isi ≥ 16 px; kalimat ringkasan ≥ 20 px.
 - Uji: 5 orang non-LCA menjawab "tahap mana paling boros dan apa sarannya" dalam ≤ 60 detik.
 
+### 5.1a Hasil — ringkasan berbentuk kartu
+
+*(Tambahan 11 Okt 2026, dari analisis video.)* Mode Ringkas menampilkan kartu-kartu berikut, dengan daftar isi lengket di kanan pada layar ≥ 1280 px:
+
+1. Informasi
+2. Angka utama
+3. Donat Jejak karbon per tahap (total per m² di tengah, legenda nilai dan %, saran ke Titik Boros)
+4. Donat Nilai terbuang per pos (saran ke Simulasi)
+5. Alur bahan & energi dengan ubin indikator
+6. Siklus hidup: dibeli vs. di lini; pemakaian dan akhir masa pakai tidak dikaji (`lifeCycleSplit`)
+7. Per tahap proses
+
 ### 5.2 Data Saya — hapus, tambah, jalankan analisis, riwayat hasil
 
 #### 5.2.1 Tabel komponen per tahap
@@ -588,6 +600,16 @@ Kecerahan L* merah 36, oranye 61, hijau 73, kuning 90. Kontras teks ≥ 4,5:1 di
 - Klik kotak (atau nama tahapnya) menyorot kolom tahap di tabel dan segmennya di semua batang.
 - Pemilih periode dan "Bandingkan dengan" di bar atas tetap berlaku.
 
+**Tampilan Alur** (11 Okt 2026, konsep dari analisis video di `docs/ANALISIS_VIDEO_MAKERSITE.md`). Area A punya pilihan "Batang 100% / Alur".
+
+- **Alur** adalah diagram alur sumber → tahap A–F → total lini. Lebar pita = nilai per m², dan warna tahap = kelas porsi.
+- Ubin ikon untuk memilih indikator.
+- Hover pada pita atau kotak menampilkan nilai.
+- Klik kotak membuka panel **Saran & alat**: angka, pemicu, alasan teknis §7, perbaikan, dan "Lihat perhitungannya".
+- **Telusuri lebih dalam** menampilkan komponen tahap atau sumber, dengan breadcrumb dan "Kembali ke tampilan awal".
+- Hover pada kotak tahap juga menyorot tabel dan kotak penjelasan.
+- Engine: `buildFlow` di `lib/engine/flow.ts`.
+
 **Nilai uji** (fixture `plating_demo_v1`, `screening_v1`; `tests/titik-boros/` dan `tests/e2e/titik-boros.spec.ts`):
 
 - Jejak karbon: A 10,2% Kuning · B 8,1% Hijau · C 38,5% Merah · D 17,2% Kuning · E 6,4% Hijau · F 19,6% Kuning.
@@ -597,6 +619,11 @@ Kecerahan L* merah 36, oranye 61, hijau 73, kuning 90. Kontras teks ≥ 4,5:1 di
 - Setiap baris persen berjumlah 100% (±0,1).
 
 ### 5.4 Simulasi Perbaikan — rekomendasi realistis dengan perhitungan & bukti
+
+*(Tambahan 11 Okt 2026.)* Di atas daftar simulasi ada **Coba perubahan**.
+
+- Pilih satu perbaikan: diagram alur menampilkan kondisi sesudahnya, dengan ▼/▲ % per kotak, tooltip "sebelum → sesudah", dan tombol Sebelum/Sesudah (`compareFlows`).
+- Panel **Analitik perubahan** menampilkan chip Δ (jejak karbon, nilai terbuang, air, limbah B3), tombol **Sematkan** untuk membandingkan beberapa perbaikan berdampingan, dan "Lihat perhitungannya" yang membuka rincian simulasi.
 
 #### 5.4.1 Daftar rekomendasi
 
