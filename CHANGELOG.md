@@ -2,6 +2,11 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Perbaikan: unggah file Excel dari software lain · 2026-10-11
+
+- Unggah .xlsx yang dibuat ERP/sistem lain (XML berawalan, mis. `<x:workbook>`) gagal dengan "Impor gagal: Cannot read properties of undefined (reading 'sheets')". Sekarang file seperti itu dibaca oleh pembaca cadangan `lib/io/xlsxLite.ts` (hanya nilai sel; rumus tidak dijalankan), dan pemeriksaan templat tidak lagi menggagalkan unggahan.
+- Tes: `tests/fixtures/import/erp-prefix.xlsx`, tes unit, dan tes e2e Excel (workbook biasa + workbook ERP).
+
 ## Unggah dokumen apa pun + baca dengan AI · 2026-10-11
 
 ### Ditambahkan

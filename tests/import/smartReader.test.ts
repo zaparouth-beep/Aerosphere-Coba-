@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { hardChromeDemo } from "@/lib/domain/templates";
 import { calculate } from "@/lib/engine/calculate";
@@ -175,5 +176,17 @@ describe("irregular rows (PDF)", () => {
     expect(rows.find((r) => r.name === "Luas permukaan dilapisi")).toMatchObject({ kind: "production", productionField: "areaM2", quantity: 250, unit: "m2" });
     expect(rows.find((r) => r.name === "Lumpur IPAL (limbah B3)")).toMatchObject({ kind: "waste", stage: "F", quantity: 100, unit: "kg" });
     expect(rows.find((r) => r.name === "Global warming potential")).toMatchObject({ kind: "impact", quantity: 1850.2, unit: "kg CO2 eq" });
+  });
+});
+
+describe("Excel files exceljs cannot open", () => {
+  it("reads a workbook with prefixed XML (ERP / OpenXML SDK) through the fallback reader", async () => {
+    const buf = readFileSync("tests/fixtures/import/erp-prefix.xlsx");
+    const tables = await extractXlsx(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer);
+    expect(tables[0]!.name).toBe("LCI Plating");
+    const rows = readDocument({ fileName: "erp.xlsx", kind: "xlsx", tables, text: "" });
+    expect(rows.find((r) => r.name === "Listrik penyearah arus")).toMatchObject({ kind: "input", quantity: 1250.5, unit: "kWh", stage: "C" });
+    expect(rows.find((r) => r.name === "Lumpur IPAL (limbah B3)")).toMatchObject({ kind: "waste", quantity: 100 });
+    expect(summarise(rows).canApply).toBe(true);
   });
 });

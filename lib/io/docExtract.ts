@@ -96,6 +96,20 @@ function cellText(v: unknown): string {
 }
 
 export async function extractXlsx(buf: ArrayBuffer): Promise<ExtractedTable[]> {
+  try {
+    return await extractWithExcelJs(buf.slice(0));
+  } catch {
+    // Workbooks from ERPs / OpenXML SDK (prefixed XML) that exceljs cannot open.
+    const { readXlsxLite } = await import("./xlsxLite");
+    try {
+      return await readXlsxLite(buf);
+    } catch {
+      throw new Error("File Excel ini tidak bisa dibaca. Buka di Excel lalu simpan ulang sebagai .xlsx, atau ekspor ke CSV.");
+    }
+  }
+}
+
+async function extractWithExcelJs(buf: ArrayBuffer): Promise<ExtractedTable[]> {
   const mod = await import("exceljs");
   const ExcelJS = (mod as unknown as { default?: typeof mod }).default ?? mod;
   const wb = new ExcelJS.Workbook();

@@ -166,7 +166,12 @@ export async function isTemplateWorkbook(file: File): Promise<boolean> {
   if (!/\.xlsx$/i.test(file.name)) return false;
   const ExcelJS = await loadExcel();
   const wb: Workbook = new ExcelJS.Workbook();
-  await wb.xlsx.load(await file.arrayBuffer());
+  try {
+    await wb.xlsx.load(await file.arrayBuffer());
+  } catch {
+    // Not readable by exceljs (e.g. written by an ERP): not our template, read it as a free-form document.
+    return false;
+  }
   const names = new Set(wb.worksheets.map((w) => w.name));
   return SHEETS.every((s) => names.has(s));
 }
