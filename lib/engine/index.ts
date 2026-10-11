@@ -105,6 +105,11 @@ export function runAnalysis(input: ProjectInput, factors: FactorSet): RunResult 
     waste: costs.waste,
     dataConfidence: dataConfidence(active, impacts.find((i) => i.category === "gwp"), factors, warnings),
     dataQuality: dataQuality(active),
+    useContributions: {
+      water: active.filter((c) => c.category === "water" && c.quantity > 0).map((c) => ({ componentId: c.id, name: c.name, stage: c.stage, category: c.category, value: c.quantity })),
+      waste_b3: active.filter((c) => c.category === "waste_b3" && c.quantity > 0).map((c) => ({ componentId: c.id, name: c.name, stage: c.stage, category: c.category, value: c.quantity })),
+      waste_value: active.filter((c) => costs.componentWasteRp.has(c.id)).map((c) => ({ componentId: c.id, name: c.name, stage: c.stage, category: c.category, value: costs.componentWasteRp.get(c.id)! })),
+    },
     warnings,
     trace: trace.steps,
   };

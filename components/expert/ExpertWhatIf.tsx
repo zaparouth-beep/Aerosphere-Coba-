@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { OPEN_SCENARIO_EVENT } from "@/components/simulasi/ChangeLab";
 import { BadgeCheck, Lock, Plus, Star, Trash2 } from "lucide-react";
 import { DecisionBubble, Tornado, Waterfall } from "@/components/charts/Charts";
 import { CATEGORICAL } from "@/components/charts/palette";
@@ -99,6 +100,16 @@ export default function WhatIfPage() {
     }
     // Only on first load of the page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // "Lihat perhitungannya" from the change lab on the same page.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      setActiveId(id);
+      requestAnimationFrame(() => document.getElementById("detail-simulasi")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    };
+    window.addEventListener(OPEN_SCENARIO_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_SCENARIO_EVENT, onOpen);
   }, []);
   const [bridgeMetric, setBridgeMetric] = useState<"cc" | "cost">("cc");
   const [tornadoMetric, setTornadoMetric] = useState<"cc" | "cost" | "energy">("cc");

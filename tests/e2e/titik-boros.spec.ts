@@ -1,45 +1,13 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 /**
  * Titik Boros e2e (demo project, screening factors). Run after `npm run build:static`.
  * SCREENSHOTS=1 also writes docs/screenshots/titik-boros-*.png.
  */
 
-const errors: string[] = [];
+import { go, guardConsole, loginDemo } from "./helpers";
 
-async function loginDemo(page: Page) {
-  page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
-  page.on("console", (m) => {
-    // Next.js logs this when a route prefetch is cut off by a test navigation and then falls back to a normal load.
-    if (m.type() === "error" && !/Failed to fetch RSC payload .* Falling back to browser navigation/.test(m.text())) errors.push(`console: ${m.text()}`);
-  });
-  await page.goto("/masuk");
-  await page.getByRole("button", { name: "Isi akun demo" }).click();
-  await page.getByRole("button", { name: "Masuk", exact: true }).click();
-  await page.waitForURL(/beranda|mulai/);
-  // The demo account starts a guided tour that moves between pages; close it first.
-  const skip = page.getByRole("button", { name: "Lewati tur" });
-  await skip
-    .waitFor({ timeout: 8000 })
-    .then(() => skip.click())
-    .catch(() => undefined);
-  await expect(skip).toHaveCount(0);
-}
-
-/** Navigate once in-flight prefetches have settled (an aborted prefetch logs a console error). */
-async function go(page: Page, path: string) {
-  await page.waitForLoadState("networkidle");
-  await page.goto(path);
-  await page.waitForLoadState("networkidle");
-}
-
-test.beforeEach(() => {
-  errors.length = 0;
-});
-
-test.afterEach(() => {
-  expect(errors, errors.join("\n")).toEqual([]);
-});
+guardConsole();
 
 test("three areas, colour classes and test values (Mode Ringkas)", async ({ page }, info) => {
   await loginDemo(page);
@@ -146,10 +114,10 @@ test("Mode Ahli: % / nilai toggle and threshold from project settings", async ({
   await page.getByRole("radio", { name: /Ahli/ }).click();
 
   await go(page, "/titik-boros");
-  await page.getByRole("radio", { name: "nilai" }).click();
+  await page.getByRole("radio", { name: "nilai", exact: true }).click();
   await expect(page.getByTestId("cell-gwp-C")).toContainText("2,85");
   await expect(page.getByTestId("cell-gwp-C")).toHaveAttribute("data-severity", "red");
-  await page.getByRole("radio", { name: "%" }).click();
+  await page.getByRole("radio", { name: "%", exact: true }).click();
   await expect(page.getByTestId("cell-gwp-C")).toContainText("38,5%");
 
   // Threshold 40 % → Pelapisan utama becomes orange for carbon.

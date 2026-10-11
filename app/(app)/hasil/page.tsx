@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { BarList } from "@/components/charts/Charts";
 import { STAGE_COLOR } from "@/components/charts/palette";
 import ExpertLcia from "@/components/expert/ExpertLcia";
 import ExpertMfca from "@/components/expert/ExpertMfca";
+import { FlowExplorer } from "@/components/flow/FlowExplorer";
+import { CarbonCard, Contents, InfoCard, LifeCycleCard, Tip, WasteCard } from "@/components/hasil/Overview";
 import { HeadlineCards } from "@/components/summary/Summary";
 import { ConfidenceBadge } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -13,22 +15,13 @@ import { Callout } from "@/components/ui/Feedback";
 import { LockedFeature } from "@/components/ui/Locked";
 import { Segmented, Tabs } from "@/components/ui/Tabs";
 import { hasFeature } from "@/lib/domain/plans";
-import type { WasteValueResult } from "@/lib/engine/types";
+import { lifeCycleSplit, wasteItems } from "@/lib/engine/flow";
+import { buildTitikBoros } from "@/lib/engine/titikBoros";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { useActiveResults, useComparison } from "@/lib/store/useResults";
+import { useActiveResults, useComparison, useScenarioOutcomes } from "@/lib/store/useResults";
 import { fmt, fmtRpShort } from "@/lib/utils/format";
 import { confidenceFor } from "@/lib/view/helpers";
 import { headlines, stageValues, type HeadlineKey } from "@/lib/view/summary";
-
-/** Wasted-value items (spec §4.5); energy and labour are operating cost, not waste. */
-const WASTE_LABEL: Record<keyof WasteValueResult["items"], string> = {
-  processChemicalRp: "Bahan kimia proses",
-  wwtpChemicalRp: "Bahan kimia IPAL",
-  consumableRp: "Bahan habis pakai",
-  b3TreatmentRp: "Pengolahan limbah B3",
-  b3TransportRp: "Transport limbah B3",
-  waterRp: "Air",
-};
 
 export default function Page() {
   return (
@@ -84,20 +77,16 @@ function LockedOrHint() {
 }
 
 function Ringkas() {
-  const { project, results, indicators } = useActiveResults();
+  const { project, results, indicators, run } = useActiveResults();
+  const { outcomes } = useScenarioOutcomes();
   const comparison = useComparison();
   const [metric, setMetric] = useState<HeadlineKey>("cc");
   const heads = headlines(indicators, results.lci.referenceFlow, results.lci.fuLabel, comparison);
   const fu = results.lci.fuLabel;
   const stages = stageValues(project, results, metric);
   const unit = metric === "cc" ? ` kg CO₂e/${fu}` : metric === "water" ? ` L/${fu}` : metric === "waste" ? ` kg/${fu}` : `/${fu}`;
-
-  const ref = results.lci.referenceFlow || NaN;
-  const waste = results.analysis?.waste;
-  const wasteItems = waste
-    ? (Object.keys(WASTE_LABEL) as Array<keyof WasteValueResult["items"]>).map((k) => ({ key: k, value: waste.items[k] / ref })).filter((x) => x.value > 0)
-    : [];
-  const lossPct = waste?.pctOfCost ?? 0;
+  const analysis = results.analysis;
+  const model = useMemo(() => (analysis ? buildTitikBoros(analysis, { thresholdPct: project.hotspotThresholdPct }) : null), [analysis, project.hotspotThresholdPct]);
 
   const confByMetric: Record<HeadlineKey, ReturnType<typeof confidenceFor>> = {
     cc: confidenceFor(project, ["Energy", "Chemical", "Anode"]),
@@ -106,11 +95,38 @@ function Ringkas() {
     cost: confidenceFor(project, ["Chemical", "Anode", "Water", "Energy", "WWTPChemical", "Consumable"]),
   };
 
+  if (!analysis || !model) {
+    return (
+      <Callout tone="warn">
+        Hasil ini dibuat dengan mesin hitung versi lama. Tekan “Hitung hasil” di bar atas untuk membuat hasil baru.
+      </Callout>
+    );
+  }
+  const carbon = model.rows.find((r) => r.key === "gwp");
+  const waste = model.rows.find((r) => r.key === "waste_value")!;
+
   return (
-    <>
-      <HeadlineCards heads={heads} compareLabel={comparison?.label} />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_200px]">
+      <div className="min-w-0 space-y-4">
+        <InfoCard project={project} run={analysis} resultLabel={run ? `#${run.id}` : "data terkini (belum disimpan)"} />
+        <section id="angka-utama" className="scroll-mt-36">
+          <HeadlineCards heads={heads} compareLabel={comparison?.label} />
+        </section>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {carbon && <CarbonCard project={project} row={carbon} />}
+          <WasteCard run={analysis} items={wasteItems(analysis)} totalPerFU={waste.totalPerFU} />
+        </div>
+        <Card id="alur" className="scroll-mt-36">
+          <CardHeader title="Alur bahan & energi" subtitle="Dari sumber (listrik, bahan kimia, air, …) ke tiap tahap, lalu ke total lini" />
+          <CardBody>
+            <FlowExplorer project={project} run={analysis} outcomes={outcomes} thresholdPct={project.hotspotThresholdPct} panel={false} testId="hasil-flow" />
+            <Tip href="/titik-boros" cta="Telusuri di Titik Boros">
+              Klik sebuah tahap di Titik Boros untuk melihat komponen pemicunya dan saran perbaikan.
+            </Tip>
+          </CardBody>
+        </Card>
+        <LifeCycleCard rows={lifeCycleSplit(analysis)} />
+        <Card id="per-tahap" className="scroll-mt-36">
           <CardHeader
             title="Per tahap proses"
             info={{ what: "Besar indikator yang dipilih di setiap tahap, per 1 m² permukaan dilapisi.", why: "Tahap dengan batang terpanjang adalah tempat perbaikan paling berpengaruh.", action: "Buka Titik Boros untuk melihat penyebabnya." }}
@@ -141,23 +157,8 @@ function Ringkas() {
             )}
           </CardBody>
         </Card>
-        <Card>
-          <CardHeader
-            title="Nilai yang terbuang"
-            info="mfca"
-            subtitle={`${fmt(lossPct, 1)}% dari biaya proses (per ${fu}).`}
-          />
-          <CardBody>
-            <BarList
-              items={wasteItems.map((c) => ({ label: WASTE_LABEL[c.key], value: c.value, color: "#D55E00" }))}
-              format={(v) => fmtRpShort(v)}
-            />
-            <p className="mt-3 text-[11px] text-navy-700/60">
-              Terbuang = bahan kimia, air, bahan habis pakai, serta pengolahan dan transport limbah B3. Listrik dan tenaga kerja dihitung sebagai biaya operasi, bukan nilai terbuang.
-            </p>
-          </CardBody>
-        </Card>
       </div>
-    </>
+      <Contents />
+    </div>
   );
 }

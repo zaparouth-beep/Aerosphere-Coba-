@@ -230,6 +230,15 @@ export interface DataQuality {
   bySource: Record<DataSource, number>;
 }
 
+/** Per-component values of an inventory or cost indicator (period), used by the flow diagrams. */
+export interface UseContribution {
+  componentId: string;
+  name: string;
+  stage: StageCode;
+  category: ComponentCategory;
+  value: number;
+}
+
 export interface RunResult {
   factorVersion: string;
   areaPlatedM2: number;
@@ -241,6 +250,8 @@ export interface RunResult {
   waste: WasteValueResult;
   dataConfidence: "high" | "medium" | "low";
   dataQuality: DataQuality;
+  /** Component contributions for water (L), B3 waste (kg) and wasted value (Rp). */
+  useContributions: { water: UseContribution[]; waste_b3: UseContribution[]; waste_value: UseContribution[] };
   warnings: EngineWarning[];
   trace: TraceStep[];
 }
