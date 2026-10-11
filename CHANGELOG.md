@@ -2,6 +2,11 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Teks kartu paket · 2026-10-11
+
+- Judul besar di kartu paket diganti: Esensial "Temukan Titik Boros Utama", Profesional "Analisis Mendalam, Keputusan Lebih Tepat", Industri "Solusi Sesuai Kebutuhan Perusahaan". Coba tetap "Gratis 14 hari". Field `price` di `PlanDef` diganti nama menjadi `tagline`.
+- Badge Profesional "Paling lengkap" menjadi "Rekomendasi", karena Industri punya cakupan fitur lebih luas.
+
 ## Harga di tombol paket · 2026-10-11
 
 - Kartu paket (Pengaturan → Paket, dan halaman pilih paket setelah daftar): tombol Profesional sekarang bertuliskan **IDR 18.000.000/year** dan tetap bisa dipilih. Tombol Esensial dan Industri bertuliskan **-**, dinonaktifkan, dengan keterangan "Harga belum tersedia". Tombol Coba tidak berubah.

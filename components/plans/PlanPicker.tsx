@@ -40,14 +40,14 @@ export function PlanCards({ onChosen, readOnly }: { onChosen?: (plan: PlanId) =>
               <p className="text-base font-semibold text-navy-900">{p.name}</p>
               {featured && (
                 <Badge tone="blue">
-                  <Sparkles className="h-3 w-3" /> Paling lengkap
+                  <Sparkles className="h-3 w-3" /> Rekomendasi
                 </Badge>
               )}
               {current && <Badge tone={status === "pending" ? "gold" : "green"}>{status === "pending" ? "Menunggu aktivasi" : "Paket Anda"}</Badge>}
               {requested && <Badge tone="gold">Menunggu aktivasi</Badge>}
             </div>
             <p className="text-xs text-navy-700/65">{p.audience}</p>
-            <p className="mt-3 text-lg font-semibold text-navy-900">{p.price}</p>
+            <p className="mt-3 text-lg font-semibold text-navy-900">{p.tagline}</p>
             <ul className="mt-3 flex-1 space-y-1.5 text-xs text-navy-800">
               {ROW_KEYS.map((k) => (
                 <li key={k} className="flex gap-1.5">
