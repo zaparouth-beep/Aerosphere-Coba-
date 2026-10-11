@@ -37,14 +37,15 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     email: "demo@aerosphere.demo",
     hash: "799a6a4349cd1e991c28276d2ddc260f8c6cdf0cb9072b4082f9fb9ec3661e11",
     name: "Pengguna Demo",
-    company: "Pabrik contoh (uji coba)",
+    company: "Pabrik contoh (demo semua fitur)",
     role: "Admin",
-    plan: "coba",
+    // Full access for the jury demo: every feature, no "Contoh" watermark.
+    plan: "industri",
     tour: true,
   },
 ];
 
-/** Shown on the sign-in page so anyone can try the trial. The admin password is shared privately. */
+/** Shown on the sign-in page so anyone can try every feature. The admin password is shared privately. */
 export const PUBLIC_DEMO = { email: "demo@aerosphere.demo", password: "CobaDemo2026" };
 
 export function findDemoAccount(email: string, password: string): DemoAccount | undefined {

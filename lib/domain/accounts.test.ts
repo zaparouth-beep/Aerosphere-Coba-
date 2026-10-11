@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { DEMO_ACCOUNTS, findDemoAccount, passwordHash, PUBLIC_DEMO } from "./accounts";
 
 describe("demo accounts", () => {
-  it("public demo credentials open the Coba account", () => {
-    expect(findDemoAccount(PUBLIC_DEMO.email, PUBLIC_DEMO.password)?.plan).toBe("coba");
+  it("public demo credentials open the full-access (Industri) account", () => {
+    expect(findDemoAccount(PUBLIC_DEMO.email, PUBLIC_DEMO.password)?.plan).toBe("industri");
   });
   it("the admin account is Industri with the Admin role", () => {
     const a = DEMO_ACCOUNTS.find((x) => x.email === "admin@aerosphere.demo");

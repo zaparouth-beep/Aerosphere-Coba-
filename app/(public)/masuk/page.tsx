@@ -71,7 +71,7 @@ function SignIn() {
         {!signup && (
           <div className="mt-6 max-w-md rounded-xl border border-brand-teal/40 bg-brand-teal/5 p-4 text-sm text-navy-800">
             <p className="font-semibold text-navy-900">Ingin mencoba dulu?</p>
-            <p className="mt-1 text-xs leading-relaxed">Pakai akun demo (paket Coba, proyek contoh sudah terisi):</p>
+            <p className="mt-1 text-xs leading-relaxed">Pakai akun demo (semua fitur terbuka, termasuk Mode Ahli; proyek contoh sudah terisi):</p>
             <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
               <dt className="text-navy-700/60">Email</dt>
               <dd className="num">{PUBLIC_DEMO.email}</dd>

@@ -2,6 +2,11 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Akun demo dengan semua fitur (uji dewan juri) · 2026-10-11
+
+- Akun demo publik (`demo@aerosphere.demo`) sekarang memakai paket **Industri**: semua fitur terbuka (Mode Ahli, Laporan Teknis & Kepatuhan, bobot keputusan, simulasi tanpa batas), tanpa tanda "Contoh" dan tanpa batas uji coba 14 hari. Halaman Masuk menjelaskan hal ini.
+- Tes `accounts.test.ts` disesuaikan, dan ada tes e2e baru "demo account has every feature".
+
 ## Titik Boros dikerjakan ulang (§5.3 baru) · 2026-10-10
 
 ### Diubah
