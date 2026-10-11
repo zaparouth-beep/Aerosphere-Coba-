@@ -41,6 +41,7 @@ const projectSchema = z.object({
   substrate: z.string(),
   coatingType: z.string(),
   hotspotThresholdPct: finite.min(1).max(100).optional(),
+  externalImpacts: z.array(z.object({ key: z.string().optional(), label: z.string(), value: finite, unit: z.string(), source: z.string() })).optional(),
   scope: z.object({
     version: z.number().int().positive(),
     lockedAt: z.string().optional(),

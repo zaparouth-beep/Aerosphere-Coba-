@@ -84,6 +84,8 @@ interface State {
   subscription: Subscription | null;
   onboardingDone: boolean;
   nextSteps: NextStep[];
+  /** Data saved before each document import (latest first, max 5). */
+  importBackups: ImportBackup[];
   ui: Ui;
   notices: Notice[];
 
@@ -122,7 +124,11 @@ interface State {
   addWaste: () => boolean;
   removeItem: (key: ListKey, id: string) => boolean;
   updateProduction: (patch: Partial<Production>) => boolean;
-  applyDatasetPatch: (patch: Pick<Project, "inputs" | "airEmissions" | "effluent" | "waste" | "production">, source: string) => boolean;
+  applyDatasetPatch: (patch: Pick<Project, "inputs" | "airEmissions" | "effluent" | "waste" | "production"> & Pick<Partial<Project>, "externalImpacts">, source: string) => boolean;
+  /** Document import (spec "tinjau dulu, lalu ganti"): back up the current data, open a new data version, then replace. */
+  importDocumentData: (patch: ImportedData, source: string) => boolean;
+  /** Put back the data saved before the last document import. */
+  restoreImportBackup: () => boolean;
   updatePrices: (patch: Partial<PriceBook>) => boolean;
   updateTargets: (patch: Partial<Targets>) => boolean;
   updateStageScores: (field: "stageEase" | "stageComplianceRisk" | "laborHoursByStage", id: StageId, value: number) => boolean;
@@ -151,6 +157,15 @@ interface State {
 }
 
 const nowIso = () => new Date().toISOString();
+
+export type ImportedData = Pick<Project, "inputs" | "airEmissions" | "effluent" | "waste" | "production"> & Pick<Partial<Project>, "externalImpacts">;
+
+export interface ImportBackup {
+  at: string;
+  source: string;
+  version: number;
+  data: ImportedData;
+}
 
 export const useAppStore = create<State>()(
   persist(
@@ -221,6 +236,7 @@ export const useAppStore = create<State>()(
         subscription: null,
         onboardingDone: false,
         nextSteps: [],
+        importBackups: [],
         ui: {
           activeRunId: null,
           compareScenarioId: null,
@@ -586,6 +602,38 @@ export const useAppStore = create<State>()(
           get().log("dataset", `v${get().project.dataset.version}`, "import", { oldValue: before, newValue: { source, inputs: patch.inputs.length, waste: patch.waste.length } });
           return true;
         },
+        importDocumentData: (patch, source) => {
+          const p = get().project;
+          if (p.dataset.status === "approved") {
+            get().notify("error", "Data sudah disetujui. Buka versi baru (dengan alasan) sebelum mengunggah.");
+            return false;
+          }
+          const backup: ImportBackup = {
+            at: nowIso(),
+            source,
+            version: p.dataset.version,
+            data: structuredClone({ inputs: p.inputs, airEmissions: p.airEmissions, effluent: p.effluent, waste: p.waste, production: p.production, externalImpacts: p.externalImpacts }),
+          };
+          if (!get().applyDatasetPatch({ externalImpacts: undefined, ...patch }, source)) return false;
+          mutate((d) => {
+            d.dataset = { version: d.dataset.version + 1, status: "draft", acceptedWarnings: {} };
+          });
+          set((s) => ({ importBackups: [backup, ...s.importBackups].slice(0, 5) }));
+          get().log("dataset", `v${get().project.dataset.version}`, "import-document", { reason: `Diganti dari dokumen ${source}; data v${backup.version} disimpan sebagai cadangan.` });
+          return true;
+        },
+        restoreImportBackup: () => {
+          const [last, ...rest] = get().importBackups;
+          if (!last) return false;
+          if (!guard("editData", "mengembalikan data")) return false;
+          mutate((d) => {
+            Object.assign(d, structuredClone(last.data));
+            d.dataset = { version: d.dataset.version + 1, status: "draft", acceptedWarnings: {} };
+          });
+          set({ importBackups: rest });
+          get().log("dataset", `v${get().project.dataset.version}`, "restore-backup", { reason: `Data sebelum impor ${last.source} dikembalikan.` });
+          return true;
+        },
         updatePrices: (patch) => {
           if (!entitled("manualInput", "Mengubah harga satuan")) return false;
           if (!guard("editPrices", "mengubah harga satuan")) return false;
@@ -828,6 +876,7 @@ export const useAppStore = create<State>()(
         subscription: s.subscription,
         onboardingDone: s.onboardingDone,
         nextSteps: s.nextSteps,
+        importBackups: s.importBackups,
         ui: { ...s.ui, copilotOpen: false },
       }),
       /** Corrupt or older state never crashes the app: fall back to the demo project. */

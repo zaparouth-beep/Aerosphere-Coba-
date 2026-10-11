@@ -161,6 +161,16 @@ function rowsOf(ws: Worksheet | undefined): Array<{ row: number; get: (h: string
   return out;
 }
 
+/** True when the file is the official AeroSphere template (its sheets are all present). */
+export async function isTemplateWorkbook(file: File): Promise<boolean> {
+  if (!/\.xlsx$/i.test(file.name)) return false;
+  const ExcelJS = await loadExcel();
+  const wb: Workbook = new ExcelJS.Workbook();
+  await wb.xlsx.load(await file.arrayBuffer());
+  const names = new Set(wb.worksheets.map((w) => w.name));
+  return SHEETS.every((s) => names.has(s));
+}
+
 export async function parseTemplate(file: File, project: Project): Promise<{ patch: DatasetPatch; report: ImportReport }> {
   if (file.size > MAX_BYTES) throw new Error("File melebihi 25 MB.");
   if (!/\.xlsx$/i.test(file.name)) throw new Error("Hanya file .xlsx yang diterima (makro .xlsm ditolak).");

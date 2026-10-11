@@ -7,7 +7,7 @@ import { STAGE_COLOR } from "@/components/charts/palette";
 import ExpertLcia from "@/components/expert/ExpertLcia";
 import ExpertMfca from "@/components/expert/ExpertMfca";
 import { FlowExplorer } from "@/components/flow/FlowExplorer";
-import { CarbonCard, Contents, InfoCard, LifeCycleCard, Tip, WasteCard } from "@/components/hasil/Overview";
+import { CarbonCard, Contents, ExternalImpactsCard, InfoCard, LifeCycleCard, Tip, WasteCard } from "@/components/hasil/Overview";
 import { HeadlineCards } from "@/components/summary/Summary";
 import { ConfidenceBadge } from "@/components/ui/Badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -126,6 +126,7 @@ function Ringkas() {
           </CardBody>
         </Card>
         <LifeCycleCard rows={lifeCycleSplit(analysis)} />
+        <ExternalImpactsCard project={project} run={analysis} />
         <Card id="per-tahap" className="scroll-mt-36">
           <CardHeader
             title="Per tahap proses"

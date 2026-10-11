@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useRef, useState } from "react";
-import { Download, FileSpreadsheet, Lock, ShieldCheck, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, Lock, RotateCcw, ShieldCheck, Upload } from "lucide-react";
 import { AirTable, EffluentTable, InputTable, MappingTable, PriceForm, ProductionForm, WasteTable } from "@/components/data/Tables";
 import { StageDot } from "@/components/data/common";
 import { STAGE_COLOR } from "@/components/charts/palette";
@@ -18,7 +18,9 @@ import { hasFeature, planLimits } from "@/lib/domain/plans";
 import { plainStage } from "@/lib/view/summary";
 import type { StageId } from "@/lib/domain/types";
 import type { IssueTab } from "@/lib/engine/quality";
-import { buildTemplate, parseTemplate, type DatasetPatch, type ImportReport } from "@/lib/io/excel";
+import { DocumentImport } from "@/components/data/DocumentImport";
+import { ACCEPT } from "@/lib/io/docExtract";
+import { buildTemplate, isTemplateWorkbook, parseTemplate, type DatasetPatch, type ImportReport } from "@/lib/io/excel";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults } from "@/lib/store/useResults";
 import { cn } from "@/lib/utils/cn";
@@ -66,6 +68,10 @@ function DataProses() {
   const [reopen, setReopen] = useState(false);
   const [pending, setPending] = useState<{ patch: DatasetPatch; report: ImportReport; file: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [confirmRestore, setConfirmRestore] = useState(false);
+  const backups = useAppStore((s) => s.importBackups);
+  const restoreImportBackup = useAppStore((s) => s.restoreImportBackup);
 
   const approved = project.dataset.status === "approved";
   const readOnly = approved || !can(role, "editData") || !manual;
@@ -148,21 +154,36 @@ function DataProses() {
                 >
                   <Download className="h-3.5 w-3.5" /> Unduh template
                 </Button>
-                <Button variant="secondary" size="sm" disabled={approved || !canUpload} title={canUpload ? undefined : "Kuota unggahan paket sudah terpakai"} onClick={() => fileRef.current?.click()}>
-                  <Upload className="h-3.5 w-3.5" /> Unggah .xlsx
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={approved || !canUpload}
+                  title={approved ? "Data sudah disetujui; buka versi baru dulu" : canUpload ? "Excel, CSV, PDF, atau Word berisi data input dan output" : "Kuota unggahan paket sudah terpakai"}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <Upload className="h-3.5 w-3.5" /> Unggah dokumen
                 </Button>
+                {backups.length > 0 && (
+                  <Button variant="ghost" size="sm" disabled={approved} onClick={() => setConfirmRestore(true)} title={`Cadangan sebelum impor ${backups[0]!.source}`}>
+                    <RotateCcw className="h-3.5 w-3.5" /> Kembalikan data sebelum unggah
+                  </Button>
+                )}
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".xlsx"
+                  accept={ACCEPT}
                   className="hidden"
+                  data-testid="document-upload"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     e.target.value = "";
                     if (!file) return;
                     try {
-                      const parsed = await parseTemplate(file, project);
-                      setPending({ ...parsed, file: file.name });
+                      // The official template keeps its exact importer; any other document goes to the smart reader.
+                      if (await isTemplateWorkbook(file)) {
+                        const parsed = await parseTemplate(file, project);
+                        setPending({ ...parsed, file: file.name });
+                      } else setDocFile(file);
                     } catch (err) {
                       notify("error", `Impor gagal: ${(err as Error).message}`);
                     }
@@ -210,6 +231,33 @@ function DataProses() {
         </Card>
       </div>
 
+      {docFile && <DocumentImport file={docFile} project={project} onClose={() => setDocFile(null)} />}
+      <Modal
+        open={confirmRestore}
+        title="Kembalikan data sebelum unggah"
+        onClose={() => setConfirmRestore(false)}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirmRestore(false)}>
+              Batal
+            </Button>
+            <Button
+              onClick={() => {
+                if (restoreImportBackup()) notify("success", "Data sebelum unggah dikembalikan sebagai versi data baru.");
+                setConfirmRestore(false);
+              }}
+            >
+              <RotateCcw className="h-4 w-4" /> Kembalikan
+            </Button>
+          </>
+        }
+      >
+        {backups[0] && (
+          <p>
+            Data saat ini diganti dengan data sebelum dokumen <b>{backups[0].source}</b> diunggah ({new Date(backups[0].at).toLocaleString("id-ID")}). Perubahan dicatat di jejak audit.
+          </p>
+        )}
+      </Modal>
       <ReasonDialog
         open={reopen}
         title={`Buka data versi ${project.dataset.version + 1}`}

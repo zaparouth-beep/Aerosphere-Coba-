@@ -28,3 +28,6 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+
+# copied at build time
+/public/pdf.worker.min.mjs

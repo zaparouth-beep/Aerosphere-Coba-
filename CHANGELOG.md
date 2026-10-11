@@ -2,6 +2,25 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Unggah dokumen apa pun + baca dengan AI · 2026-10-11
+
+### Ditambahkan
+- **Data Saya → Unggah dokumen**: Excel (.xlsx), CSV, PDF berteks, dan Word (.docx). Spesifikasi §5.2.5a.
+  - Pembaca otomatis berbasis aturan di browser (`lib/io/docExtract.ts`, `lib/io/smartReader.ts`): bagian INPUT/OUTPUT, kolom, satuan, angka `1.250,5`/`1,250.5`, baris PDF yang bergeser, beberapa tabel per halaman.
+  - Layar tinjau yang bisa diedit; dokumen harus berisi input **dan** output sebelum bisa diterapkan.
+  - **Ganti data proyek** = versi data baru, data lama jadi cadangan dan bisa dikembalikan.
+  - Hasil dampak dari software lain tampil sebagai **Pembanding dari dokumen** di Hasil, tidak dipakai menghitung.
+- **Analisis dengan AI** (Claude) lewat Netlify Function `netlify/functions/ai-import.mts` (`/api/ai-import`).
+  - Hanya berjalan setelah pengguna mencentang persetujuan pengiriman dokumen.
+  - Keluaran JSON terstruktur, divalidasi; angka yang tidak ada di dokumen ditandai dan tidak dipakai.
+  - Aktif hanya di build Netlify (`NEXT_PUBLIC_AI_IMPORT=1`) dan bila `ANTHROPIC_API_KEY` dipasang di Netlify → Site configuration → Environment variables. Tanpa kunci, tombol nonaktif dengan keterangan.
+- Tes: `tests/import/smartReader.test.ts`, `tests/import/aiImport.test.ts` (SDK di-mock, tanpa panggilan API sungguhan), `tests/e2e/import.spec.ts` (PDF, Word, CSV hanya input); contoh dokumen di `tests/fixtures/import/`.
+- Tangkapan layar: `docs/screenshots/unggah-dokumen-tinjau.png`, `unggah-dokumen-pembanding.png`.
+
+### Catatan
+- Belum didukung: `.xls` lama (simpan ulang sebagai .xlsx) dan PDF hasil scan/gambar.
+- Worker PDF disalin ke `public/` saat build (`scripts/copy-pdf-worker.mjs`).
+
 ## Teks kartu paket · 2026-10-11
 
 - Judul besar di kartu paket diganti: Esensial "Temukan Titik Boros Utama", Profesional "Analisis Mendalam, Keputusan Lebih Tepat", Industri "Solusi Sesuai Kebutuhan Perusahaan". Coba tetap "Gratis 14 hari". Field `price` di `PlanDef` diganti nama menjadi `tagline`.

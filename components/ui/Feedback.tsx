@@ -34,18 +34,32 @@ export function Notices() {
   );
 }
 
-export function Modal({ open, title, onClose, children, footer }: { open: boolean; title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) {
+export function Modal({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+  size = "md",
+}: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  size?: "md" | "xl";
+}) {
   if (!open) return null;
   return (
     <div role="dialog" aria-modal="true" aria-label={title} className="no-print fixed inset-0 z-50 flex items-center justify-center bg-navy-950/40 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-xl" onMouseDown={(e) => e.stopPropagation()}>
+      <div className={cn("flex max-h-[92vh] w-full flex-col rounded-xl bg-white shadow-xl", size === "xl" ? "max-w-6xl" : "max-w-lg")} onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-sand-200 px-5 py-3">
           <h2 className="text-sm font-semibold text-navy-900">{title}</h2>
           <button type="button" aria-label="Tutup" onClick={onClose} className="text-navy-700/50 hover:text-navy-900">
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-5 py-4 text-sm text-navy-800">{children}</div>
+        <div className="min-h-0 overflow-y-auto px-5 py-4 text-sm text-navy-800">{children}</div>
         {footer && <div className="flex justify-end gap-2 border-t border-sand-200 px-5 py-3">{footer}</div>}
       </div>
     </div>
