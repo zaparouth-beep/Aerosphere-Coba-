@@ -2,6 +2,10 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Harga di tombol paket · 2026-10-11
+
+- Kartu paket (Pengaturan → Paket, dan halaman pilih paket setelah daftar): tombol Profesional sekarang bertuliskan **IDR 18.000.000/year** dan tetap bisa dipilih. Tombol Esensial dan Industri bertuliskan **-**, dinonaktifkan, dengan keterangan "Harga belum tersedia". Tombol Coba tidak berubah.
+
 ## Hasil, Titik Boros, dan Simulasi dengan konsep alur interaktif · 2026-10-11
 
 Konsep diambil dari analisis video "How to automate LCAs with Makersite" (`docs/ANALISIS_VIDEO_MAKERSITE.md`).

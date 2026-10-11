@@ -11,6 +11,13 @@ import { cn } from "@/lib/utils/cn";
 const ROW_KEYS = ["Input data", "Hasil & Titik Boros", "Simulasi perbaikan", "Laporan", "Tanya AeroSphere"] as const;
 
 /** Four plan cards (PRD v1.1 §3.0.2). `onChosen` runs after a plan is picked. */
+/** Price shown on the plan button; plans without a published price show "-" and cannot be chosen here. */
+const PRICE_LABEL: Partial<Record<PlanId, { label: string; title: string; selectable: boolean }>> = {
+  esensial: { label: "-", title: "Harga belum tersedia", selectable: false },
+  profesional: { label: "IDR 18.000.000/year", title: "Pilih paket Profesional (IDR 18.000.000 per tahun)", selectable: true },
+  industri: { label: "-", title: "Harga belum tersedia", selectable: false },
+};
+
 export function PlanCards({ onChosen, readOnly }: { onChosen?: (plan: PlanId) => void; readOnly?: boolean }) {
   const subscription = useAppStore((s) => s.subscription);
   const choosePlan = useAppStore((s) => s.choosePlan);
@@ -63,13 +70,23 @@ export function PlanCards({ onChosen, readOnly }: { onChosen?: (plan: PlanId) =>
               <Button
                 className="mt-4 w-full"
                 variant={featured ? "brand" : "secondary"}
-                disabled={current || requested || (p.id === "coba" && !!subscription)}
+                disabled={!!PRICE_LABEL[p.id] && !PRICE_LABEL[p.id]!.selectable ? true : current || requested || (p.id === "coba" && !!subscription)}
+                title={PRICE_LABEL[p.id]?.title}
+                aria-label={PRICE_LABEL[p.id] ? `${p.name}: ${PRICE_LABEL[p.id]!.title}` : undefined}
                 onClick={() => {
                   choosePlan(p.id);
                   onChosen?.(p.id);
                 }}
               >
-                {current ? "Paket saat ini" : requested ? "Menunggu aktivasi" : p.id === "coba" && subscription ? "Uji coba sudah dipakai" : p.id === "coba" ? "Coba gratis 14 hari" : p.id === "industri" ? "Ajukan penawaran" : `Pilih ${p.name}`}
+                {PRICE_LABEL[p.id]
+                  ? PRICE_LABEL[p.id]!.label
+                  : current
+                    ? "Paket saat ini"
+                    : requested
+                      ? "Menunggu aktivasi"
+                      : p.id === "coba" && subscription
+                        ? "Uji coba sudah dipakai"
+                        : "Coba gratis 14 hari"}
               </Button>
             )}
           </div>
