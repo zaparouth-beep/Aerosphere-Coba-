@@ -2,6 +2,21 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Arahan perbaikan mengikuti hasil hitung · 2026-10-12
+
+### Masalah
+- Arahan perbaikan selalu berasal dari tiga simulasi yang sama (S1–S3). Bila data diubah, misalnya semua diisi 1, isi dan urutan arahan tetap sama; hanya angkanya yang bergeser. Alasannya pun bisa tidak cocok: pemakai listrik terbesar ada di Utilitas, tetapi arahan tetap membahas penyearah arus.
+
+### Diubah
+- Arahan dipilih dari hasil hitung data terkini (spesifikasi §5.5.1). Semua tuas di pustaka dicoba mesin hitung pada data lini, termasuk yang belum ada di daftar simulasi, lalu yang manfaatnya terbesar dijabarkan.
+- Alasan tiap arahan mengutip komponen dan jumlah dari data sendiri.
+- Arahan baru:
+  - "Periksa kembali data input" bila sebagian besar baris bernilai sama;
+  - "Kaji pemakaian {komponen}" untuk penyumbang karbon terbesar yang belum disasar;
+  - target air buangan mengikuti baku mutu yang terlampaui.
+- Nilai bawaan tuas dipindah ke mesin hitung (`LEVER_DEFAULTS`).
+- Tes: `tests/report/report_edits.test.ts` (data berbeda menghasilkan arahan berbeda; data dummy; tuas tanpa komponen dilewati) dan e2e "directions follow the data". Tangkapan layar: `docs/screenshots/laporan-arahan-ikut-data.png`.
+
 ## Perbaikan: Simulasi Perbaikan mengikuti perubahan data · 2026-10-12
 
 ### Masalah

@@ -15,7 +15,7 @@ import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
 import { can } from "@/lib/domain/permissions";
 import type { LeverId, LeverSettings, Scenario } from "@/lib/domain/types";
 import type { Indicators } from "@/lib/engine/calculate";
-import { bridge, LEVERS, sensitivity } from "@/lib/engine/scenario";
+import { bridge, LEVER_DEFAULTS, LEVERS, sensitivity } from "@/lib/engine/scenario";
 import { LockedFeature } from "@/components/ui/Locked";
 import { InfoTip } from "@/components/ui/InfoTip";
 import { Select } from "@/components/ui/Input";
@@ -25,16 +25,7 @@ import { useLiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
 import { cn } from "@/lib/utils/cn";
 import { fmt, fmtDelta, fmtRp, fmtRpShort, fmtSig } from "@/lib/utils/format";
 
-const DEFAULTS: Required<LeverSettings> = {
-  dragout: { reductionPct: 20 },
-  countercurrent: { stagesOld: 2, stagesNew: 3, ratio: 1000 },
-  rectifier: { etaOld: 75, etaNew: 88 },
-  tankCover: { heatReductionPct: 20, mistReductionPct: 30 },
-  mistSuppressant: { reductionPct: 50 },
-  effluentTarget: { parameter: "Ni", newValue: 0.064, flocculantIncreasePct: 10 },
-  gridFactor: { kgCO2ePerKwh: 0.5 },
-  bathConcentration: { cOld: 55, cNew: 47.5 },
-};
+const DEFAULTS = LEVER_DEFAULTS;
 
 const PARAMS: Record<LeverId, Array<{ key: string; label: string; text?: boolean }>> = {
   dragout: [{ key: "reductionPct", label: "Larutan terbawa berkurang (%)" }],

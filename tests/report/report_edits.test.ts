@@ -5,7 +5,7 @@ import { calculate, indicatorsOf } from "@/lib/engine/calculate";
 import { buildStudyModel } from "@/lib/engine/study";
 import { evaluateScenario } from "@/lib/engine/scenario";
 import { buildStudyWorkbook } from "@/lib/io/studyExport";
-import { buildDirections, rankedOutcomes } from "@/lib/report/directions";
+import { buildDirections, candidateOutcomes, leverSteps, placeholderData } from "@/lib/report/directions";
 import { editState, foreignNumbers, numbersIn, resolveText } from "@/lib/report/edits";
 import { editDirections, studyText } from "@/lib/report/lcaStudy";
 import type { ReportDocEdits } from "@/lib/store/useAppStore";
@@ -21,10 +21,11 @@ describe("improvement directions", () => {
   const id = buildDirections(project, results, outcomes, "id");
   const en = buildDirections(project, results, outcomes, "en");
 
-  it("one work plan per worthwhile scenario, in the same order as the summary table", () => {
-    const ranked = rankedOutcomes(outcomes).slice(0, 3);
-    expect(id.slice(0, ranked.length).map((d) => d.id)).toEqual(ranked.map((o) => o.scenario.id));
+  it("directions follow the engine's ranking of every improvement on this data", () => {
+    const ranked = candidateOutcomes(project, results, outcomes).slice(0, 3);
+    expect(id.slice(0, ranked.length).map((d) => d.id)).toEqual(ranked.map((c) => c.outcome.scenario.id));
     expect(en.map((d) => d.id)).toEqual(id.map((d) => d.id));
+    for (let i = 1; i < ranked.length; i++) expect(ranked[i - 1]!.score).toBeGreaterThanOrEqual(ranked[i]!.score);
   });
 
   it("each plan has why, numbered steps, owner, target, measure, timing and the engine basis", () => {
@@ -36,13 +37,39 @@ describe("improvement directions", () => {
       expect(d.schedule).not.toBe("");
       expect(JSON.stringify(d)).not.toMatch(/NaN|undefined/);
     }
-    for (const d of id.filter((x) => x.id !== "data")) expect(d.basis.length).toBeGreaterThan(0);
+    for (const d of id.filter((x) => !["data", "data-check"].includes(x.id) && !x.id.startsWith("hotspot-"))) expect(d.basis.length).toBeGreaterThan(0);
   });
 
   it("the yearly saving in the target is the engine's", () => {
-    const o = rankedOutcomes(outcomes)[0]!;
-    const d = id.find((x) => x.id === o.scenario.id)!;
-    expect(d.target).toContain(`Rp${new Intl.NumberFormat("id-ID").format(Math.round(o.lcc.annualSavingRp))}`);
+    const c = candidateOutcomes(project, results, outcomes)[0]!;
+    const d = id.find((x) => x.id === c.outcome.scenario.id)!;
+    expect(d.target).toContain(`Rp${new Intl.NumberFormat("id-ID").format(Math.round(c.outcome.lcc.annualSavingRp))}`);
+  });
+
+  it("the reasons quote the line's own components", () => {
+    const drag = id.find((d) => d.steps.some((s) => /talang tiris/.test(s)))!;
+    expect(drag.why).toMatch(/Chromate\/passivation \(90 kg\)/);
+  });
+
+  it("different data gives different directions", () => {
+    const dummy = hardChromeDemo();
+    for (const i of dummy.inputs) i.quantity = 1;
+    expect(placeholderData(dummy)).toEqual({ value: 1, count: dummy.inputs.length, total: dummy.inputs.length });
+    const rd = calculate(dummy);
+    const od = dummy.scenarios.map((s) => evaluateScenario(dummy, s, indicatorsOf(rd)));
+    const dd = buildDirections(dummy, rd, od, "id");
+    expect(dd[0]!.id).toBe("data-check");
+    expect(dd.map((d) => d.why).join(" ")).not.toEqual(id.map((d) => d.why).join(" "));
+
+    // No rectifier and no chemicals in B–D: those improvements are not suggested.
+    const lean = hardChromeDemo();
+    lean.inputs = lean.inputs.filter((i) => !/rectifier/i.test(i.name) && !(i.category === "Chemical" && ["B", "C", "D"].includes(i.stageId)));
+    lean.scenarios = [];
+    const rl = calculate(lean);
+    const dl = buildDirections(lean, rl, [], "id", 8);
+    expect(dl.map((d) => d.id)).not.toContain("auto-rectifier");
+    expect(dl.map((d) => d.id)).not.toContain("auto-dragout");
+    expect(dl.some((d) => d.id.startsWith("auto-"))).toBe(true);
   });
 
   it("every lever has written steps in both languages", () => {
@@ -57,13 +84,10 @@ describe("improvement directions", () => {
       ["gridFactor", { kgCO2ePerKwh: 0.1 }],
     ];
     for (const [lever, settings] of levers) {
-      const sc = { ...project.scenarios[0]!, id: `t-${lever}`, levers: { [lever]: settings } };
-      const o = evaluateScenario(project, sc, ind);
-      const forced = { ...o, lcc: { ...o.lcc, annualSavingRp: 1 } };
       for (const l of ["id", "en"] as const) {
-        const d = buildDirections(project, results, [forced], l)[0]!;
-        expect(d.steps.length, `${lever} ${l}`).toBeGreaterThanOrEqual(4);
-        expect(JSON.stringify(d), `${lever} ${l}`).not.toMatch(/NaN|undefined/);
+        const steps = leverSteps(lever, { [lever]: settings }, l, project);
+        expect(steps.length, `${lever} ${l}`).toBeGreaterThanOrEqual(4);
+        expect(JSON.stringify(steps), `${lever} ${l}`).not.toMatch(/NaN|undefined/);
       }
     }
   });

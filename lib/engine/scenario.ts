@@ -30,6 +30,18 @@ export const LEVERS: LeverDef[] = [
   { id: "bathConcentration", label: "Turunkan konsentrasi larutan", technical: "Bath concentration", description: "Turunkan konsentrasi bath dalam control limit.", affects: "Bahan kimia tahap plating yang terbuang" },
 ];
 
+/** Default lever values (spec §6); used for new simulations and for directions suggested from the results. */
+export const LEVER_DEFAULTS: Required<LeverSettings> = {
+  dragout: { reductionPct: 20 },
+  countercurrent: { stagesOld: 2, stagesNew: 3, ratio: 1000 },
+  rectifier: { etaOld: 75, etaNew: 88 },
+  tankCover: { heatReductionPct: 20, mistReductionPct: 30 },
+  mistSuppressant: { reductionPct: 50 },
+  effluentTarget: { parameter: "Ni", newValue: 0.064, flocculantIncreasePct: 10 },
+  gridFactor: { kgCO2ePerKwh: 0.5 },
+  bathConcentration: { cOld: 55, cNew: 47.5 },
+};
+
 type Draft = Project;
 
 const pct = (n: number) => `${n.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`;

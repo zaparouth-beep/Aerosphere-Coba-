@@ -667,8 +667,16 @@ Lihat Bagian 8 (format INALUM). Laporan Ringkas Manajemen yang sudah ada diperta
 
 #### 5.5.1 Arahan perbaikan
 
-Setiap laporan memuat **Arahan perbaikan** untuk perbaikan dengan manfaat terbesar (maks. 3, urutan sama dengan tabel saran), disusun oleh `lib/report/directions.ts`:
-mengapa (titik boros dari mesin hitung), langkah kerja berurutan per tuas (Bagian 6), penanggung jawab, target (selisih hasil skenario dari mesin hitung, penghematan per tahun, investasi dan balik modal), cara mengukur keberhasilan, waktu dan tingkat usaha, serta dasar perhitungan (asumsi dan rumus skenario, tidak bisa diubah). Bila data masih banyak perkiraan, ditambah arahan "Perkuat data pemakaian".
+Setiap laporan memuat **Arahan perbaikan** yang **dipilih dari hasil hitung data terkini** (`lib/report/directions.ts`):
+1. Setiap tuas di pustaka (Bagian 6) diterapkan mesin hitung ke data lini: memakai simulasi pengguna bila ada, bila tidak memakai nilai bawaan (`LEVER_DEFAULTS`). Untuk air buangan, targetnya adalah baku mutu parameter yang paling terlampaui. Tuas yang tidak menemukan komponen untuk diubah dilewati.
+2. Peringkat memakai manfaat pada data ini: penghematan per tahun (% biaya tahunan), ditambah penurunan jejak karbon, sebagian penurunan emisi udara dan logam di air buangan, dan sedikit bobot air. Maksimal 3 arahan.
+3. Alasan ("Mengapa") mengutip komponen dan jumlah dari data lini sendiri, misalnya "Chromate/passivation (90 kg)". Arahan yang belum ada di daftar simulasi diberi keterangan "disusun otomatis".
+4. Arahan tambahan:
+   - "Periksa kembali data input", ditaruh paling atas, bila ≥60% baris input bernilai sama (data contoh/dummy).
+   - "Kaji pemakaian {komponen}" bila penyumbang jejak karbon terbesar (≥10%) tidak disasar arahan terpilih.
+   - "Perkuat data pemakaian" bila masih banyak data perkiraan.
+
+Isi tiap arahan: mengapa, langkah kerja berurutan per tuas, penanggung jawab, target (selisih hasil dari mesin hitung, penghematan per tahun, investasi dan balik modal), cara mengukur, waktu dan tingkat usaha, serta dasar perhitungan (tidak bisa diubah).
 Kajian LCA dan Teknis (ISO 14044, MFCA, Decision Brief) memuat arahan lengkap; One-pager dan laporan Kepatuhan memuat versi ringkas (judul, target, penanggung jawab).
 
 #### 5.5.2 Teks laporan bisa diubah sebelum diunduh

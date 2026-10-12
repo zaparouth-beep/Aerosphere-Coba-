@@ -142,7 +142,7 @@ export function SummaryReport({
           <Section n={5} title="Arahan perbaikan" wide>
             <EditableText
               id="arahan:intro"
-              text="Rincian pelaksanaan setiap perbaikan di atas: alasan, langkah kerja, penanggung jawab, target, dan cara mengukur keberhasilannya."
+              text="Arahan berikut dipilih dari hasil hitung data terkini: setiap perbaikan di pustaka dicoba oleh mesin hitung pada data lini ini, lalu yang dampaknya paling besar dijabarkan beserta alasan, langkah kerja, penanggung jawab, target, dan cara mengukurnya."
               className="mb-3 text-sm text-navy-800"
               label="Pengantar arahan perbaikan"
             />

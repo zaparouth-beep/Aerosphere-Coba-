@@ -472,7 +472,7 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
           {E(
             "arahan:intro",
             fullDirections
-              ? "Setiap arahan berikut disusun dari skenario yang dihitung mesin hitung: alasan, langkah kerja berurutan, penanggung jawab, target, dan cara mengukur keberhasilannya."
+              ? "Arahan berikut dipilih dari hasil hitung data terkini: setiap perbaikan di pustaka dicoba oleh mesin hitung pada data lini ini, lalu yang dampaknya paling besar dijabarkan beserta alasan, langkah kerja berurutan, penanggung jawab, target, dan cara mengukur keberhasilannya."
               : "Ringkasan tindakan prioritas beserta target dan penanggung jawabnya. Rincian langkah kerja tersedia di laporan Scenario Decision Brief.",
             "mb-3",
           )}
