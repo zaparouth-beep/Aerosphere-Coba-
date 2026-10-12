@@ -27,6 +27,7 @@ import type {
   Targets,
 } from "@/lib/domain/types";
 import { calculate } from "@/lib/engine/calculate";
+import { tx } from "@/lib/i18n";
 import { DEFAULT_WEIGHTS, type HotspotWeights } from "@/lib/engine/hotspot";
 import { appendEvent, createRun, datasetHash, type Run } from "@/lib/engine/run";
 
@@ -191,16 +192,19 @@ export interface ImportBackup {
 export const useAppStore = create<State>()(
   persist(
     (set, get) => {
-      /** Permission gate: denied attempts are logged (AC-08). */
-      const guard = (permission: Permission, what: string): boolean => {
+      /**
+       * Permission gate: denied attempts are logged (AC-08). `what` is Indonesian
+       * and goes into the audit log unchanged; `whatEn` is only for the notice.
+       */
+      const guard = (permission: Permission, what: string, whatEn: string = what): boolean => {
         const { user } = get();
         if (can(user.role, permission)) return true;
         get().log("access", permission, "denied", { reason: `${user.role} mencoba: ${what}` });
-        get().notify("error", `Peran ${user.role} tidak berhak: ${what}.`);
+        get().notify("error", tx(`Peran ${user.role} tidak berhak: ${what}.`, `The ${user.role} role is not allowed to: ${whatEn}.`));
         return false;
       };
       /** Plan entitlement (PRD v1.1 §3.0.2): denied attempts are logged as PLAN_REQUIRED. */
-      const entitled = (feature: Feature, what: string): boolean => {
+      const entitled = (feature: Feature, what: string, whatEn: string = what): boolean => {
         const sub = get().subscription;
         if (hasFeature(sub, feature)) return true;
         const status = effectiveStatus(sub);
@@ -209,28 +213,28 @@ export const useAppStore = create<State>()(
         get().notify(
           "error",
           status === "expired"
-            ? "Masa paket berakhir. Data tetap bisa dibaca selama 30 hari; pilih paket untuk melanjutkan."
+            ? tx("Masa paket berakhir. Data tetap bisa dibaca selama 30 hari; pilih paket untuk melanjutkan.", "Your plan has ended. Data stays readable for 30 days; choose a plan to continue.")
             : status === "pending"
-              ? "Paket menunggu aktivasi admin."
-              : `${what} tersedia mulai paket ${min.name}.`,
+              ? tx("Paket menunggu aktivasi admin.", "The plan is waiting for admin activation.")
+              : tx(`${what} tersedia mulai paket ${min.name}.`, `${whatEn} is available from the ${min.name} plan.`),
         );
         return false;
       };
       /** Approved datasets are immutable; a new version must be opened first (AC-04). */
-      const editableData = (what: string): boolean => {
-        if (!entitled("manualInput", what)) return false;
-        if (!guard("editData", what)) return false;
+      const editableData = (what: string, whatEn: string = what): boolean => {
+        if (!entitled("manualInput", what, whatEn)) return false;
+        if (!guard("editData", what, whatEn)) return false;
         if (get().project.dataset.status === "approved") {
-          get().notify("error", "Dataset sudah di-approve. Buka versi baru (dengan alasan) sebelum mengubah data.");
+          get().notify("error", tx("Dataset sudah di-approve. Buka versi baru (dengan alasan) sebelum mengubah data.", "The dataset is approved. Open a new version (with a reason) before changing data."));
           return false;
         }
         return true;
       };
       const scopeEditable = (): boolean => {
-        if (!entitled("expertMode", "Mengubah pengaturan studi (Goal & Scope)")) return false;
-        if (!guard("editScope", "mengubah Goal & Scope")) return false;
+        if (!entitled("expertMode", "Mengubah pengaturan studi (Goal & Scope)", "Changing the study settings (Goal & Scope)")) return false;
+        if (!guard("editScope", "mengubah Goal & Scope", "change Goal & Scope")) return false;
         if (get().project.scope.lockedAt) {
-          get().notify("error", `Scope v${get().project.scope.version} terkunci. Buat versi baru untuk mengubahnya.`);
+          get().notify("error", tx(`Scope v${get().project.scope.version} terkunci. Buat versi baru untuk mengubahnya.`, `Scope v${get().project.scope.version} is locked. Create a new version to change it.`));
           return false;
         }
         return true;
@@ -252,7 +256,13 @@ export const useAppStore = create<State>()(
           fn(project);
           return pinned ? { project, ui: { ...s.ui, activeRunId: null } } : { project };
         });
-        if (pinned) get().notify("info", `Tampilan pindah ke data terkini agar perubahan langsung terlihat. Hasil #${pinned} tetap tersimpan dan bisa dipilih lagi di “Periode”.`);
+        if (pinned) get().notify(
+            "info",
+            tx(
+              `Tampilan pindah ke data terkini agar perubahan langsung terlihat. Hasil #${pinned} tetap tersimpan dan bisa dipilih lagi di “Periode”.`,
+              `The view switched to the current data so the change shows right away. Result #${pinned} is still saved and can be selected again under “Period”.`,
+            ),
+          );
       };
 
       return {
@@ -345,12 +355,12 @@ export const useAppStore = create<State>()(
             return { ok: true, next: !get().subscription || status === "pending" ? "/paket" : !get().onboardingDone ? "/mulai" : "/beranda" };
           }
           get().log("session", e || "-", "sign-in-failed");
-          return { ok: false, error: "Email atau kata sandi salah." };
+          return { ok: false, error: tx("Email atau kata sandi salah.", "Wrong email or password.") };
         },
         register: (account, password) => {
-          if (password.length < 8) return { ok: false, error: "Kata sandi minimal 8 karakter." };
+          if (password.length < 8) return { ok: false, error: tx("Kata sandi minimal 8 karakter.", "The password must be at least 8 characters.") };
           const email = account.email.trim().toLowerCase();
-          if (findDemoAccount(email, password) || email.endsWith("@aerosphere.demo")) return { ok: false, error: "Email ini dipakai akun demo. Gunakan email lain." };
+          if (findDemoAccount(email, password) || email.endsWith("@aerosphere.demo")) return { ok: false, error: tx("Email ini dipakai akun demo. Gunakan email lain.", "This email is used by a demo account. Use another email.") };
           const acc: Account = { name: account.name.trim(), email, company: account.company.trim(), createdAt: nowIso() };
           const prev = get().registered;
           // A new person registering in this browser starts clean.
@@ -377,14 +387,20 @@ export const useAppStore = create<State>()(
           if (plan === "coba" && prev) {
             // One free trial per account; switching back cancels a pending upgrade.
             if (prev.pendingPlan) set({ subscription: { ...prev, pendingPlan: undefined } });
-            else get().notify("error", "Uji coba gratis hanya sekali per akun. Pilih paket berbayar untuk melanjutkan.");
+            else get().notify("error", tx("Uji coba gratis hanya sekali per akun. Pilih paket berbayar untuk melanjutkan.", "The free trial is once per account. Choose a paid plan to continue."));
             return;
           }
           if (plan !== "coba" && prev && (status === "trial" || status === "active")) {
             // Keep the running plan until the paid plan is activated.
             set({ subscription: { ...prev, pendingPlan: plan } });
             get().log("subscription", plan, "request-plan", { oldValue: prev.plan, newValue: plan });
-            get().notify("info", `Paket ${def.name} menunggu aktivasi. Paket ${PLAN_BY_ID.get(prev.plan)?.name} tetap berjalan sampai saat itu.`);
+            get().notify(
+              "info",
+              tx(
+                `Paket ${def.name} menunggu aktivasi. Paket ${PLAN_BY_ID.get(prev.plan)?.name} tetap berjalan sampai saat itu.`,
+                `The ${def.name} plan is waiting for activation. The ${PLAN_BY_ID.get(prev.plan)?.name} plan keeps running until then.`,
+              ),
+            );
             return;
           }
           set({
@@ -406,7 +422,7 @@ export const useAppStore = create<State>()(
           const plan = sub.pendingPlan ?? sub.plan;
           set({ subscription: { ...sub, plan, pendingPlan: undefined, status: "active", startedAt: nowIso(), periodEnd: undefined } });
           get().log("subscription", plan, "activate", { reason: "Aktivasi admin (simulasi demo BUILD, tanpa gateway pembayaran)" });
-          get().notify("success", `Paket ${PLAN_BY_ID.get(plan)?.name} aktif.`);
+          get().notify("success", tx(`Paket ${PLAN_BY_ID.get(plan)?.name} aktif.`, `The ${PLAN_BY_ID.get(plan)?.name} plan is active.`));
           return true;
         },
         completeOnboarding: () => {
@@ -415,12 +431,12 @@ export const useAppStore = create<State>()(
         },
         setupProject: (project, source) => {
           if (get().onboardingDone) {
-            get().notify("error", "Profil lini hanya diatur saat onboarding. Ubah data lewat Data Saya.");
+            get().notify("error", tx("Profil lini hanya diatur saat onboarding. Ubah data lewat Data Saya.", "The line profile is only set during onboarding. Change data in My Data."));
             return false;
           }
           const parsed = parseProject(project);
           if (!parsed.ok) {
-            get().notify("error", `Proyek tidak valid — ${parsed.error}`);
+            get().notify("error", tx(`Proyek tidak valid — ${parsed.error}`, `Invalid project — ${parsed.error}`));
             return false;
           }
           set((s) => ({ project: parsed.project, runs: [], ui: { ...s.ui, activeRunId: null, compareRunId: null, compareScenarioId: null } }));
@@ -428,17 +444,17 @@ export const useAppStore = create<State>()(
           return true;
         },
         setExpertMode: (on) => {
-          if (on && !entitled("expertMode", "Mode Ahli")) return false;
+          if (on && !entitled("expertMode", "Mode Ahli", "Expert mode")) return false;
           set((s) => ({ ui: { ...s.ui, expertMode: on } }));
           return true;
         },
         requireFeature: (feature, what) => entitled(feature, what),
         consumeAiQuestion: () => {
-          if (!entitled("askAi", "Tanya AeroSphere")) return false;
+          if (!entitled("askAi", "Tanya AeroSphere", "Ask AeroSphere")) return false;
           const sub = get().subscription!;
           const limit = planLimits(sub).aiQuestions;
           if (sub.aiQuestionsUsed >= limit) {
-            get().notify("error", `Kuota ${limit} pertanyaan paket Coba sudah habis. Pilih paket untuk melanjutkan.`);
+            get().notify("error", tx(`Kuota ${limit} pertanyaan paket Coba sudah habis. Pilih paket untuk melanjutkan.`, `The Trial plan's quota of ${limit} questions is used up. Choose a plan to continue.`));
             return false;
           }
           set({ subscription: { ...sub, aiQuestionsUsed: sub.aiQuestionsUsed + 1 } });
@@ -482,32 +498,32 @@ export const useAppStore = create<State>()(
 
         loadTemplate: (templateId) => {
           const role = get().user.role;
-          if (!can(role, "admin") && !can(role, "editScope") && !guard("editData", "membuat proyek dari template")) return false;
+          if (!can(role, "admin") && !can(role, "editScope") && !guard("editData", "membuat proyek dari template", "create a project from a template")) return false;
           const tpl = TEMPLATES.find((t) => t.id === templateId);
           if (!tpl) return false;
-          if (tpl.id !== "hard-chrome" && !entitled("manualInput", "Membuat proyek baru dari template")) return false;
+          if (tpl.id !== "hard-chrome" && !entitled("manualInput", "Membuat proyek baru dari template", "Creating a new project from a template")) return false;
           const project = tpl.build();
           set((s) => ({ project, ui: { ...s.ui, activeRunId: null, compareScenarioId: null } }));
-          get().log("project", project.id, "create-from-template", { newValue: tpl.label });
-          get().notify("success", `Proyek dibuat dari template "${tpl.label}".`);
+          get().log("project", project.id, "create-from-template", { newValue: tpl.labelId });
+          get().notify("success", tx(`Proyek dibuat dari template "${tpl.label}".`, `Project created from template "${tpl.label}".`));
           return true;
         },
 
         importProject: (raw) => {
-          if (!guard("admin", "mengimpor proyek")) return false;
+          if (!guard("admin", "mengimpor proyek", "import a project")) return false;
           const parsed = parseProject(raw);
           if (!parsed.ok) {
-            get().notify("error", `Impor ditolak — ${parsed.error}`);
+            get().notify("error", tx(`Impor ditolak — ${parsed.error}`, `Import rejected — ${parsed.error}`));
             return false;
           }
           set((s) => ({ project: parsed.project, ui: { ...s.ui, activeRunId: null } }));
           get().log("project", parsed.project.id, "import", { newValue: parsed.project.name });
-          get().notify("success", "Proyek berhasil diimpor.");
+          get().notify("success", tx("Proyek berhasil diimpor.", "Project imported."));
           return true;
         },
 
         updateProjectMeta: (patch) => {
-          if (!guard("editScope", "mengubah metadata proyek")) return false;
+          if (!guard("editScope", "mengubah metadata proyek", "change project metadata")) return false;
           const old = Object.fromEntries(Object.keys(patch).map((k) => [k, get().project[k as keyof Project]]));
           mutate((p) => Object.assign(p, patch));
           get().log("project", get().project.id, "update-meta", { oldValue: old, newValue: patch });
@@ -522,7 +538,7 @@ export const useAppStore = create<State>()(
           return true;
         },
         lockScope: () => {
-          if (!guard("editScope", "mengunci pengaturan studi")) return false;
+          if (!guard("editScope", "mengunci pengaturan studi", "lock the study settings")) return false;
           if (get().project.scope.lockedAt) return false;
           const { user } = get();
           mutate((p) => {
@@ -530,13 +546,13 @@ export const useAppStore = create<State>()(
             p.scope.lockedBy = user.name;
           });
           get().log("scope", `v${get().project.scope.version}`, "lock");
-          get().notify("success", `Scope v${get().project.scope.version} dikunci.`);
+          get().notify("success", tx(`Scope v${get().project.scope.version} dikunci.`, `Scope v${get().project.scope.version} locked.`));
           return true;
         },
         newScopeVersion: (reason) => {
-          if (!guard("editScope", "membuat versi scope baru")) return false;
+          if (!guard("editScope", "membuat versi scope baru", "create a new scope version")) return false;
           if (!reason.trim()) {
-            get().notify("error", "Alasan wajib diisi.");
+            get().notify("error", tx("Alasan wajib diisi.", "A reason is required."));
             return false;
           }
           mutate((p) => {
@@ -561,7 +577,7 @@ export const useAppStore = create<State>()(
         },
 
         updateItem: (key, id, patch) => {
-          if (!editableData("mengubah data")) return false;
+          if (!editableData("mengubah data", "change data")) return false;
           const list = get().project[key] as Array<{ id: string }>;
           const old = list.find((i) => i.id === id);
           if (!old) return false;
@@ -575,14 +591,14 @@ export const useAppStore = create<State>()(
           return true;
         },
         addInput: (category, stageId) => {
-          if (!editableData("menambah input")) return false;
+          if (!editableData("menambah input", "add an input")) return false;
           const unit = category === "Energy" ? "kWh" : category === "Water" ? "L" : "kg";
           const p0 = get().project;
           const item: InputFlow = {
             id: newId("in"),
             no: p0.inputs.reduce((m, i) => Math.max(m, i.no), 0) + 1,
             category,
-            name: "Input baru",
+            name: tx("Input baru", "New input"),
             stageId,
             quantity: 0,
             unit,
@@ -595,24 +611,24 @@ export const useAppStore = create<State>()(
           return true;
         },
         addAirEmission: () => {
-          if (!editableData("menambah emisi")) return false;
-          const item: AirEmission = { id: newId("air"), parameter: "Emisi baru", relevance: "", applicable: true, stageId: "C", quantityKg: 0, basis: "period", meta: meta("measured") };
+          if (!editableData("menambah emisi", "add an emission")) return false;
+          const item: AirEmission = { id: newId("air"), parameter: tx("Emisi baru", "New emission"), relevance: "", applicable: true, stageId: "C", quantityKg: 0, basis: "period", meta: meta("measured") };
           mutate((p) => p.airEmissions.push(item));
           get().log("airEmissions", item.id, "create", { newValue: item });
           return true;
         },
         addEffluent: () => {
-          if (!editableData("menambah parameter efluen")) return false;
-          const item: EffluentParam = { id: newId("eff"), parameter: "Parameter baru", unit: "mg/L", value: 0 };
+          if (!editableData("menambah parameter efluen", "add an effluent parameter")) return false;
+          const item: EffluentParam = { id: newId("eff"), parameter: tx("Parameter baru", "New parameter"), unit: "mg/L", value: 0 };
           mutate((p) => p.effluent.push(item));
           get().log("effluent", item.id, "create", { newValue: item });
           return true;
         },
         addWaste: () => {
-          if (!editableData("menambah limbah")) return false;
+          if (!editableData("menambah limbah", "add waste")) return false;
           const item: HazardousWaste = {
             id: newId("waste"),
-            wasteType: "Limbah B3 baru",
+            wasteType: tx("Limbah B3 baru", "New B3 waste"),
             stageId: "F",
             quantityKg: 0,
             basis: "period",
@@ -630,7 +646,7 @@ export const useAppStore = create<State>()(
           return true;
         },
         removeItem: (key, id) => {
-          if (!editableData("menghapus data")) return false;
+          if (!editableData("menghapus data", "delete data")) return false;
           const old = (get().project[key] as Array<{ id: string }>).find((i) => i.id === id);
           mutate((p) => {
             (p[key] as Array<{ id: string }>) = (p[key] as Array<{ id: string }>).filter((i) => i.id !== id);
@@ -639,23 +655,29 @@ export const useAppStore = create<State>()(
           return true;
         },
         updateProduction: (patch) => {
-          if (!editableData("mengubah data produksi")) return false;
+          if (!editableData("mengubah data produksi", "change production data")) return false;
           const old = Object.fromEntries(Object.keys(patch).map((k) => [k, get().project.production[k as keyof Production]]));
           mutate((p) => Object.assign(p.production, patch));
           get().log("production", "production", "update", { oldValue: old, newValue: patch });
           return true;
         },
         applyDatasetPatch: (patch, source) => {
-          if (!entitled("uploadData", "Unggah data")) return false;
+          if (!entitled("uploadData", "Unggah data", "Uploading data")) return false;
           const sub = get().subscription!;
           const limit = planLimits(sub).uploads;
           if (sub.uploadsUsed >= limit) {
-            get().notify("error", `Paket ${PLAN_BY_ID.get(sub.plan)?.name} hanya mengizinkan ${limit} unggahan. Pilih paket Esensial atau lebih tinggi.`);
+            get().notify(
+              "error",
+              tx(
+                `Paket ${PLAN_BY_ID.get(sub.plan)?.name} hanya mengizinkan ${limit} unggahan. Pilih paket Esensial atau lebih tinggi.`,
+                `The ${PLAN_BY_ID.get(sub.plan)?.name} plan allows only ${limit} upload(s). Choose the Essential plan or higher.`,
+              ),
+            );
             return false;
           }
-          if (!guard("editData", "mengimpor data")) return false;
+          if (!guard("editData", "mengimpor data", "import data")) return false;
           if (get().project.dataset.status === "approved") {
-            get().notify("error", "Data sudah disetujui. Buka versi baru (dengan alasan) sebelum mengunggah.");
+            get().notify("error", tx("Data sudah disetujui. Buka versi baru (dengan alasan) sebelum mengunggah.", "The data is approved. Open a new version (with a reason) before uploading."));
             return false;
           }
           set({ subscription: { ...sub, uploadsUsed: sub.uploadsUsed + 1 } });
@@ -667,7 +689,7 @@ export const useAppStore = create<State>()(
         importDocumentData: (patch, source) => {
           const p = get().project;
           if (p.dataset.status === "approved") {
-            get().notify("error", "Data sudah disetujui. Buka versi baru (dengan alasan) sebelum mengunggah.");
+            get().notify("error", tx("Data sudah disetujui. Buka versi baru (dengan alasan) sebelum mengunggah.", "The data is approved. Open a new version (with a reason) before uploading."));
             return false;
           }
           const backup: ImportBackup = {
@@ -687,7 +709,7 @@ export const useAppStore = create<State>()(
         restoreImportBackup: () => {
           const [last, ...rest] = get().importBackups;
           if (!last) return false;
-          if (!guard("editData", "mengembalikan data")) return false;
+          if (!guard("editData", "mengembalikan data", "restore data")) return false;
           mutate((d) => {
             Object.assign(d, structuredClone(last.data));
             d.dataset = { version: d.dataset.version + 1, status: "draft", acceptedWarnings: {} };
@@ -697,21 +719,21 @@ export const useAppStore = create<State>()(
           return true;
         },
         updatePrices: (patch) => {
-          if (!entitled("manualInput", "Mengubah harga satuan")) return false;
-          if (!guard("editPrices", "mengubah harga satuan")) return false;
+          if (!entitled("manualInput", "Mengubah harga satuan", "Changing unit prices")) return false;
+          if (!guard("editPrices", "mengubah harga satuan", "change unit prices")) return false;
           const old = Object.fromEntries(Object.keys(patch).map((k) => [k, get().project.prices[k as keyof PriceBook]]));
           mutate((p) => Object.assign(p.prices, { isDemo: false }, patch));
           get().log("prices", get().project.prices.validFrom, "update", { oldValue: old, newValue: patch });
           return true;
         },
         updateTargets: (patch) => {
-          if (!guard("editScope", "mengubah target")) return false;
+          if (!guard("editScope", "mengubah target", "change targets")) return false;
           mutate((p) => Object.assign(p.targets, patch));
           get().log("targets", "targets", "update", { newValue: patch });
           return true;
         },
         updateStageScores: (field, id, value) => {
-          if (!guard(field === "laborHoursByStage" ? "editPrices" : "editScenario", "mengubah skor tahap")) return false;
+          if (!guard(field === "laborHoursByStage" ? "editPrices" : "editScenario", "mengubah skor tahap", "change stage scores")) return false;
           mutate((p) => {
             p[field][id] = value;
           });
@@ -720,8 +742,8 @@ export const useAppStore = create<State>()(
         },
 
         upsertBackground: (ds) => {
-          if (!entitled("expertMode", "Mengubah database pemetaan")) return false;
-          if (!guard("editMethod", "mengubah dataset background")) return false;
+          if (!entitled("expertMode", "Mengubah database pemetaan", "Changing the mapping database")) return false;
+          if (!guard("editMethod", "mengubah dataset background", "change a background dataset")) return false;
           mutate((p) => {
             const idx = p.backgrounds.findIndex((b) => b.id === ds.id);
             if (idx >= 0) p.backgrounds[idx] = ds;
@@ -731,8 +753,8 @@ export const useAppStore = create<State>()(
           return true;
         },
         removeBackground: (id) => {
-          if (!entitled("expertMode", "Mengubah database pemetaan")) return false;
-          if (!guard("editMethod", "menghapus dataset background")) return false;
+          if (!entitled("expertMode", "Mengubah database pemetaan", "Changing the mapping database")) return false;
+          if (!guard("editMethod", "menghapus dataset background", "delete a background dataset")) return false;
           mutate((p) => {
             p.backgrounds = p.backgrounds.filter((b) => b.id !== id);
             for (const i of p.inputs) if (i.mapping.datasetId === id) i.mapping = { status: "unmapped" };
@@ -742,8 +764,8 @@ export const useAppStore = create<State>()(
           return true;
         },
         upsertFlowCF: (flows, release) => {
-          if (!entitled("expertMode", "Mengubah faktor karakterisasi")) return false;
-          if (!guard("editMethod", "mengubah faktor karakterisasi")) return false;
+          if (!entitled("expertMode", "Mengubah faktor karakterisasi", "Changing characterisation factors")) return false;
+          if (!guard("editMethod", "mengubah faktor karakterisasi", "change characterisation factors")) return false;
           mutate((p) => {
             for (const f of flows) {
               const idx = p.method.flows.findIndex((x) => x.key === f.key);
@@ -757,9 +779,9 @@ export const useAppStore = create<State>()(
         },
 
         acceptWarning: (key, reason) => {
-          if (!guard("acceptWarning", "menerima peringatan")) return false;
+          if (!guard("acceptWarning", "menerima peringatan", "accept warnings")) return false;
           if (!reason.trim()) {
-            get().notify("error", "Alasan wajib diisi untuk menerima peringatan.");
+            get().notify("error", tx("Alasan wajib diisi untuk menerima peringatan.", "A reason is required to accept a warning."));
             return false;
           }
           mutate((p) => {
@@ -769,7 +791,7 @@ export const useAppStore = create<State>()(
           return true;
         },
         revokeWarning: (key) => {
-          if (!guard("acceptWarning", "membatalkan penerimaan peringatan")) return false;
+          if (!guard("acceptWarning", "membatalkan penerimaan peringatan", "revoke an accepted warning")) return false;
           mutate((p) => {
             delete p.dataset.acceptedWarnings[key];
           });
@@ -777,10 +799,10 @@ export const useAppStore = create<State>()(
           return true;
         },
         approveDataset: () => {
-          if (!guard("approveDataset", "approve dataset")) return false;
+          if (!guard("approveDataset", "approve dataset", "approve the dataset")) return false;
           const v = calculate(get().project).validation;
           if (!v.readyForApproval) {
-            get().notify("error", "Belum bisa di-approve: perbaiki error dan terima setiap peringatan dengan alasan.");
+            get().notify("error", tx("Belum bisa di-approve: perbaiki error dan terima setiap peringatan dengan alasan.", "Cannot be approved yet: fix the errors and accept every warning with a reason."));
             return false;
           }
           const { user } = get();
@@ -789,13 +811,13 @@ export const useAppStore = create<State>()(
             p.dataset = { ...p.dataset, status: "approved", approvedBy: user.name, approvedAt: nowIso(), hash };
           });
           get().log("dataset", `v${get().project.dataset.version}`, "approve", { newValue: hash });
-          get().notify("success", `Dataset v${get().project.dataset.version} di-approve.`);
+          get().notify("success", tx(`Dataset v${get().project.dataset.version} di-approve.`, `Dataset v${get().project.dataset.version} approved.`));
           return true;
         },
         reopenDataset: (reason) => {
-          if (!guard("editData", "membuka versi dataset baru")) return false;
+          if (!guard("editData", "membuka versi dataset baru", "open a new dataset version")) return false;
           if (!reason.trim()) {
-            get().notify("error", "Alasan wajib diisi.");
+            get().notify("error", tx("Alasan wajib diisi.", "A reason is required."));
             return false;
           }
           mutate((p) => {
@@ -806,15 +828,15 @@ export const useAppStore = create<State>()(
         },
 
         runCalculation: (kind, scenarioId) => {
-          if (!guard(kind === "official" ? "officialRun" : "runCalc", kind === "official" ? "run resmi" : "run draf")) return null;
+          if (!guard(kind === "official" ? "officialRun" : "runCalc", kind === "official" ? "run resmi" : "run draf", kind === "official" ? "make an official run" : "make a draft run")) return null;
           const { project, user, runs } = get();
           const v = calculate(project).validation;
           if (v.errors > 0) {
-            get().notify("error", `Belum bisa dihitung: ada ${v.errors} kesalahan data. Buka Data Saya → Cek data.`);
+            get().notify("error", tx(`Belum bisa dihitung: ada ${v.errors} kesalahan data. Buka Data Saya → Cek data.`, `Cannot calculate yet: there are ${v.errors} data error(s). Open My Data → Check data.`));
             return null;
           }
           if (kind === "official" && !v.readyForOfficialRun) {
-            get().notify("error", "Hasil resmi butuh pengaturan studi dikunci, data disetujui, dan semua buangan punya faktor dampak.");
+            get().notify("error", tx("Hasil resmi butuh pengaturan studi dikunci, data disetujui, dan semua buangan punya faktor dampak.", "An official result needs locked study settings, approved data, and an impact factor for every item."));
             return null;
           }
           const scenario = scenarioId ? project.scenarios.find((s) => s.id === scenarioId) : undefined;
@@ -832,14 +854,14 @@ export const useAppStore = create<State>()(
           // A saved simulation is kept for comparison; the screens stay on the data being worked on.
           set((s) => ({ runs: [run, ...s.runs].slice(0, MAX_RUNS), ui: scenarioId ? s.ui : { ...s.ui, activeRunId: id } }));
           get().log("run", id, "create", { newValue: { kind, resultHash: run.resultHash, datasetHash: run.manifest.datasetHash } });
-          get().notify("success", `Hasil #${id} tersimpan${kind === "official" ? " sebagai hasil resmi" : ""}.`);
+          get().notify("success", tx(`Hasil #${id} tersimpan${kind === "official" ? " sebagai hasil resmi" : ""}.`, `Result #${id} saved${kind === "official" ? " as an official result" : ""}.`));
           return id;
         },
         deleteRun: (id) => {
-          if (!guard("admin", "menghapus run")) return false;
+          if (!guard("admin", "menghapus run", "delete a run")) return false;
           const run = get().runs.find((r) => r.id === id);
           if (run?.manifest.kind === "official") {
-            get().notify("error", "Hasil resmi tidak dapat dihapus.");
+            get().notify("error", tx("Hasil resmi tidak dapat dihapus.", "An official result cannot be deleted."));
             return false;
           }
           set((s) => ({ runs: s.runs.filter((r) => r.id !== id), ui: { ...s.ui, activeRunId: s.ui.activeRunId === id ? null : s.ui.activeRunId } }));
@@ -848,33 +870,33 @@ export const useAppStore = create<State>()(
         },
 
         addScenario: () => {
-          if (!entitled("editScenario", "Membuat simulasi perbaikan sendiri")) return false;
-          if (!guard("editScenario", "membuat skenario")) return false;
+          if (!entitled("editScenario", "Membuat simulasi perbaikan sendiri", "Creating your own improvement simulations")) return false;
+          if (!guard("editScenario", "membuat skenario", "create a scenario")) return false;
           const list = get().project.scenarios;
           const max = planLimits(get().subscription).scenarios;
           if (list.length >= max) {
-            get().notify("error", `Paket ini menampung ${max} simulasi perbaikan. Hapus satu atau pilih paket Profesional.`);
+            get().notify("error", tx(`Paket ini menampung ${max} simulasi perbaikan. Hapus satu atau pilih paket Profesional.`, `This plan holds ${max} improvement simulations. Delete one or choose the Professional plan.`));
             return false;
           }
           const used = new Set(list.map((s) => s.code));
           const code = Array.from({ length: max }, (_, i) => `S${i + 1}`).find((c) => !used.has(c)) ?? `S${list.length + 1}`;
-          const sc: Scenario = { id: newId("sc"), code, name: "Skenario baru", description: "", levers: {}, capexRp: 0, extraOpexRpPerPeriod: 0, lifetimeYears: 5, status: "draft" };
+          const sc: Scenario = { id: newId("sc"), code, name: tx("Skenario baru", "New scenario"), description: "", levers: {}, capexRp: 0, extraOpexRpPerPeriod: 0, lifetimeYears: 5, status: "draft" };
           mutate((p) => p.scenarios.push(sc));
           get().log("scenario", sc.id, "create");
           return true;
         },
         createScenarioFrom: (name, levers, description = "") => {
-          if (!entitled("editScenario", "Membuat simulasi perbaikan sendiri")) return null;
+          if (!entitled("editScenario", "Membuat simulasi perbaikan sendiri", "Creating your own improvement simulations")) return null;
           const list = get().project.scenarios;
           if (list.length >= planLimits(get().subscription).scenarios) {
             // Slots full: reuse the most recent scenario that is not approved.
             const target = [...list].reverse().find((s) => s.status !== "approved");
             if (!target) {
-              get().notify("error", "Semua slot S1–S3 sudah disetujui; hapus satu skenario dulu.");
+              get().notify("error", tx("Semua slot S1–S3 sudah disetujui; hapus satu skenario dulu.", "All S1–S3 slots are approved; delete a scenario first."));
               return null;
             }
             if (!get().updateScenario(target.id, { name, levers, description })) return null;
-            get().notify("info", `${target.code} diganti dengan "${name}".`);
+            get().notify("info", tx(`${target.code} diganti dengan "${name}".`, `${target.code} replaced with "${name}".`));
             return target.id;
           }
           if (!get().addScenario()) return null;
@@ -884,7 +906,7 @@ export const useAppStore = create<State>()(
           return created.id;
         },
         updateScenario: (id, patch) => {
-          if (!entitled("editScenario", "Mengubah simulasi perbaikan") || !guard("editScenario", "mengubah skenario")) return false;
+          if (!entitled("editScenario", "Mengubah simulasi perbaikan", "Changing improvement simulations") || !guard("editScenario", "mengubah skenario", "change a scenario")) return false;
           mutate((p) => {
             const sc = p.scenarios.find((s) => s.id === id);
             if (sc) Object.assign(sc, patch, patch.levers || patch.capexRp !== undefined ? { status: "draft", approvedBy: undefined, approvedAt: undefined } : {});
@@ -894,7 +916,7 @@ export const useAppStore = create<State>()(
         },
         setLevers: (id, levers) => get().updateScenario(id, { levers }),
         removeScenario: (id) => {
-          if (!entitled("editScenario", "Mengubah simulasi perbaikan") || !guard("editScenario", "menghapus skenario")) return false;
+          if (!entitled("editScenario", "Mengubah simulasi perbaikan", "Changing improvement simulations") || !guard("editScenario", "menghapus skenario", "delete a scenario")) return false;
           mutate((p) => {
             p.scenarios = p.scenarios.filter((s) => s.id !== id);
           });
@@ -902,7 +924,7 @@ export const useAppStore = create<State>()(
           return true;
         },
         markRecommended: (id) => {
-          if (!entitled("editScenario", "Mengubah simulasi perbaikan") || !guard("editScenario", "menandai rekomendasi")) return false;
+          if (!entitled("editScenario", "Mengubah simulasi perbaikan", "Changing improvement simulations") || !guard("editScenario", "menandai rekomendasi", "mark a recommendation")) return false;
           mutate((p) => {
             for (const s of p.scenarios) {
               if (s.id === id) s.status = s.status === "approved" ? "approved" : "recommended";
@@ -913,14 +935,14 @@ export const useAppStore = create<State>()(
           return true;
         },
         approveScenario: (id) => {
-          if (!guard("approveScenario", "approve skenario")) return false;
+          if (!guard("approveScenario", "approve skenario", "approve a scenario")) return false;
           const { user } = get();
           mutate((p) => {
             const sc = p.scenarios.find((s) => s.id === id);
             if (sc) Object.assign(sc, { status: "approved", approvedBy: user.name, approvedAt: nowIso() });
           });
           get().log("scenario", id, "approve");
-          get().notify("success", "Skenario disetujui.");
+          get().notify("success", tx("Skenario disetujui.", "Scenario approved."));
           return true;
         },
       };
