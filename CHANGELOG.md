@@ -2,6 +2,20 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Laporan: arahan perbaikan rinci dan teks yang bisa diubah · 2026-10-12
+
+### Ditambahkan
+- **Arahan perbaikan** di semua laporan (spesifikasi §5.5.1): untuk setiap perbaikan terbaik ada alasan, langkah kerja berurutan, penanggung jawab, target dari mesin hitung, cara mengukur keberhasilan, waktu, dan dasar perhitungan. Langkah kerja ditulis per tuas (drag-out, konsentrasi bath, bilasan bertingkat, penyearah arus, penutup tangki, fume suppressant, target efluen, listrik rendah emisi) dalam bahasa Indonesia dan Inggris (`lib/report/directions.ts`).
+- **Ubah teks laporan** (spesifikasi §5.5.2) di Kajian LCA, Ringkasan untuk manajemen, Teknis, dan Kepatuhan. Teks bisa diubah, arahan bisa dikeluarkan, dan catatan bisa ditambah sebelum dicetak atau diunduh (`components/report/Editable.tsx`, `lib/report/edits.ts`).
+  - Angka yang tidak berasal dari mesin hitung memblokir cetak/unduh.
+  - Perubahan tersimpan per nomor hasil, dan ada tombol untuk mengembalikan teks asli.
+  - Excel Kajian LCA ikut memakai teks yang diubah.
+- Tes: `tests/report/report_edits.test.ts` dan `tests/e2e/laporan.spec.ts`. Tangkapan layar: `docs/screenshots/laporan-ubah-teks.png`, `laporan-arahan-perbaikan.png`, `laporan-teknis-onepager.png`.
+
+### Diubah
+- Bahasa laporan Teknis/Kepatuhan dirapikan menjadi bahasa Indonesia profesional, misalnya "Climate change terpetakan" menjadi "Jejak karbon (perubahan iklim)", "Goal & scope" menjadi "Tujuan dan ruang lingkup", "Positive/Negative" menjadi "Produk (positif)/Kerugian (negatif)", dan status skenario menjadi Draf/Direkomendasikan/Disetujui. GRI dan PROPER kini diberi paragraf pengantar.
+- Kalimat kesimpulan Ringkasan untuk manajemen dibuat lebih formal.
+
 ## Perbaikan: unggah file Excel dari software lain · 2026-10-11
 
 - Unggah .xlsx yang dibuat ERP/sistem lain (XML berawalan, mis. `<x:workbook>`) gagal dengan "Impor gagal: Cannot read properties of undefined (reading 'sheets')". Sekarang file seperti itu dibaca oleh pembaca cadangan `lib/io/xlsxLite.ts` (hanya nilai sel; rumus tidak dijalankan), dan pemeriksaan templat tidak lagi menggagalkan unggahan.

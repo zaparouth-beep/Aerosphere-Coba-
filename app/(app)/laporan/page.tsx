@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { FileSpreadsheet, Lock, Printer, Save } from "lucide-react";
 import ExpertReports from "@/components/expert/ExpertReports";
+import { ReportEditBar, ReportEditNotice, ReportEditor, useReportEdits } from "@/components/report/Editable";
 import { LcaStudyReport } from "@/components/report/LcaStudyReport";
 import { defaultNextSteps, SummaryReport } from "@/components/report/SummaryReport";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +16,7 @@ import { hasFeature } from "@/lib/domain/plans";
 import { useAppStore, type NextStep } from "@/lib/store/useAppStore";
 import { useActiveResults, useComparison, useScenarioOutcomes } from "@/lib/store/useResults";
 import { buildStudyModel } from "@/lib/engine/study";
+import { buildDirections } from "@/lib/report/directions";
 import type { ReportLang, StudyContext } from "@/lib/report/lcaStudy";
 import { downloadBlob } from "@/lib/utils/export";
 import { topActions } from "@/lib/view/summary";
@@ -59,7 +61,17 @@ export default function Page() {
 }
 
 function Ringkas() {
+  const { run } = useActiveResults();
+  return (
+    <ReportEditor doc={`ringkas:${run?.id ?? "DRAF"}`}>
+      <RingkasInner />
+    </ReportEditor>
+  );
+}
+
+function RingkasInner() {
   const { project, results, indicators, run } = useActiveResults();
+  const edits = useReportEdits();
   const { outcomes } = useScenarioOutcomes();
   const comparison = useComparison();
   const subscription = useAppStore((s) => s.subscription);
@@ -73,26 +85,30 @@ function Ringkas() {
   const dirty = JSON.stringify(steps) !== JSON.stringify(stored);
   const sample = subscription?.plan === "coba";
   const allowed = can(user.role, "generateReport") || user.role === "Auditor";
+  const directions = useMemo(() => buildDirections(project, results, outcomes, "id"), [project, results, outcomes]);
 
   return (
     <div className="space-y-4">
       <div className="no-print flex flex-wrap items-center gap-2">
         <Button
           variant="brand"
-          disabled={!allowed}
+          disabled={!allowed || edits.blocked}
+          title={edits.blockedReason}
           onClick={() => {
             setUi({ reportDownloaded: true });
-            log("report", "ringkas", "generate-report", { newValue: { template: "Laporan Ringkas Manajemen", format: "pdf", run: run?.id ?? "DRAFT" } });
+            log("report", "ringkas", "generate-report", { newValue: { template: "Laporan Ringkas Manajemen", format: "pdf", run: run?.id ?? "DRAFT", editedBlocks: edits.edited } });
             window.print();
           }}
         >
           <Printer className="h-4 w-4" /> Cetak / simpan PDF
         </Button>
-        <Button variant="secondary" disabled={!dirty} onClick={() => setNextSteps(steps)}>
+        <Button variant="secondary" disabled={!dirty} title={dirty ? undefined : "Belum ada perubahan langkah berikutnya"} onClick={() => setNextSteps(steps)}>
           <Save className="h-4 w-4" /> Simpan langkah berikutnya
         </Button>
+        <ReportEditBar />
         {!allowed && <span className="text-xs text-navy-700/60">Peran Anda tidak bisa membuat laporan.</span>}
       </div>
+      <ReportEditNotice />
       {!run && (
         <Callout tone="warn" className="no-print">
           Laporan ini memakai data terkini yang belum disimpan. Tekan “Hitung hasil” di bar atas agar laporan merujuk nomor hasil yang bisa dicek ulang.
@@ -108,6 +124,7 @@ function Ringkas() {
         resultLabel={run ? `Hasil #${run.id}` : "data terkini (belum disimpan)"}
         nextSteps={steps}
         onNextSteps={setSteps}
+        directions={directions}
         watermark={sample}
         company={account?.company}
       />
@@ -120,15 +137,6 @@ const LANG_LABEL: Record<ReportLang, string> = { id: "Bahasa Indonesia", en: "En
 function Kajian() {
   const { project, results, run } = useActiveResults();
   const { outcomes } = useScenarioOutcomes();
-  const subscription = useAppStore((s) => s.subscription);
-  const user = useAppStore((s) => s.user);
-  const setUi = useAppStore((s) => s.setUi);
-  const log = useAppStore((s) => s.log);
-  const [lang, setLang] = useState<ReportLang>("id");
-  const [busy, setBusy] = useState(false);
-  const allowed = can(user.role, "generateReport") || user.role === "Auditor";
-  const sample = subscription?.plan === "coba";
-
   const ctx = useMemo<StudyContext | null>(() => {
     if (!results.analysis) return null;
     return {
@@ -137,6 +145,7 @@ function Kajian() {
       actions: topActions(outcomes),
       resultId: run?.id ?? "DRAF",
       date: (run?.manifest.createdAt ?? new Date().toISOString()).slice(0, 10),
+      directions: { id: buildDirections(project, results, outcomes, "id"), en: buildDirections(project, results, outcomes, "en") },
     };
   }, [project, results, outcomes, run]);
 
@@ -147,15 +156,34 @@ function Kajian() {
       </Callout>
     );
   }
+  return (
+    <ReportEditor doc={`kajian:${ctx.resultId}`}>
+      <KajianInner ctx={ctx} hasRun={Boolean(run)} />
+    </ReportEditor>
+  );
+}
+
+function KajianInner({ ctx, hasRun }: { ctx: StudyContext; hasRun: boolean }) {
+  const subscription = useAppStore((s) => s.subscription);
+  const user = useAppStore((s) => s.user);
+  const setUi = useAppStore((s) => s.setUi);
+  const log = useAppStore((s) => s.log);
+  const edits = useReportEdits();
+  const [lang, setLang] = useState<ReportLang>("id");
+  const [busy, setBusy] = useState(false);
+  const allowed = can(user.role, "generateReport") || user.role === "Auditor";
+  const sample = subscription?.plan === "coba";
+  const off = !allowed || edits.blocked;
+  const why = !allowed ? "Peran Anda tidak bisa membuat laporan." : edits.blockedReason;
 
   const exportExcel = async () => {
     setBusy(true);
     try {
       const { buildStudyWorkbook, studyFileName } = await import("@/lib/io/studyExport");
-      const blob = await buildStudyWorkbook(ctx, lang);
+      const blob = await buildStudyWorkbook(ctx, lang, { text: edits.text, hidden: edits.isHidden });
       downloadBlob(blob, studyFileName(ctx, "xlsx", lang), blob.type);
       setUi({ reportDownloaded: true });
-      log("report", "kajian", "generate-report", { newValue: { template: "Laporan Kajian LCA", format: "xlsx", lang, run: ctx.resultId } });
+      log("report", "kajian", "generate-report", { newValue: { template: "Laporan Kajian LCA", format: "xlsx", lang, run: ctx.resultId, editedBlocks: edits.edited } });
     } finally {
       setBusy(false);
     }
@@ -172,10 +200,11 @@ function Kajian() {
         />
         <Button
           variant="brand"
-          disabled={!allowed}
+          disabled={off}
+          title={why}
           onClick={() => {
             setUi({ reportDownloaded: true });
-            log("report", "kajian", "generate-report", { newValue: { template: "Laporan Kajian LCA", format: "pdf", lang, run: ctx.resultId } });
+            log("report", "kajian", "generate-report", { newValue: { template: "Laporan Kajian LCA", format: "pdf", lang, run: ctx.resultId, editedBlocks: edits.edited } });
             const title = document.title;
             import("@/lib/io/studyExport").then(({ studyFileName }) => {
               document.title = studyFileName(ctx, "pdf", lang).replace(/\.pdf$/, "");
@@ -186,12 +215,14 @@ function Kajian() {
         >
           <Printer className="h-4 w-4" /> Cetak / simpan PDF (A4)
         </Button>
-        <Button variant="secondary" disabled={!allowed || busy} onClick={exportExcel}>
+        <Button variant="secondary" disabled={off || busy} title={why} onClick={exportExcel}>
           <FileSpreadsheet className="h-4 w-4" /> {busy ? "Menyiapkan…" : "Unduh Excel"}
         </Button>
+        <ReportEditBar />
         {!allowed && <span className="text-xs text-navy-700/60">Peran Anda tidak bisa membuat laporan.</span>}
       </div>
-      {!run && (
+      <ReportEditNotice />
+      {!hasRun && (
         <Callout tone="warn" className="no-print">
           Laporan ini memakai data terkini yang belum disimpan (nomor hasil “DRAF”). Tekan “Hitung hasil” di bar atas agar laporan merujuk nomor hasil yang bisa dicek ulang.
         </Callout>

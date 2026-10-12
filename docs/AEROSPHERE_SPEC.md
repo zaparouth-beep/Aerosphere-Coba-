@@ -665,6 +665,19 @@ Urutan isi panel, semuanya dirender dari output engine (`TraceStep[]`) dan pusta
 
 Lihat Bagian 8 (format INALUM). Laporan Ringkas Manajemen yang sudah ada dipertahankan sebagai tab kedua ("Ringkasan untuk manajemen").
 
+#### 5.5.1 Arahan perbaikan
+
+Setiap laporan memuat **Arahan perbaikan** untuk perbaikan dengan manfaat terbesar (maks. 3, urutan sama dengan tabel saran), disusun oleh `lib/report/directions.ts`:
+mengapa (titik boros dari mesin hitung), langkah kerja berurutan per tuas (Bagian 6), penanggung jawab, target (selisih hasil skenario dari mesin hitung, penghematan per tahun, investasi dan balik modal), cara mengukur keberhasilan, waktu dan tingkat usaha, serta dasar perhitungan (asumsi dan rumus skenario, tidak bisa diubah). Bila data masih banyak perkiraan, ditambah arahan "Perkuat data pemakaian".
+Kajian LCA dan Teknis (ISO 14044, MFCA, Decision Brief) memuat arahan lengkap; One-pager dan laporan Kepatuhan memuat versi ringkas (judul, target, penanggung jawab).
+
+#### 5.5.2 Teks laporan bisa diubah sebelum diunduh
+
+- Tombol **"Ubah teks laporan"** membuat setiap paragraf, temuan, dan isi arahan bisa diubah langsung di pratinjau. Satu arahan bisa dikeluarkan dari laporan; "Catatan tambahan" dan "Catatan penyusun" bisa diisi bebas.
+- **Angka tidak bisa dikarang**: setiap angka di teks yang diubah harus sudah ada di teks asli dari mesin hitung. Bila tidak, bagian itu ditandai merah dan tombol cetak/unduh dinonaktifkan dengan keterangan alasannya. Tabel, nomor hasil, dan kaki halaman tidak bisa diubah.
+- Perubahan disimpan per laporan dan per nomor hasil di browser. Bila hasil hitung berubah setelah teks diubah, perubahan itu tidak dipakai (teks asli yang baru ditampilkan) sampai diubah lagi.
+- "Kembalikan teks asli" per bagian dan "Kembalikan semua teks asli" per laporan. Cetak/PDF dan Excel Kajian LCA memakai teks yang sudah diubah; jejak audit mencatat jumlah bagian yang diubah.
+
 ---
 
 ## 6. Pustaka tuas perbaikan (berbasis bukti)

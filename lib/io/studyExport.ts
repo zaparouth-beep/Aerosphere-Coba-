@@ -2,7 +2,7 @@ import type { Workbook, Worksheet } from "exceljs";
 import { SCREENING_V1 } from "@/lib/engine/factors";
 import { toProjectInput } from "@/lib/engine/inventory";
 import { STAGE_CODES } from "@/lib/engine/types";
-import { categoryLabel, INFO_CLASS, INVENTORY_LABEL, L, SOURCE_NAME, stageName, studyText, type Lang, type ReportLang, type StudyContext } from "@/lib/report/lcaStudy";
+import { categoryLabel, editDirections, editStudyText, INFO_CLASS, INVENTORY_LABEL, L, SOURCE_NAME, stageName, studyText, type Lang, type ReportLang, type StudyContext } from "@/lib/report/lcaStudy";
 import { sanitizeCell } from "@/lib/utils/export";
 
 /** Excel export of the LCA study report (spec §8.3). Values are the engine's, unrounded except the % table (2 decimals). */
@@ -30,13 +30,22 @@ export function studyFileName(ctx: StudyContext, ext: "xlsx" | "pdf", lang: Repo
   return `Kajian-LCA_${slug}_${ctx.resultId}_${lang.toUpperCase()}_Rahasia-Tenant.${ext}`;
 }
 
-export async function buildStudyWorkbook(ctx: StudyContext, lang: ReportLang): Promise<Blob> {
+export interface StudyEdits {
+  /** Text to use for a block (the user's edit or the original). */
+  text: (id: string, original: string) => string;
+  hidden: (id: string) => boolean;
+}
+
+const NO_EDITS: StudyEdits = { text: (_id, original) => original, hidden: () => false };
+
+export async function buildStudyWorkbook(ctx: StudyContext, lang: ReportLang, edits: StudyEdits = NO_EDITS): Promise<Blob> {
   const mod = await import("exceljs");
   const ExcelJS = (mod as unknown as { default?: typeof mod }).default ?? mod;
   const wb: Workbook = new ExcelJS.Workbook();
   wb.creator = "AeroSphere LCA";
   const ls = langs(lang);
-  const texts = ls.map((l) => studyText(ctx, l));
+  const texts = ls.map((l) => editStudyText(studyText(ctx, l), l, edits.text));
+  const dirs = ls.map((l) => editDirections(ctx.directions?.[l] ?? [], l, edits.text, edits.hidden));
   const { model, project } = ctx;
   const stageHeads = STAGE_CODES.map((s) => (lang === "both" ? `${s}. ${stageName(project, s, "id")} / ${stageName(project, s, "en")}` : `${s}. ${stageName(project, s, lang)}`));
 
@@ -128,7 +137,24 @@ export async function buildStudyWorkbook(ctx: StudyContext, lang: ReportLang): P
   cline(tx(L.grave, lang), texts.map((t) => t.grave));
   texts[0]!.findings.forEach((f, i) => cline(`${tx(L.perCategory, lang)} — ${f.key}`, texts.map((t) => t.findings[i]!.text)));
   cline(tx(L.acrossCategories, lang), texts.map((t) => t.crossCategory));
-  texts[0]!.recommendations.forEach((_, i) => cline(`${tx(L.recommendations, lang)} ${i + 1}`, texts.map((t) => t.recommendations[i]!)));
+  if (dirs[0]!.length) {
+    // Arahan perbaikan: one row per field so the work plan reads top to bottom.
+    dirs[0]!.forEach((d, i) => {
+      const head = `${tx(L.directions, lang)} ${i + 1}`;
+      const at = (pick: (x: (typeof dirs)[number][number]) => string) => dirs.map((ds) => pick(ds[i]!));
+      cline(head, at((x) => x.title));
+      cline(`${head} — ${tx({ id: "Mengapa", en: "Why" }, lang)}`, at((x) => x.why));
+      cline(`${head} — ${tx({ id: "Langkah kerja", en: "Work steps" }, lang)}`, at((x) => x.steps.map((st, j) => `${j + 1}. ${st}`).join("\n")));
+      cline(`${head} — ${tx({ id: "Penanggung jawab", en: "Responsible" }, lang)}`, at((x) => x.owner));
+      cline(`${head} — ${tx({ id: "Target", en: "Target" }, lang)}`, at((x) => x.target));
+      cline(`${head} — ${tx({ id: "Cara mengukur", en: "How measured" }, lang)}`, at((x) => x.measure));
+      cline(`${head} — ${tx({ id: "Waktu", en: "Timing" }, lang)}`, at((x) => x.schedule));
+      if (d.basis.length) cline(`${head} — ${tx({ id: "Dasar perhitungan", en: "Calculation basis" }, lang)}`, at((x) => x.basis.join("\n")));
+      if (dirs.some((ds) => ds[i]!.note)) cline(`${head} — ${tx({ id: "Catatan", en: "Note" }, lang)}`, at((x) => x.note));
+    });
+  } else texts[0]!.recommendations.forEach((_, i) => cline(`${tx(L.recommendations, lang)} ${i + 1}`, texts.map((t) => t.recommendations[i]!)));
+  const notes = ls.map((l) => edits.text(`${l}:authorNote`, ""));
+  if (notes.some(Boolean)) cline(tx(L.authorNote, lang), notes);
   cline(tx(L.dataQuality, lang), texts.map((t) => t.dataQuality));
 
   // Data_Input: the inventory the engine read.

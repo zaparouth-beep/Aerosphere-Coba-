@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { Plus, Trash2 } from "lucide-react";
+import { DirectionsList } from "@/components/report/Directions";
+import { EditableText } from "@/components/report/Editable";
 import { ActionsTable, formatHeadline, WorstStageBars } from "@/components/summary/Summary";
 import { CONFIDENCE_LABEL } from "@/components/ui/Badge";
 import { IconButton } from "@/components/ui/Button";
@@ -11,6 +13,7 @@ import { term } from "@/lib/content/glossary";
 import type { Project } from "@/lib/domain/types";
 import type { Indicators, Results } from "@/lib/engine/calculate";
 import type { ScenarioOutcome } from "@/lib/engine/scenario";
+import type { Direction } from "@/lib/report/directions";
 import type { NextStep } from "@/lib/store/useAppStore";
 import { fmt, fmtDelta, fmtRp } from "@/lib/utils/format";
 import { conclusion, headlines, overallConfidence, topActions, worstStage } from "@/lib/view/summary";
@@ -43,6 +46,7 @@ export function SummaryReport({
   onNextSteps,
   watermark,
   company,
+  directions = [],
 }: {
   project: Project;
   results: Results;
@@ -54,6 +58,8 @@ export function SummaryReport({
   onNextSteps?: (steps: NextStep[]) => void;
   watermark?: boolean;
   company?: string;
+  /** Detailed improvement directions (engine scenarios); editable in the report. */
+  directions?: Direction[];
 }) {
   const ref = results.lci.referenceFlow;
   const heads = headlines(indicators, ref, results.lci.fuLabel, comparison);
@@ -83,8 +89,11 @@ export function SummaryReport({
 
         <Section n={1} title="Kesimpulan">
           <ul className="space-y-1 text-sm leading-relaxed text-navy-900">
-            {sentences.map((s) => (
-              <li key={s}>{s}</li>
+            {sentences.map((s, i) => (
+              <li key={i} className="flex gap-2">
+                <span aria-hidden>•</span>
+                <EditableText id={`kesimpulan:${i}`} text={s} as="span" className="flex-1" label={`Kesimpulan ${i + 1}`} />
+              </li>
             ))}
           </ul>
         </Section>
@@ -112,9 +121,12 @@ export function SummaryReport({
         <Section n={3} title="Di mana masalahnya">
           {worst ? (
             <>
-              <p className="mb-3 text-sm text-navy-900">
-                Tahap <b>{worst.stageName}</b> menyumbang {fmt(worst.sharePct, 0)}% dari {worst.indicator} lini.
-              </p>
+              <EditableText
+                id="masalah"
+                text={`Tahap **${worst.stageName}** menyumbang ${fmt(worst.sharePct, 0)}% dari ${worst.indicator} lini, sehingga menjadi prioritas pertama untuk diperbaiki.`}
+                className="mb-3 text-sm text-navy-900"
+                label="Di mana masalahnya"
+              />
               <WorstStageBars project={project} results={results} worst={worst} />
             </>
           ) : (
@@ -126,13 +138,23 @@ export function SummaryReport({
           <ActionsTable actions={actions} />
         </Section>
 
-        <Section n={5} title="Seberapa yakin">
-          <p className="text-sm text-navy-900">
-            Tingkat keyakinan data: <b>{CONFIDENCE_LABEL[conf.level]}</b>. {conf.sentence}
-          </p>
+        {directions.length > 0 && (
+          <Section n={5} title="Arahan perbaikan" wide>
+            <EditableText
+              id="arahan:intro"
+              text="Rincian pelaksanaan setiap perbaikan di atas: alasan, langkah kerja, penanggung jawab, target, dan cara mengukur keberhasilannya."
+              className="mb-3 text-sm text-navy-800"
+              label="Pengantar arahan perbaikan"
+            />
+            <DirectionsList byLang={{ id: directions }} langs={["id"]} className="text-[13px] leading-relaxed text-navy-900" />
+          </Section>
+        )}
+
+        <Section n={directions.length ? 6 : 5} title="Seberapa yakin">
+          <EditableText id="yakin" text={`Tingkat keyakinan data: **${CONFIDENCE_LABEL[conf.level]}**. ${conf.sentence}`} className="text-sm text-navy-900" label="Seberapa yakin" />
         </Section>
 
-        <Section n={6} title="Langkah berikutnya">
+        <Section n={directions.length ? 7 : 6} title="Langkah berikutnya">
           <ul className="space-y-2">
             {steps.map((s, i) => (
               <li key={i} className="flex flex-wrap items-center gap-2 text-sm text-navy-900">
@@ -203,9 +225,9 @@ export function SummaryReport({
   );
 }
 
-function Section({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Section({ n, title, children, wide }: { n: number; title: string; children: React.ReactNode; wide?: boolean }) {
   return (
-    <section className="mt-5 break-inside-avoid">
+    <section className={wide ? "mt-5" : "mt-5 break-inside-avoid"}>
       <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-navy-900">
         <span className="num flex h-5 w-5 items-center justify-center rounded-full bg-navy-900 text-[10px] text-white">{n}</span>
         {title}
