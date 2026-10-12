@@ -2,6 +2,23 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Perbaikan: Simulasi Perbaikan mengikuti perubahan data · 2026-10-12
+
+### Masalah
+- Setelah "Hitung hasil", semua menu (termasuk Simulasi) menampilkan hasil tersimpan yang terkunci. Angka yang diubah di Data Saya, atau di pengaturan simulasi, tidak terlihat di Simulasi. Pengaturan simulasi seolah-olah kembali ke angka lama.
+- Perbaikan penyearah arus, penutup tangki, dan bilasan hanya mengenali nama komponen berbahasa Inggris ("Rectifier", "Heater"). Komponen bernama "Listrik penyearah arus", "Pemanas", atau "Kabut krom" tidak ikut berubah.
+- Perbaikan kabut krom dan target logam di air buangan tidak punya ukuran yang terlihat, sehingga tampak "tidak ada perubahan".
+
+### Diperbaiki
+- **Simulasi selalu dihitung dari data terkini.** Bila menu lain sedang menampilkan hasil tersimpan, muncul keterangan dan tombol "Tampilkan data terkini di semua menu".
+- Mengubah data saat hasil tersimpan sedang ditampilkan memindahkan tampilan ke data terkini, disertai pemberitahuan. Hasil tersimpan tidak berubah dan bisa dipilih lagi di "Periode".
+- "Simpan hasil simulasi" tidak lagi mengunci tampilan ke hasil simulasi itu.
+- Tuas perbaikan mengenali nama komponen berbahasa Indonesia (penyearah, pemanas, DI/RO, kabut, koagulan/penggumpal). Bila data tidak berisi komponen yang bisa diubah, simulasi menuliskannya dengan jelas ("Tidak ada listrik penyearah arus di data proyek ...") dan tidak lagi diam saja.
+- Indikator baru dari mesin hitung: **emisi udara langsung** dan **logam di air buangan** (Q × C untuk Ni, Cr, Cd, Zn, Cu).
+- "Coba perubahan" menampilkan semua ukuran yang berubah (listrik, air, bahan kimia, limbah B3, emisi udara, logam di air buangan, biaya) beserta tabel **Sekarang → Sesudah** per periode, sehingga perubahan data langsung terlihat dalam angka absolut.
+- Kolom pengaturan simulasi kini punya label untuk pembaca layar.
+- Tes: `tests/simulasi/simulasi.test.ts` dan `tests/e2e/simulasi.spec.ts` (alur: hitung hasil → ubah data → simulasi berubah). Tangkapan layar: `docs/screenshots/simulasi-ikut-data.png`.
+
 ## Laporan: arahan perbaikan rinci dan teks yang bisa diubah · 2026-10-12
 
 ### Ditambahkan

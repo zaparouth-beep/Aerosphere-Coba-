@@ -1,5 +1,6 @@
 import type { LeverId, LeverSettings, Project, Scenario } from "@/lib/domain/types";
-import { calculate, indicatorsOf, type Indicators, type Results } from "./calculate";
+import { calculate, indicatorsOf, isMetalParameter, type Indicators, type Results } from "./calculate";
+import { deviceRoleOf } from "./inventory";
 import { GRID_SENSITIVITY_RANGE } from "./method";
 import { concentrationFactor } from "./units";
 
@@ -32,10 +33,16 @@ export const LEVERS: LeverDef[] = [
 type Draft = Project;
 
 const pct = (n: number) => `${n.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`;
-const isMetal = (param: string) => /^(ni|cr|cd|zn|cu)\b|^cr\s*\(?vi\)?$|cr total/i.test(param.trim());
+const isMetal = isMetalParameter;
+/** Electricity rows by device, in English or Indonesian ("Rectifier electricity", "Listrik penyearah arus"). */
+const isDevice = (i: Project["inputs"][number], role: string) => i.category === "Energy" && deviceRoleOf(i.name) === role;
+/** Mist and fume rows ("Cr(VI) mist", "Acid mist", "Kabut krom", "Kabut asam"). */
+const isMist = (parameter: string) => /mist|kabut|fume|uap asam/i.test(parameter);
+const NOTHING = (what: string) => `Tidak ada ${what} di data proyek, sehingga perbaikan ini belum mengubah hasil. Tambahkan atau ganti nama komponennya di Data Saya.`;
 
 function dragout(p: Draft, s: NonNullable<LeverSettings["dragout"]>): string[] {
   const r = Math.min(Math.max(s.reductionPct, 0), 100) / 100;
+  const none = !p.inputs.some((i) => i.category === "Chemical" && ["B", "C", "D"].includes(i.stageId) && i.quantity > 0);
   for (const i of p.inputs) {
     if (i.category === "Chemical" && ["B", "C", "D"].includes(i.stageId)) i.quantity *= 1 - r;
     if (i.category === "WWTPChemical") i.quantity *= 1 - r;
@@ -47,6 +54,7 @@ function dragout(p: Draft, s: NonNullable<LeverSettings["dragout"]>): string[] {
     "Asumsi default: seluruh konsumsi kimia (kategori Chemical) tahap B/C/D adalah pengganti kehilangan drag-out (koefisien 1,0; belum divalidasi data pabrik).",
     "Beban logam ke IPAL turun sebanding; kimia IPAL dan lumpur IPAL turun proporsional terhadap beban logam (koefisien 1,0).",
     "Anoda tidak berubah karena logam anoda ≈ logam yang terdeposit (Takuma et al. 2018).",
+    ...(none ? [NOTHING("bahan kimia di tahap B, C, atau D")] : []),
   ];
 }
 
@@ -55,9 +63,10 @@ function countercurrent(p: Draft, s: NonNullable<LeverSettings["countercurrent"]
   const nOld = Math.max(1, Math.round(s.stagesOld));
   const nNew = Math.max(1, Math.round(s.stagesNew));
   const factor = ratio ** (1 / nNew) / ratio ** (1 / nOld);
+  const none = !p.inputs.some((i) => i.category === "Water" && i.quantity > 0);
   for (const i of p.inputs) {
     if (i.category === "Water") i.quantity *= factor;
-    if (i.category === "Energy" && /di\s*\/?\s*ro/i.test(i.name)) i.quantity *= factor;
+    if (isDevice(i, "di_ro")) i.quantity *= factor;
   }
   p.production.effluentVolumeM3 *= factor;
   // Same pollutant mass in less water → concentrations rise by 1/factor.
@@ -65,31 +74,35 @@ function countercurrent(p: Draft, s: NonNullable<LeverSettings["countercurrent"]
   return [
     `Tingkat bilas ${nOld} → ${nNew}, rasio C₀/Cₙ = ${ratio}: debit air × ${factor.toFixed(3)}.`,
     "Volume efluen dan listrik DI/RO ikut skala yang sama; beban polutan efluen tetap (konsentrasi naik).",
+    ...(none ? [NOTHING("pemakaian air")] : []),
   ];
 }
 
 function rectifier(p: Draft, s: NonNullable<LeverSettings["rectifier"]>): string[] {
   const f = s.etaNew > 0 ? s.etaOld / s.etaNew : 1;
-  for (const i of p.inputs) if (i.category === "Energy" && /rectifier/i.test(i.name)) i.quantity *= f;
-  return [`Efisiensi rectifier ${pct(s.etaOld)} → ${pct(s.etaNew)}: E_baru = E_lama × η_lama ÷ η_baru (× ${f.toFixed(3)}).`];
+  const none = !p.inputs.some((i) => isDevice(i, "rectifier") && i.quantity > 0);
+  for (const i of p.inputs) if (isDevice(i, "rectifier")) i.quantity *= f;
+  return [`Efisiensi rectifier ${pct(s.etaOld)} → ${pct(s.etaNew)}: E_baru = E_lama × η_lama ÷ η_baru (× ${f.toFixed(3)}).`, ...(none ? [NOTHING("listrik penyearah arus (rectifier)")] : [])];
 }
 
 function scaleMist(p: Draft, r: number) {
-  for (const a of p.airEmissions) if (/cr\s*\(?vi\)?\s*mist|acid mist/i.test(a.parameter)) a.quantityKg *= 1 - r;
+  for (const a of p.airEmissions) if (isMist(a.parameter)) a.quantityKg *= 1 - r;
 }
 
 function tankCover(p: Draft, s: NonNullable<LeverSettings["tankCover"]>): string[] {
   const rh = Math.min(Math.max(s.heatReductionPct, 0), 100) / 100;
   const rm = Math.min(Math.max(s.mistReductionPct, 0), 100) / 100;
-  for (const i of p.inputs) if (i.category === "Energy" && /heater/i.test(i.name)) i.quantity *= 1 - rh;
+  const none = !p.inputs.some((i) => isDevice(i, "heater") && i.quantity > 0) && !p.airEmissions.some((a) => isMist(a.parameter) && a.quantityKg > 0);
+  for (const i of p.inputs) if (isDevice(i, "heater")) i.quantity *= 1 - rh;
   scaleMist(p, rm);
-  return [`kWh heater × (1 − ${pct(rh * 100)}); Cr(VI) mist dan acid mist × (1 − ${pct(rm * 100)}).`];
+  return [`kWh heater × (1 − ${pct(rh * 100)}); Cr(VI) mist dan acid mist × (1 − ${pct(rm * 100)}).`, ...(none ? [NOTHING("listrik pemanas (heater) maupun kabut dari tangki")] : [])];
 }
 
 function mistSuppressant(p: Draft, s: NonNullable<LeverSettings["mistSuppressant"]>): string[] {
   const r = Math.min(Math.max(s.reductionPct, 0), 100) / 100;
+  const none = !p.airEmissions.some((a) => isMist(a.parameter) && a.quantityKg > 0);
   scaleMist(p, r);
-  return [`Cr(VI) mist dan acid mist × (1 − ${pct(r * 100)}).`];
+  return [`Cr(VI) mist dan acid mist × (1 − ${pct(r * 100)}).`, ...(none ? [NOTHING("emisi kabut (mist) di emisi udara")] : [])];
 }
 
 function effluentTarget(p: Draft, s: NonNullable<LeverSettings["effluentTarget"]>): string[] {
@@ -98,7 +111,7 @@ function effluentTarget(p: Draft, s: NonNullable<LeverSettings["effluentTarget"]
   if (!target) return [`Parameter efluen "${s.parameter}" tidak ditemukan; lever tidak diterapkan.`];
   const old = target.value;
   target.value = Math.max(s.newValue, 0);
-  for (const i of p.inputs) if (i.category === "WWTPChemical" && /coagulant|flocculant|flokulan/i.test(i.name)) i.quantity *= 1 + x;
+  for (const i of p.inputs) if (i.category === "WWTPChemical" && /coagulant|flocculant|flokulan|koagulan|penggumpal/i.test(i.name)) i.quantity *= 1 + x;
   for (const w of p.waste) if (w.stageId === "F") w.quantityKg *= 1 + x * 0.1;
   return [
     `${target.parameter}: ${old} → ${target.value} ${target.unit} (Load = Q × C).`,
@@ -166,7 +179,7 @@ export interface ScenarioOutcome {
 }
 
 function deltaOf(base: Indicators, s: Indicators): ScenarioOutcome["delta"] {
-  const keys = ["energyKwh", "waterL", "chemicalKg", "wasteKg", "effluentM3", "ccKg", "costRp", "costLossRp", "wasteValueRp"] as const;
+  const keys = ["energyKwh", "waterL", "chemicalKg", "wasteKg", "effluentM3", "ccKg", "costRp", "costLossRp", "wasteValueRp", "airKg", "effluentMetalKg"] as const;
   return Object.fromEntries(
     keys.map((k) => [k, { abs: s[k] - base[k], pct: base[k] !== 0 ? ((s[k] - base[k]) / base[k]) * 100 : 0 }]),
   ) as ScenarioOutcome["delta"];

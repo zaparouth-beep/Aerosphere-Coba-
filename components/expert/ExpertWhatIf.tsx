@@ -21,7 +21,7 @@ import { InfoTip } from "@/components/ui/InfoTip";
 import { Select } from "@/components/ui/Input";
 import { hasFeature, planLimits } from "@/lib/domain/plans";
 import { useAppStore } from "@/lib/store/useAppStore";
-import { useActiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
+import { useLiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
 import { cn } from "@/lib/utils/cn";
 import { fmt, fmtDelta, fmtRp, fmtRpShort, fmtSig } from "@/lib/utils/format";
 
@@ -80,8 +80,8 @@ type Weights = { cc: number; cost: number; water: number; waste: number };
 const STATUS_LABEL: Record<Scenario["status"], string> = { draft: "Draf", recommended: "Disarankan", approved: "Disetujui" };
 
 export default function WhatIfPage() {
-  const { project, indicators } = useActiveResults();
-  const { outcomes } = useScenarioOutcomes();
+  const { project, indicators } = useLiveResults();
+  const { outcomes } = useScenarioOutcomes({ live: true });
   const role = useAppStore((s) => s.user.role);
   const addScenario = useAppStore((s) => s.addScenario);
   const updateScenario = useAppStore((s) => s.updateScenario);
@@ -245,7 +245,7 @@ export default function WhatIfPage() {
                               {p.text ? (
                                 <TextInput value={String(values[p.key] ?? "")} disabled={!editable} onCommit={(v) => setParam(active, lv.id, p.key, v)} />
                               ) : (
-                                <NumberInput value={Number(values[p.key])} min={0} disabled={!editable} onCommit={(v) => setParam(active, lv.id, p.key, v ?? 0)} />
+                                <NumberInput value={Number(values[p.key])} min={0} disabled={!editable} ariaLabel={p.label} onCommit={(v) => setParam(active, lv.id, p.key, v ?? 0)} />
                               )}
                             </Field>
                           ))}
@@ -430,16 +430,24 @@ export default function WhatIfPage() {
 
 /** Mode Ringkas: the four headline indicators, now vs each improvement (one table, no extra charts). */
 function SimpleComparison() {
-  const { indicators, results } = useActiveResults();
-  const { outcomes } = useScenarioOutcomes();
+  const { indicators, results } = useLiveResults();
+  const { outcomes } = useScenarioOutcomes({ live: true });
   const ref = results.lci.referenceFlow || NaN;
   const fu = results.lci.fuLabel;
-  const rows: Array<{ key: "ccKg" | "waterL" | "wasteKg" | "costRp"; label: string; unit: string; rp?: boolean; info: string }> = [
+  type Row = { key: "ccKg" | "waterL" | "wasteKg" | "costRp" | "energyKwh" | "chemicalKg" | "airKg" | "effluentMetalKg"; label: string; unit: string; rp?: boolean; info?: string; optional?: boolean };
+  const all: Row[] = [
     { key: "ccKg", label: "Jejak karbon", unit: `kg CO₂e/${fu}`, info: "cc" },
     { key: "waterL", label: "Pemakaian air", unit: `L/${fu}`, info: "wu" },
     { key: "wasteKg", label: "Limbah B3", unit: `kg/${fu}`, info: "b3" },
     { key: "costRp", label: "Biaya proses", unit: `per ${fu}`, rp: true, info: "costPerM2" },
+    { key: "energyKwh", label: "Listrik", unit: `kWh/${fu}`, optional: true },
+    { key: "chemicalKg", label: "Bahan kimia", unit: `kg/${fu}`, optional: true },
+    { key: "airKg", label: "Emisi udara langsung", unit: `g/${fu}`, optional: true },
+    { key: "effluentMetalKg", label: "Logam di air buangan", unit: `g/${fu}`, optional: true },
   ];
+  // Extra rows only when some simulation changes them (e.g. mist or effluent improvements).
+  const rows = all.filter((r) => !r.optional || outcomes.some((o) => Math.abs(o.delta[r.key].pct) >= 0.05));
+  const scale = (r: Row) => (r.key === "airKg" || r.key === "effluentMetalKg" ? 1000 : 1);
   return (
     <Card>
       <CardHeader title="Kondisi sekarang vs perbaikan" subtitle="Per 1 m² permukaan dilapisi; hijau = lebih baik" />
@@ -461,14 +469,14 @@ function SimpleComparison() {
               <Tr key={r.key}>
                 <Td className="font-medium">
                   <span className="inline-flex items-center gap-1">
-                    {r.label} <InfoTip k={r.info} />
+                    {r.label} {r.info && <InfoTip k={r.info} />}
                   </span>
                   <span className="block text-[11px] font-normal text-navy-700/55">{r.unit}</span>
                 </Td>
-                <Td num>{r.rp ? fmtRpShort(indicators[r.key] / ref) : fmt(indicators[r.key] / ref, 2)}</Td>
+                <Td num>{r.rp ? fmtRpShort(indicators[r.key] / ref) : fmt((indicators[r.key] * scale(r)) / ref, 2)}</Td>
                 {outcomes.map((o) => {
                   const d = o.delta[r.key];
-                  const v = o.indicators[r.key] / (o.results.lci.referenceFlow || NaN);
+                  const v = (o.indicators[r.key] * (r.rp ? 1 : scale(r))) / (o.results.lci.referenceFlow || NaN);
                   return (
                     <Td key={o.scenario.id} num>
                       <span className="block">{r.rp ? fmtRpShort(v) : fmt(v, 2)}</span>

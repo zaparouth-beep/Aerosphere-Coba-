@@ -49,8 +49,15 @@ export interface Indicators {
   costLossRp: number;
   /** Wasted value per §4.5 (chemicals, WWTP chemicals, consumables, B3, water). NaN for pre-2.2 runs. */
   wasteValueRp: number;
+  /** Direct air emissions at the line (mist, acid fumes, …), kg per period. */
+  airKg: number;
+  /** Metal load in the effluent (Q × C for Ni, Cr, Cd, Zn, Cu), kg per period. */
+  effluentMetalKg: number;
   perFu: { energy: number; water: number; chemical: number; waste: number; cc: number; cost: number };
 }
+
+/** Heavy-metal effluent parameters (Ni, Cr total, Cr(VI), Cd, Zn, Cu). */
+export const isMetalParameter = (param: string) => /^(ni|cr|cd|zn|cu)\b|^cr\s*\(?vi\)?$|cr total/i.test(param.trim());
 
 export function indicatorsOf(r: Results): Indicators {
   const ref = r.lci.referenceFlow > 0 ? r.lci.referenceFlow : NaN;
@@ -67,6 +74,8 @@ export function indicatorsOf(r: Results): Indicators {
     costRp: r.mfca.totalCostRp,
     costLossRp: r.mfca.costLossRp,
     wasteValueRp: r.analysis ? r.analysis.waste.totalRp : NaN,
+    airKg: r.lci.totals.airKg ?? 0,
+    effluentMetalKg: r.lci.flows.filter((f) => f.kind === "effluent" && isMetalParameter(f.name)).reduce((sum, f) => sum + f.quantity, 0),
     perFu: {
       energy: r.lci.intensity.energy,
       water: r.lci.intensity.water,
