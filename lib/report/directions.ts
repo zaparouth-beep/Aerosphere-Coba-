@@ -1,16 +1,19 @@
 import type { LeverId, LeverSettings, Project, StageId } from "@/lib/domain/types";
-import type { Results } from "@/lib/engine/calculate";
+import { indicatorsOf, type Indicators, type Results } from "@/lib/engine/calculate";
 import type { HotspotMetric } from "@/lib/engine/hotspot";
 import { STAGE_IDS } from "@/lib/engine/lci";
-import { activeLevers, type ScenarioOutcome } from "@/lib/engine/scenario";
+import { activeLevers, evaluateScenario, LEVER_DEFAULTS, LEVERS as LEVER_DEFS, type ScenarioOutcome } from "@/lib/engine/scenario";
+import { concentrationFactor } from "@/lib/engine/units";
 import { overallConfidence, plainStage } from "@/lib/view/summary";
 
 /**
- * "Arahan perbaikan": a detailed work direction for each improvement the
- * engine found worthwhile (spec §6 levers). The wording is written for the
- * plant (who does what, in which order, how success is measured); every
- * number is taken from the engine's scenario outcome or from the scenario's
- * own lever settings — nothing is estimated here.
+ * "Arahan perbaikan": detailed work directions chosen from the current
+ * results. Every improvement of the lever library (spec §6) is applied to the
+ * live data by the engine (the user's own simulations first, otherwise the
+ * default lever values); the ones with the largest effect on this data are
+ * written out as a work plan. Hotspots that no lever covers, and data that
+ * looks like placeholder values, get their own direction. Every number comes
+ * from the engine or from the project data — nothing is estimated here.
  */
 
 export type DirLang = "id" | "en";
@@ -275,98 +278,341 @@ export function rankedOutcomes(outcomes: ScenarioOutcome[]): ScenarioOutcome[] {
   return outcomes.filter((o) => o.lcc.annualSavingRp > 0 || o.delta.ccKg.abs < 0).sort((a, b) => b.lcc.annualSavingRp - a.lcc.annualSavingRp);
 }
 
-export function buildDirections(project: Project, results: Results, outcomes: ScenarioOutcome[], l: DirLang, max = 3): Direction[] {
-  const out: Direction[] = rankedOutcomes(outcomes)
-    .slice(0, max)
-    .map((o) => {
-      const levers = activeLevers(o.scenario.levers);
-      const texts = levers.map((id) => LEVERS[id]);
-      const main = texts[0];
-      const hot = main ? topStage(results, main.metric) : null;
-      const why = main
-        ? hot
-          ? l === "id"
-            ? `${tr(METRIC_NAME[main.metric], l)[0]!.toUpperCase()}${tr(METRIC_NAME[main.metric], l).slice(1)} terbesar ada di tahap ${plainStage(project, hot.id)} (${pctOf(hot.pct, l)} dari total lini). Perbaikan ini menyasar sumber tersebut.`
-            : `The largest share of ${tr(METRIC_NAME[main.metric], l)} is in ${plainStage(project, hot.id)} (${pctOf(hot.pct, l)} of the line total). This improvement targets that source.`
-          : l === "id"
-            ? `Perbaikan ini menyasar ${tr(METRIC_NAME[main.metric], l)} lini.`
-            : `This improvement targets the line's ${tr(METRIC_NAME[main.metric], l)}.`
-        : o.scenario.description;
+/* ------------------------- reading the current data ------------------------ */
 
-      const d = o.delta;
-      const effects = [
-        d.energyKwh.pct !== 0 && `${l === "id" ? "listrik" : "electricity"} ${signed(d.energyKwh.pct, l)}`,
-        d.waterL.pct !== 0 && `${l === "id" ? "air" : "water"} ${signed(d.waterL.pct, l)}`,
-        d.chemicalKg.pct !== 0 && `${l === "id" ? "bahan kimia" : "chemicals"} ${signed(d.chemicalKg.pct, l)}`,
-        d.wasteKg.pct !== 0 && `${l === "id" ? "limbah B3" : "B3 waste"} ${signed(d.wasteKg.pct, l)}`,
-        d.ccKg.pct !== 0 && `${l === "id" ? "jejak karbon" : "carbon footprint"} ${signed(d.ccKg.pct, l)}`,
-      ].filter((x): x is string => Boolean(x));
-      const money =
-        o.lcc.annualSavingRp > 0
-          ? l === "id"
-            ? `perkiraan penghematan ${rp(o.lcc.annualSavingRp, l)} per tahun`
-            : `estimated saving of ${rp(o.lcc.annualSavingRp, l)} per year`
+type Flow = Results["lci"]["flows"][number];
+const flowsOf = (r: Results, cats: string[], stages?: string[]) =>
+  r.lci.flows.filter((f) => cats.includes(f.category) && f.quantity > 0 && (!stages || stages.includes(f.stageId))).sort((a, b) => b.quantity - a.quantity);
+const sum = (fs: Flow[]) => fs.reduce((a, f) => a + f.quantity, 0);
+const named = (fs: Flow[], l: DirLang, k = 2) => list(fs.slice(0, k).map((f) => `${f.name} (${n(f.quantity, 2, l)} ${f.unit})`), l);
+const share = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100 : 0);
+
+/** Lever-specific reason built from the line's own components and the engine totals. */
+function whyFor(id: string, project: Project, r: Results, l: DirLang): string {
+  const ID = l === "id";
+  switch (id) {
+    case "dragout":
+    case "bathConcentration": {
+      const bath = flowsOf(r, ["Chemical"], id === "dragout" ? ["B", "C", "D"] : ["C"]);
+      const all = sum(flowsOf(r, ["Chemical"]));
+      return ID
+        ? `Bahan kimia di tahap bath ${id === "dragout" ? "B–D" : "pelapisan utama"} berjumlah ${n(sum(bath), 2, l)} kg per periode (${pctOf(share(sum(bath), all), l)} dari seluruh bahan kimia proses). Yang terbesar: ${named(bath, l)}. Sebagian besar bahan ini habis karena terbawa part ke bilasan.`
+        : `Chemicals in the ${id === "dragout" ? "B–D" : "main plating"} bath stages total ${n(sum(bath), 2, l)} kg per period (${pctOf(share(sum(bath), all), l)} of all process chemicals). Largest: ${named(bath, l)}. Most of this is lost as drag-out into the rinses.`;
+    }
+    case "countercurrent": {
+      const w = flowsOf(r, ["Water"]);
+      const hot = topStage(r, "water");
+      return ID
+        ? `Pemakaian air ${n(sum(w), 0, l)} L per periode${hot ? `, terbesar di tahap ${plainStage(project, hot.id)} (${pctOf(hot.pct, l)})` : ""}. Komponen: ${named(w, l)}.`
+        : `Water use is ${n(sum(w), 0, l)} L per period${hot ? `, largest in ${plainStage(project, hot.id)} (${pctOf(hot.pct, l)})` : ""}. Components: ${named(w, l)}.`;
+    }
+    case "rectifier":
+    case "tankCover":
+    case "gridFactor": {
+      const all = flowsOf(r, ["Energy"]);
+      const re = id === "rectifier" ? /rectifier|penyearah/i : id === "tankCover" ? /heater|pemanas/i : /./;
+      const dev = all.filter((f) => re.test(f.name));
+      const what = id === "rectifier" ? (ID ? "Listrik penyearah arus" : "Rectifier electricity") : id === "tankCover" ? (ID ? "Listrik pemanas tangki" : "Tank heater electricity") : ID ? "Seluruh listrik lini" : "All line electricity";
+      const gwp = r.analysis?.impacts.find((i) => i.category === "gwp");
+      const elecCc = gwp?.contributions.filter((c) => c.source === "electricity").reduce((a, c) => a + c.value, 0) ?? 0;
+      const tail =
+        id === "gridFactor" && gwp?.total
+          ? ID
+            ? ` Listrik menyumbang ${pctOf(share(elecCc, gwp.total), l)} jejak karbon lini.`
+            : ` Electricity accounts for ${pctOf(share(elecCc, gwp.total), l)} of the line's carbon footprint.`
           : "";
-      const capex =
-        o.scenario.capexRp > 0
-          ? l === "id"
-            ? ` Investasi ${rp(o.scenario.capexRp, l)}${o.lcc.paybackYears !== null ? `, balik modal ${n(o.lcc.paybackYears, 1, l)} tahun` : ""}.`
-            : ` Investment ${rp(o.scenario.capexRp, l)}${o.lcc.paybackYears !== null ? `, payback ${n(o.lcc.paybackYears, 1, l)} years` : ""}.`
-          : l === "id"
-            ? " Tanpa investasi alat."
-            : " No equipment investment.";
-      const target =
-        (l === "id" ? "Hasil yang diharapkan (dihitung mesin hitung): " : "Expected result (calculated by the engine): ") +
-        `${list([money, ...effects].filter(Boolean), l)}.${capex}`;
+      if (id === "gridFactor")
+        return ID
+          ? `Listrik lini ${n(sum(all), 0, l)} kWh per periode; pemakai terbesar: ${named(all, l)}.${tail}`
+          : `Line electricity is ${n(sum(all), 0, l)} kWh per period; largest users: ${named(all, l)}.${tail}`;
+      return ID
+        ? `${what} ${n(sum(dev), 0, l)} kWh per periode (${pctOf(share(sum(dev), sum(all)), l)} dari listrik lini); komponen: ${named(dev, l)}.${tail}`
+        : `${what} is ${n(sum(dev), 0, l)} kWh per period (${pctOf(share(sum(dev), sum(all)), l)} of line electricity); components: ${named(dev, l)}.${tail}`;
+    }
+    case "mistSuppressant": {
+      const mist = flowsOf(r, ["AirEmission"]).filter((f) => /mist|kabut|fume/i.test(f.name));
+      const all = sum(flowsOf(r, ["AirEmission"]));
+      return ID
+        ? `Kabut dari tangki ${n(sum(mist), 3, l)} kg per periode (${pctOf(share(sum(mist), all), l)} dari emisi udara langsung): ${named(mist, l)}. Kabut krom heksavalen berbahaya bagi pekerja.`
+        : `Tank mist is ${n(sum(mist), 3, l)} kg per period (${pctOf(share(sum(mist), all), l)} of direct air emissions): ${named(mist, l)}. Hexavalent chromium mist is hazardous to workers.`;
+    }
+    default:
+      return "";
+  }
+}
 
-      return {
-        id: o.scenario.id,
-        code: o.scenario.code,
-        title: o.scenario.name,
-        why,
-        steps: texts.flatMap((t) => t.steps(o.scenario.levers, l, project)),
-        owner: main ? tr(main.owner, l) : l === "id" ? "Ditentukan oleh manajemen lini" : "To be assigned by line management",
-        target,
-        measure: texts.map((t) => tr(t.measure, l)).join(" "),
-        schedule:
-          l === "id"
-            ? `Waktu pelaksanaan ${timeline(o.scenario.timeline ?? "perlu dikaji", l)}; tingkat usaha ${tr(EFFORT[o.scenario.effort ?? "sedang"]!, l)}.`
-            : `Timeline ${timeline(o.scenario.timeline ?? "perlu dikaji", l)}; effort ${tr(EFFORT[o.scenario.effort ?? "sedang"]!, l)}.`,
-        basis: o.assumptions,
-      };
+/** The effluent parameter furthest above its limit (for the WWTP direction). */
+function worstEffluent(project: Project): { parameter: string; value: number; limit: number; unit: string } | null {
+  let best: { parameter: string; value: number; limit: number; unit: string; ratio: number } | null = null;
+  for (const e of project.effluent) {
+    if (e.limit === undefined || e.limit <= 0 || concentrationFactor(e.unit) === null || e.value <= e.limit) continue;
+    const ratio = e.value / e.limit;
+    if (!best || ratio > best.ratio) best = { parameter: e.parameter, value: e.value, limit: e.limit, unit: e.unit, ratio };
+  }
+  return best;
+}
+
+const AUTO_PLAN: Record<LeverId, { effort: "rendah" | "sedang" | "tinggi"; timeline: string }> = {
+  dragout: { effort: "rendah", timeline: "1–3 bulan" },
+  bathConcentration: { effort: "rendah", timeline: "1–2 bulan" },
+  countercurrent: { effort: "sedang", timeline: "3–6 bulan" },
+  rectifier: { effort: "sedang", timeline: "3–6 bulan" },
+  tankCover: { effort: "rendah", timeline: "1–2 bulan" },
+  mistSuppressant: { effort: "rendah", timeline: "1 bulan" },
+  effluentTarget: { effort: "sedang", timeline: "2–4 bulan" },
+  gridFactor: { effort: "sedang", timeline: "3–12 bulan" },
+};
+
+/** Benefit on this data: yearly saving as % of yearly cost, plus carbon, mist and metal reductions. */
+function scoreOf(o: ScenarioOutcome, base: Indicators, periodsPerYear: number): number {
+  const yearCost = base.costRp * periodsPerYear;
+  const money = yearCost > 0 ? (100 * Math.max(o.lcc.annualSavingRp, 0)) / yearCost : 0;
+  const less = (k: keyof ScenarioOutcome["delta"]) => Math.max(-o.delta[k].pct, 0);
+  return money + less("ccKg") + 0.5 * less("airKg") + 0.5 * less("effluentMetalKg") + 0.1 * less("waterL");
+}
+
+/**
+ * Every lever applied to the current data: the user's own simulation when one
+ * uses the lever, otherwise the default lever values. Levers with nothing to
+ * act on in this data are left out.
+ */
+type Candidate = { outcome: ScenarioOutcome; auto: boolean; score: number };
+// The same results are often asked for twice (Indonesian and English report).
+const CACHE = new WeakMap<Results, { outcomes: ScenarioOutcome[]; list: Candidate[] }>();
+
+export function candidateOutcomes(project: Project, results: Results, outcomes: ScenarioOutcome[]): Candidate[] {
+  const hit = CACHE.get(results);
+  if (hit && hit.outcomes === outcomes) return hit.list;
+  const list = computeCandidates(project, results, outcomes);
+  CACHE.set(results, { outcomes, list });
+  return list;
+}
+
+function computeCandidates(project: Project, results: Results, outcomes: ScenarioOutcome[]): Candidate[] {
+  const base = indicatorsOf(results);
+  const perYear = 12 / Math.max(project.periodMonths, 1);
+  const covered = new Set(outcomes.flatMap((o) => activeLevers(o.scenario.levers)));
+  const autos: ScenarioOutcome[] = [];
+  for (const def of LEVER_DEFS) {
+    if (covered.has(def.id)) continue;
+    let settings: LeverSettings[keyof LeverSettings] = LEVER_DEFAULTS[def.id];
+    if (def.id === "effluentTarget") {
+      const worst = worstEffluent(project);
+      if (!worst) continue;
+      settings = { parameter: worst.parameter, newValue: worst.limit, flocculantIncreasePct: LEVER_DEFAULTS.effluentTarget.flocculantIncreasePct };
+    }
+    const plan = AUTO_PLAN[def.id];
+    autos.push(
+      evaluateScenario(
+        project,
+        { id: `auto-${def.id}`, code: "A", name: def.label, description: def.description, levers: { [def.id]: settings }, capexRp: 0, extraOpexRpPerPeriod: 0, lifetimeYears: 5, status: "draft", ...plan },
+        base,
+      ),
+    );
+  }
+  return [...outcomes.map((o) => ({ outcome: o, auto: false })), ...autos.map((o) => ({ outcome: o, auto: true }))]
+    .filter(({ outcome }) => !outcome.assumptions.some((a) => a.startsWith("Tidak ada ")))
+    .map((c) => ({ ...c, score: scoreOf(c.outcome, base, perYear) }))
+    .filter((c) => c.score > 0.05)
+    .sort((a, b) => b.score - a.score);
+}
+
+/** Inputs that look like placeholder data: most rows carry the very same number. */
+export function placeholderData(project: Project): { value: number; count: number; total: number } | null {
+  const qs = project.inputs.filter((i) => i.quantity > 0).map((i) => i.quantity);
+  if (qs.length < 5) return null;
+  const counts = new Map<number, number>();
+  for (const q of qs) counts.set(q, (counts.get(q) ?? 0) + 1);
+  const [value, count] = [...counts].sort((a, b) => b[1] - a[1])[0]!;
+  return count >= 5 && count / qs.length >= 0.6 ? { value, count, total: qs.length } : null;
+}
+
+export function buildDirections(project: Project, results: Results, outcomes: ScenarioOutcome[], l: DirLang, max = 3): Direction[] {
+  const ID = l === "id";
+  const out: Direction[] = [];
+
+  // 0. Placeholder data first: the rest of the report is not meaningful until it is replaced.
+  const dummy = placeholderData(project);
+  if (dummy) {
+    out.push({
+      id: "data-check",
+      code: "D",
+      title: ID ? "Periksa kembali data input" : "Check the input data",
+      why: ID
+        ? `${dummy.count} dari ${dummy.total} baris input bernilai sama (${n(dummy.value, 3, l)}). Pola ini biasanya berarti data contoh, sehingga titik boros dan arahan di laporan ini belum mencerminkan kondisi lini yang sebenarnya.`
+        : `${dummy.count} of ${dummy.total} input rows have the same value (${n(dummy.value, 3, l)}). This usually means placeholder data, so the hotspots and directions in this report do not yet reflect the real line.`,
+      steps: ID
+        ? [
+            "Isi jumlah setiap komponen dari catatan meter (listrik, air), timbangan (bahan kimia, limbah B3), dan faktur pembelian untuk periode yang sama.",
+            "Periksa satuan setiap baris (kg, L, kWh) agar sesuai dengan dokumen sumber.",
+            "Bila data tersedia dalam Excel, PDF, atau Word, gunakan tombol “Unggah dokumen” di Data Saya.",
+            "Tekan “Hitung hasil” setelah data diganti, lalu buat ulang laporan ini.",
+          ]
+        : [
+            "Enter each component's amount from meter records (electricity, water), weighing records (chemicals, hazardous waste) and purchase invoices for the same period.",
+            "Check each row's unit (kg, L, kWh) against the source document.",
+            "If the data exists in Excel, PDF or Word, use “Upload document” in My Data.",
+            "Press “Calculate results” after replacing the data, then regenerate this report.",
+          ],
+      owner: ID ? "Staf EHS / pengelola data" : "EHS officer / data steward",
+      target: ID ? "Semua baris input berisi angka dari dokumen sumber." : "Every input row holds a figure from a source document.",
+      measure: ID ? "Tidak ada lagi peringatan data contoh pada laporan berikutnya." : "No placeholder-data warning in the next report.",
+      schedule: ID ? "Segera, sebelum laporan dipakai untuk keputusan; tingkat usaha rendah." : "Immediately, before the report is used for decisions; effort low.",
+      basis: [],
     });
+  }
 
-  // Data direction: weaker data makes every number above less certain.
+  // 1. Improvements with the largest effect on this data.
+  const picked = candidateOutcomes(project, results, outcomes).slice(0, max);
+  for (const { outcome: o, auto } of picked) {
+    const levers = activeLevers(o.scenario.levers);
+    const texts = levers.map((id) => LEVERS[id]);
+    const main = texts[0];
+    const why =
+      levers.map((id) => whyFor(id, project, results, l)).filter(Boolean).join(" ") ||
+      (id0(levers) === "effluentTarget"
+        ? (() => {
+            const e = o.scenario.levers.effluentTarget!;
+            const cur = project.effluent.find((x) => x.parameter === e.parameter);
+            return ID
+              ? `${e.parameter} di air buangan ${n(cur?.value ?? 0, 3, l)} ${cur?.unit ?? ""}, di atas baku mutu ${n(e.newValue, 3, l)} ${cur?.unit ?? ""}.`
+              : `${e.parameter} in the effluent is ${n(cur?.value ?? 0, 3, l)} ${cur?.unit ?? ""}, above the limit of ${n(e.newValue, 3, l)} ${cur?.unit ?? ""}.`;
+          })()
+        : o.scenario.description);
+
+    const d = o.delta;
+    const effects = [
+      Math.abs(d.energyKwh.pct) >= 0.05 && `${ID ? "listrik" : "electricity"} ${signed(d.energyKwh.pct, l)}`,
+      Math.abs(d.waterL.pct) >= 0.05 && `${ID ? "air" : "water"} ${signed(d.waterL.pct, l)}`,
+      Math.abs(d.chemicalKg.pct) >= 0.05 && `${ID ? "bahan kimia" : "chemicals"} ${signed(d.chemicalKg.pct, l)}`,
+      Math.abs(d.wasteKg.pct) >= 0.05 && `${ID ? "limbah B3" : "B3 waste"} ${signed(d.wasteKg.pct, l)}`,
+      Math.abs(d.airKg.pct) >= 0.05 && `${ID ? "emisi udara langsung" : "direct air emissions"} ${signed(d.airKg.pct, l)}`,
+      Math.abs(d.effluentMetalKg.pct) >= 0.05 && `${ID ? "logam di air buangan" : "metals in effluent"} ${signed(d.effluentMetalKg.pct, l)}`,
+      Math.abs(d.ccKg.pct) >= 0.05 && `${ID ? "jejak karbon" : "carbon footprint"} ${signed(d.ccKg.pct, l)}`,
+    ].filter((x): x is string => Boolean(x));
+    const money =
+      o.lcc.annualSavingRp > 0 ? (ID ? `perkiraan penghematan ${rp(o.lcc.annualSavingRp, l)} per tahun` : `estimated saving of ${rp(o.lcc.annualSavingRp, l)} per year`) : "";
+    const capex = auto
+      ? ID
+        ? " Biaya investasi belum diisi; isi di Simulasi Perbaikan untuk menghitung balik modal."
+        : " Investment cost not entered yet; fill it in under Improvement Simulation to get the payback."
+      : o.scenario.capexRp > 0
+        ? ID
+          ? ` Investasi ${rp(o.scenario.capexRp, l)}${o.lcc.paybackYears !== null ? `, balik modal ${n(o.lcc.paybackYears, 1, l)} tahun` : ""}.`
+          : ` Investment ${rp(o.scenario.capexRp, l)}${o.lcc.paybackYears !== null ? `, payback ${n(o.lcc.paybackYears, 1, l)} years` : ""}.`
+        : ID
+          ? " Tanpa investasi alat."
+          : " No equipment investment.";
+    const target = (ID ? "Hasil yang diharapkan (dihitung mesin hitung dari data terkini): " : "Expected result (calculated by the engine from the current data): ") + `${list([money, ...effects].filter(Boolean), l)}.${capex}`;
+    const source = auto
+      ? ID
+        ? "Disusun otomatis dari hasil hitung dengan nilai bawaan pustaka perbaikan; belum ada di daftar simulasi."
+        : "Suggested from the results with the improvement library's default values; not yet in the simulation list."
+      : "";
+
+    out.push({
+      id: o.scenario.id,
+      code: o.scenario.code,
+      title: auto ? `${o.scenario.name}` : o.scenario.name,
+      why: source ? `${why} ${source}` : why,
+      steps: texts.flatMap((t) => t.steps(o.scenario.levers, l, project)),
+      owner: main ? tr(main.owner, l) : ID ? "Ditentukan oleh manajemen lini" : "To be assigned by line management",
+      target,
+      measure: texts.map((t) => tr(t.measure, l)).join(" "),
+      schedule: ID
+        ? `Waktu pelaksanaan ${timeline(o.scenario.timeline ?? "perlu dikaji", l)}; tingkat usaha ${tr(EFFORT[o.scenario.effort ?? "sedang"]!, l)}.`
+        : `Timeline ${timeline(o.scenario.timeline ?? "perlu dikaji", l)}; effort ${tr(EFFORT[o.scenario.effort ?? "sedang"]!, l)}.`,
+      basis: o.assumptions,
+    });
+  }
+
+  // 2. The largest carbon source when no chosen improvement acts on it.
+  const gwp = results.analysis?.impacts.find((i) => i.category === "gwp");
+  const top = gwp?.total ? [...gwp.contributions].sort((a, b) => b.value - a.value)[0] : undefined;
+  const LEVER_SOURCES: Partial<Record<LeverId, string[]>> = {
+    dragout: ["chemical", "wwtp_chemical", "waste_b3"],
+    bathConcentration: ["chemical"],
+    countercurrent: ["water"],
+    rectifier: ["electricity"],
+    tankCover: ["electricity"],
+    gridFactor: ["electricity"],
+  };
+  const pickedLevers = picked.flatMap((c) => activeLevers(c.outcome.scenario.levers));
+  const coveredByPick = (c: NonNullable<typeof top>) =>
+    pickedLevers.some((id) => {
+      if (!LEVER_SOURCES[id]?.includes(c.source)) return false;
+      if (id === "rectifier") return /rectifier|penyearah/i.test(c.name);
+      if (id === "tankCover") return /heater|pemanas/i.test(c.name);
+      if (id === "dragout" || id === "bathConcentration") return c.source !== "chemical" || ["B", "C", "D"].includes(c.stage);
+      return true;
+    });
+  if (top && gwp?.total && share(top.value, gwp.total) >= 10 && !coveredByPick(top)) {
+    const pct = pctOf(share(top.value, gwp.total), l);
+    const stage = plainStage(project, top.stage as StageId);
+    out.push({
+      id: `hotspot-${top.componentId}`,
+      code: "H",
+      title: ID ? `Kaji pemakaian ${top.name}` : `Review the use of ${top.name}`,
+      why: ID
+        ? `${top.name} di tahap ${stage} adalah penyumbang jejak karbon terbesar lini: ${n(top.value, 2, l)} kg CO₂e per periode (${pct}). Belum ada perbaikan di pustaka yang langsung menyasar komponen ini.`
+        : `${top.name} in ${stage} is the line's largest carbon source: ${n(top.value, 2, l)} kg CO₂e per period (${pct}). No improvement in the library targets this component directly.`,
+      steps: ID
+        ? [
+            `Pastikan angka pemakaian ${top.name} sesuai catatan meter, timbangan, atau faktur periode ini.`,
+            `Bandingkan pemakaian ${top.name} per m² antarbulan atau antarbatch untuk menemukan pemakaian yang tidak wajar.`,
+            "Telusuri penyebabnya bersama operator: dosis berlebih, kebocoran, alat menyala saat tidak berproduksi, atau pengerjaan ulang (rework).",
+            "Tetapkan target internal, lalu masukkan perubahannya sebagai simulasi baru di Simulasi Perbaikan agar dampaknya dihitung.",
+          ]
+        : [
+            `Confirm that the amount of ${top.name} matches this period's meter, weighing or invoice records.`,
+            `Compare the use of ${top.name} per m² between months or batches to find abnormal use.`,
+            "Investigate the causes with the operators: overdosing, leaks, equipment running while idle, or rework.",
+            "Set an internal target, then enter the change as a new simulation under Improvement Simulation so its effect is calculated.",
+          ],
+      owner: ID ? `Kepala tahap ${stage}, dibantu staf EHS` : `${stage} supervisor, supported by the EHS officer`,
+      target: ID
+        ? `Pemakaian ${top.name} per m² turun; setiap penurunan mengurangi jejak karbon lini sebanding dengan porsinya (${pct}).`
+        : `Lower use of ${top.name} per m²; every reduction lowers the line's carbon footprint in proportion to its share (${pct}).`,
+      measure: ID ? `Pemakaian ${top.name} per m² dan jejak karbon lini pada hasil berikutnya.` : `Use of ${top.name} per m² and the line's carbon footprint in the next result.`,
+      schedule: ID ? "Kajian satu periode produksi; tingkat usaha rendah." : "One production period of review; effort low.",
+      basis: [],
+    });
+  }
+
+  // 3. Estimated data (only when no placeholder warning was given).
   const conf = overallConfidence(project);
-  if (conf.level !== "High" && conf.estimatedSharePct > 0) {
+  if (!dummy && conf.level !== "High" && conf.estimatedSharePct > 0) {
     out.push({
       id: "data",
       code: "D",
-      title: l === "id" ? "Perkuat data pemakaian" : "Strengthen the usage data",
-      why:
-        l === "id"
-          ? `${pctOf(conf.estimatedSharePct, l)} baris data masih berupa perkiraan atau literatur, sehingga besarnya angka di laporan ini masih bisa bergeser.`
-          : `${pctOf(conf.estimatedSharePct, l)} of the data rows are still estimates or literature values, so the size of the figures in this report may still change.`,
-      steps:
-        l === "id"
-          ? [
-              "Ganti angka perkiraan dengan data meter (listrik, air) dan catatan timbang (bahan kimia, limbah B3).",
-              "Lampirkan faktur pembelian bahan kimia untuk periode yang sama.",
-              "Minta hasil uji laboratorium air buangan terbaru dari IPAL.",
-              "Simpan hasil baru di AeroSphere agar laporan berikutnya merujuk nomor hasil yang bisa dicek ulang.",
-            ]
-          : [
-              "Replace estimates with meter data (electricity, water) and weighing records (chemicals, hazardous waste).",
-              "Attach purchase invoices for chemicals for the same period.",
-              "Request the latest laboratory effluent results from the WWTP.",
-              "Save a new result in AeroSphere so the next report refers to a result number that can be checked.",
-            ],
-      owner: l === "id" ? "Staf EHS / pengelola data" : "EHS officer / data steward",
-      target: l === "id" ? "Tingkat keyakinan data naik ke kategori tinggi." : "Data confidence rises to the high category.",
-      measure: l === "id" ? "Persentase data primer di bagian kualitas data pada laporan berikutnya." : "Share of primary data in the data-quality section of the next report.",
-      schedule: l === "id" ? "Sebelum periode laporan berikutnya; tingkat usaha rendah." : "Before the next reporting period; effort low.",
+      title: ID ? "Perkuat data pemakaian" : "Strengthen the usage data",
+      why: ID
+        ? `${pctOf(conf.estimatedSharePct, l)} baris data masih berupa perkiraan atau literatur, sehingga besarnya angka di laporan ini masih bisa bergeser.`
+        : `${pctOf(conf.estimatedSharePct, l)} of the data rows are still estimates or literature values, so the size of the figures in this report may still change.`,
+      steps: ID
+        ? [
+            "Ganti angka perkiraan dengan data meter (listrik, air) dan catatan timbang (bahan kimia, limbah B3).",
+            "Lampirkan faktur pembelian bahan kimia untuk periode yang sama.",
+            "Minta hasil uji laboratorium air buangan terbaru dari IPAL.",
+            "Simpan hasil baru di AeroSphere agar laporan berikutnya merujuk nomor hasil yang bisa dicek ulang.",
+          ]
+        : [
+            "Replace estimates with meter data (electricity, water) and weighing records (chemicals, hazardous waste).",
+            "Attach purchase invoices for chemicals for the same period.",
+            "Request the latest laboratory effluent results from the WWTP.",
+            "Save a new result in AeroSphere so the next report refers to a result number that can be checked.",
+          ],
+      owner: ID ? "Staf EHS / pengelola data" : "EHS officer / data steward",
+      target: ID ? "Tingkat keyakinan data naik ke kategori tinggi." : "Data confidence rises to the high category.",
+      measure: ID ? "Persentase data primer di bagian kualitas data pada laporan berikutnya." : "Share of primary data in the data-quality section of the next report.",
+      schedule: ID ? "Sebelum periode laporan berikutnya; tingkat usaha rendah." : "Before the next reporting period; effort low.",
       basis: [],
     });
   }
   return out;
 }
+
+const id0 = (ids: LeverId[]) => ids[0];
+
+/** Written work steps of one lever (exported for tests). */
+export const leverSteps = (id: LeverId, settings: LeverSettings, l: DirLang, project: Project) => LEVERS[id].steps(settings, l, project);

@@ -89,3 +89,20 @@ test("Teknis: professional wording, editable summary, directions per template", 
   await expect(preview).not.toContainText("Ringkasan ini disiapkan untuk rapat direksi.");
   if (process.env.SCREENSHOTS) await page.screenshot({ path: "docs/screenshots/laporan-arahan-perbaikan.png", fullPage: true });
 });
+
+test("directions follow the data: a changed input shows up in the report's reasons", async ({ page }) => {
+  await loginDemo(page);
+  await go(page, "/data");
+  const qty = page.getByLabel("Kuantitas Rectifier electricity");
+  if (!(await qty.isVisible())) await page.getByRole("tab", { name: /Listrik|Energi/ }).first().click();
+  await qty.fill("90000");
+  await qty.press("Enter");
+  await go(page, "/laporan");
+  await page.getByRole("tab", { name: /Ringkasan untuk manajemen/ }).click();
+  const dirs = page.getByTestId("directions");
+  await expect(dirs).toContainText("Rectifier electricity (90.000 kWh)");
+  if (process.env.SCREENSHOTS) {
+    await dirs.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "docs/screenshots/laporan-arahan-ikut-data.png" });
+  }
+});
