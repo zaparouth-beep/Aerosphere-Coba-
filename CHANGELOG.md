@@ -2,6 +2,14 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Simulasi Perbaikan: bahasa yang lebih profesional dan mudah dipahami · 2026-10-12
+
+- Nama setiap langkah perbaikan ditulis sebagai tindakan yang jelas, misalnya "Tingkatkan efisiensi penyearah arus" atau "Beralih ke listrik rendah emisi".
+- Setiap langkah diberi penjelasan satu kalimat tentang caranya dan baris "Berdampak pada" yang ringkas.
+- Setiap kolom angka diberi label yang jelas dan keterangan singkat tentang arti angkanya, termasuk biaya investasi, biaya operasional, dan umur pakai alat.
+- Istilah di daftar simulasi dirapikan: "Kondisi saat ini", "Jejak karbon", "Biaya proses", "Tandai sebagai rekomendasi", "Tingkat kesulitan pelaksanaan", dan "Dasar perhitungan". Semua dalam bahasa Indonesia dan Inggris.
+- Tangkapan layar: `docs/screenshots/simulasi-pengaturan.png`.
+
 ## Aplikasi dua bahasa: Indonesia dan English · 2026-10-12
 
 ### Ditambahkan

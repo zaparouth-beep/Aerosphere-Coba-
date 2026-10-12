@@ -23,59 +23,107 @@ export interface LeverDef {
 export const LEVERS: LeverDef[] = [
   {
     id: "dragout",
-    get label() { return tx("Kurangi larutan terbawa part", "Reduce drag-out from parts"); },
+    get label() {
+      return tx("Kurangi larutan yang terbawa part", "Reduce solution carried out by parts");
+    },
     technical: "Drag-out reduction",
-    get description() { return tx("Perbaikan waktu tiris, drag-out tank, atau rak.", "Better drip time, a drag-out tank, or improved racks."); },
-    get affects() { return tx("Bahan kimia tahap B–D, logam di air buangan, kimia pengolahan air limbah, lumpur B3", "Chemicals in stages B–D, metals in wastewater, wastewater treatment chemicals, hazardous (B3) sludge"); },
+    get description() {
+      return tx("Perpanjang waktu tiris, pasang tangki penampung tetesan, atau atur posisi rak agar larutan kembali ke tangki proses.", "Extend the drip time, add a drag-out tank, or adjust the racks so the solution drains back into the process tank.");
+    },
+    get affects() {
+      return tx("Pemakaian bahan kimia tahap B–D, kadar logam di air buangan, bahan kimia IPAL, dan lumpur B3", "Chemical use in stages B–D, metals in wastewater, WWTP chemicals, and hazardous (B3) sludge");
+    },
   },
   {
     id: "countercurrent",
-    get label() { return tx("Bilasan bertingkat", "Multi-stage rinsing"); },
+    get label() {
+      return tx("Terapkan bilasan bertingkat", "Use multi-stage rinsing");
+    },
     technical: "Counter-flow rinse",
-    get description() { return tx("Tambah tingkat bilas: Q = D × (C₀/Cₙ)^(1/n).", "Add rinse stages: Q = D × (C₀/Cₙ)^(1/n)."); },
-    get affects() { return tx("Air bilas, volume air buangan, listrik air DI/RO", "Rinse water, wastewater volume, DI/RO water electricity"); },
+    get description() {
+      return tx("Air bilas mengalir dari tangki bilas terakhir ke tangki sebelumnya, sehingga kebutuhan air bersih jauh lebih kecil.", "Rinse water flows from the last rinse tank back to the previous one, so far less fresh water is needed.");
+    },
+    get affects() {
+      return tx("Pemakaian air bilas, volume air buangan, dan listrik unit DI/RO", "Rinse water use, wastewater volume, and DI/RO unit electricity");
+    },
   },
   {
     id: "rectifier",
-    get label() { return tx("Perbaiki penyearah arus", "Improve the rectifier"); },
+    get label() {
+      return tx("Tingkatkan efisiensi penyearah arus", "Upgrade rectifier efficiency");
+    },
     technical: "Rectifier efficiency",
-    get description() { return tx("Efisiensi rectifier (mis. SCR → switch-mode).", "Rectifier efficiency (e.g. SCR → switch-mode)."); },
-    get affects() { return tx("Listrik penyearah arus", "Rectifier electricity"); },
+    get description() {
+      return tx("Penyearah arus yang lebih efisien (mis. tipe switch-mode) membuang lebih sedikit listrik menjadi panas.", "A more efficient rectifier (e.g. switch-mode) wastes less electricity as heat.");
+    },
+    get affects() {
+      return tx("Listrik penyearah arus dan jejak karbonnya", "Rectifier electricity and its carbon footprint");
+    },
   },
   {
     id: "tankCover",
-    get label() { return tx("Pasang tutup & insulasi tangki", "Fit tank covers & insulation"); },
+    get label() {
+      return tx("Pasang penutup dan insulasi tangki", "Fit tank covers and insulation");
+    },
     technical: "Tank cover & insulation",
-    get description() { return tx("Kurangi kehilangan panas dan kabut.", "Reduce heat loss and mist."); },
-    get affects() { return tx("Listrik pemanas, kabut krom dan kabut asam", "Heater electricity, chrome mist and acid mist"); },
+    get description() {
+      return tx("Penutup atau bola apung dan insulasi dinding tangki mengurangi panas yang hilang serta kabut yang keluar dari tangki.", "Covers or floating balls and insulated tank walls reduce heat loss and the mist escaping from the tank.");
+    },
+    get affects() {
+      return tx("Listrik pemanas tangki, kabut krom, dan kabut asam", "Tank heater electricity, chromium mist, and acid mist");
+    },
   },
   {
     id: "mistSuppressant",
-    get label() { return tx("Tambahkan penekan kabut", "Add a mist suppressant"); },
+    get label() {
+      return tx("Gunakan penekan kabut", "Use a mist suppressant");
+    },
     technical: "Mist suppressant",
-    get description() { return tx("Aditif penekan kabut pada bath krom.", "Mist-suppressing additive in the chrome bath."); },
-    get affects() { return tx("Kabut krom dan kabut asam", "Chrome mist and acid mist"); },
+    get description() {
+      return tx("Aditif bebas PFOS pada larutan krom yang menahan kabut tetap di permukaan tangki.", "A PFOS-free additive in the chrome bath that keeps mist at the tank surface.");
+    },
+    get affects() {
+      return tx("Kabut krom dan kabut asam di area kerja", "Chromium mist and acid mist in the work area");
+    },
   },
   {
     id: "effluentTarget",
-    get label() { return tx("Tingkatkan pengolahan air limbah", "Upgrade wastewater treatment"); },
+    get label() {
+      return tx("Tingkatkan kinerja IPAL", "Improve wastewater treatment");
+    },
     technical: "Effluent target (WWTP upgrade)",
-    get description() { return tx("Target konsentrasi efluen baru.", "New effluent concentration target."); },
-    get affects() { return tx("Logam di air buangan, flokulan, lumpur", "Metals in wastewater, flocculant, sludge"); },
+    get description() {
+      return tx("Sesuaikan dosis bahan kimia dan proses pengendapan di IPAL agar kadar logam di air buangan mencapai target.", "Adjust chemical dosing and settling at the WWTP so metal levels in the wastewater meet the target.");
+    },
+    get affects() {
+      return tx("Kadar logam di air buangan, pemakaian bahan penggumpal, dan lumpur IPAL", "Metals in wastewater, flocculant use, and WWTP sludge");
+    },
   },
   {
     id: "gridFactor",
-    get label() { return tx("Pakai listrik lebih bersih", "Use cleaner electricity"); },
+    get label() {
+      return tx("Beralih ke listrik rendah emisi", "Switch to low-emission electricity");
+    },
     technical: "Grid emission factor",
-    get description() { return tx("Faktor emisi listrik baru (PPA/REC).", "New electricity emission factor (PPA/REC)."); },
-    get affects() { return tx("Jejak karbon dari listrik", "Carbon footprint from electricity"); },
+    get description() {
+      return tx("Sertifikat energi terbarukan, kontrak listrik hijau, atau PLTS atap menurunkan emisi dari setiap kWh yang dipakai.", "Renewable energy certificates, a green power contract, or rooftop solar lower the emissions of every kWh used.");
+    },
+    get affects() {
+      return tx("Jejak karbon dari pemakaian listrik", "Carbon footprint of electricity use");
+    },
   },
   {
     id: "bathConcentration",
-    get label() { return tx("Turunkan konsentrasi larutan", "Lower bath concentration"); },
+    get label() {
+      return tx("Turunkan konsentrasi larutan proses", "Lower the process bath concentration");
+    },
     technical: "Bath concentration",
-    get description() { return tx("Turunkan konsentrasi bath dalam control limit.", "Lower the bath concentration within the control limits."); },
-    get affects() { return tx("Bahan kimia tahap plating yang terbuang", "Chemicals lost from the plating stage"); },
+    get description() {
+      return tx("Operasikan larutan di batas bawah rentang kendali, sehingga bahan kimia yang terbawa keluar lebih sedikit.", "Run the bath at the lower end of its control range so less chemical is carried out.");
+    },
+    get affects() {
+      return tx("Bahan kimia tahap pelapisan utama yang terbuang", "Chemicals lost from the main plating stage");
+    },
   },
 ];
 
