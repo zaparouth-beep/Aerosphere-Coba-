@@ -16,6 +16,7 @@ import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
 import { confidenceFor, deltaPct, inView, mfcaSankey, stageLabel } from "@/lib/view/helpers";
 import { fmt, fmtDelta, fmtRp, fmtRpShort } from "@/lib/utils/format";
+import { T, tx } from "@/lib/i18n";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
@@ -29,7 +30,7 @@ export default function OverviewPage() {
   const [trendMetric, setTrendMetric] = useState<TrendMetric>("cc");
   const ref = results.lci.referenceFlow;
   const fu = results.lci.fuLabel;
-  const unitSuffix = fuView === "perFu" ? `/${fu}` : "/periode";
+  const unitSuffix = fuView === "perFu" ? `/${fu}` : tx("/periode", "/period");
 
   const previous = useMemo(() => {
     const idx = run ? runs.findIndex((r) => r.id === run.id) + 1 : 0;
@@ -39,30 +40,37 @@ export default function OverviewPage() {
   const prevView = (pick: (i: Indicators) => number) => (previous ? inView(pick(previous.ind), previous.ref, fuView) : undefined);
 
   const kpis = [
-    { label: "Energi", icon: Zap, total: indicators.energyKwh, unit: "kWh", conf: confidenceFor(project, ["Energy"]), pick: (i: Indicators) => i.energyKwh, href: "/data" },
-    { label: "Air", icon: Droplets, total: indicators.waterL, unit: "L", conf: confidenceFor(project, ["Water"]), pick: (i: Indicators) => i.waterL, href: "/data" },
-    { label: "Kimia", icon: Beaker, total: indicators.chemicalKg, unit: "kg", conf: confidenceFor(project, ["Chemical", "Anode", "WWTPChemical", "Consumable"]), pick: (i: Indicators) => i.chemicalKg, href: "/data" },
-    { label: "Limbah B3", icon: Recycle, total: indicators.wasteKg, unit: "kg", conf: confidenceFor(project, "waste"), pick: (i: Indicators) => i.wasteKg, href: "/titik-boros" },
+    { label: tx("Energi", "Energy"), icon: Zap, total: indicators.energyKwh, unit: "kWh", conf: confidenceFor(project, ["Energy"]), pick: (i: Indicators) => i.energyKwh, href: "/data" },
+    { label: tx("Air", "Water"), icon: Droplets, total: indicators.waterL, unit: "L", conf: confidenceFor(project, ["Water"]), pick: (i: Indicators) => i.waterL, href: "/data" },
+    { label: tx("Kimia", "Chemicals"), icon: Beaker, total: indicators.chemicalKg, unit: "kg", conf: confidenceFor(project, ["Chemical", "Anode", "WWTPChemical", "Consumable"]), pick: (i: Indicators) => i.chemicalKg, href: "/data" },
+    { label: tx("Limbah B3", "Hazardous (B3) waste"), icon: Recycle, total: indicators.wasteKg, unit: "kg", conf: confidenceFor(project, "waste"), pick: (i: Indicators) => i.wasteKg, href: "/titik-boros" },
     { label: "Climate change", icon: CloudFog, total: indicators.ccKg, unit: "kg CO₂-eq", conf: undefined, pick: (i: Indicators) => i.ccKg, href: "/hasil" },
-    { label: "Biaya proses", icon: Coins, total: indicators.costRp, unit: "", conf: undefined, pick: (i: Indicators) => i.costRp, href: "/hasil", rp: true },
+    { label: tx("Biaya proses", "Process cost"), icon: Coins, total: indicators.costRp, unit: "", conf: undefined, pick: (i: Indicators) => i.costRp, href: "/hasil", rp: true },
   ];
 
   // Workflow checklist (PRD 1.3: 9 steps, two control points).
   const v = results.validation;
   const steps = [
-    { label: "Proyek dari template", done: true, href: "/pengaturan" },
-    { label: "Goal & Scope dikunci", done: !!project.scope.lockedAt, href: "/data?view=studi" },
-    { label: `Data terisi ${fmt(v.completenessPct, 0)}%`, done: v.completenessPct >= 80, href: "/data" },
-    { label: v.errors ? `${v.errors} error validasi` : "Validasi tanpa error", done: v.errors === 0, href: "/data?view=cek" },
-    { label: "Dataset di-approve", done: project.dataset.status === "approved", href: "/data?view=cek" },
-    { label: results.lcia.unmapped.length ? `${results.lcia.unmapped.length} aliran belum dipetakan` : "Semua aliran dipetakan", done: results.lcia.unmapped.length === 0, href: "/pengaturan?tab=method" },
-    { label: "Run resmi terkunci", done: runs.some((r) => r.manifest.kind === "official"), href: "/pengaturan?tab=hasil" },
-    { label: "Skenario disetujui", done: project.scenarios.some((s) => s.status === "approved"), href: "/simulasi" },
+    { label: tx("Proyek dari template", "Project from template"), done: true, href: "/pengaturan" },
+    { label: tx("Goal & Scope dikunci", "Goal & Scope locked"), done: !!project.scope.lockedAt, href: "/data?view=studi" },
+    { label: tx(`Data terisi ${fmt(v.completenessPct, 0)}%`, `Data ${fmt(v.completenessPct, 0)}% complete`), done: v.completenessPct >= 80, href: "/data" },
+    { label: v.errors ? tx(`${v.errors} error validasi`, `${v.errors} validation error(s)`) : tx("Validasi tanpa error", "Validation without errors"), done: v.errors === 0, href: "/data?view=cek" },
+    { label: tx("Dataset di-approve", "Dataset approved"), done: project.dataset.status === "approved", href: "/data?view=cek" },
+    { label: results.lcia.unmapped.length ? tx(`${results.lcia.unmapped.length} aliran belum dipetakan`, `${results.lcia.unmapped.length} flow(s) not yet mapped`) : tx("Semua aliran dipetakan", "All flows mapped"), done: results.lcia.unmapped.length === 0, href: "/pengaturan?tab=method" },
+    { label: tx("Run resmi terkunci", "Official run locked"), done: runs.some((r) => r.manifest.kind === "official"), href: "/pengaturan?tab=hasil" },
+    { label: tx("Skenario disetujui", "Scenario approved"), done: project.scenarios.some((s) => s.status === "approved"), href: "/simulasi" },
   ];
   const doneCount = steps.filter((s) => s.done).length;
 
   // Hotspot cards: highest share per indicator.
-  const metricLabel: Record<string, string> = { energy: "Energi", water: "Air", chemical: "Kimia", waste: "Limbah B3", costLoss: "Cost loss", cc: "Climate change" };
+  const metricLabel: Record<string, string> = {
+    energy: tx("Energi", "Energy"),
+    water: tx("Air", "Water"),
+    chemical: tx("Kimia", "Chemicals"),
+    waste: tx("Limbah B3", "Hazardous (B3) waste"),
+    costLoss: "Cost loss",
+    cc: "Climate change",
+  };
   const hotspots = (["energy", "water", "chemical", "waste", "costLoss", "cc"] as const)
     .map((m) => {
       let best = STAGE_IDS[0]!;
@@ -114,20 +122,20 @@ export default function OverviewPage() {
               </div>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 text-xs sm:grid-cols-4">
-              <Meta label="Fasilitas" value={project.facility} />
+              <Meta label={tx("Fasilitas", "Facility")} value={project.facility} />
               <Meta label="Part" value={`${project.partName} · ${project.coatingType}`} />
               <Meta label="Reference flow" value={`${fmt(ref)} ${fu} / ${project.periodLabel}`} />
-              <Meta label="Sumber angka" value={run ? `${run.id} · hash ${run.resultHash.slice(0, 10)}…` : "Draf langsung (belum terkunci)"} mono />
+              <Meta label={tx("Sumber angka", "Source of figures")} value={run ? `${run.id} · hash ${run.resultHash.slice(0, 10)}…` : tx("Draf langsung (belum terkunci)", "Live draft (not locked yet)")} mono />
             </dl>
           </div>
           <div className="border-t border-sand-200 bg-sand-50 p-5 md:w-[340px] md:border-l md:border-t-0">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold text-navy-900">Alur studi ISO 14044</p>
+              <p className="text-xs font-semibold text-navy-900">{tx("Alur studi ISO 14044", "ISO 14044 study workflow")}</p>
               <span className="num text-xs text-navy-700/60">
                 {doneCount}/{steps.length}
               </span>
             </div>
-            <ProgressBar value={(doneCount / steps.length) * 100} tone="green" label="Kemajuan alur" />
+            <ProgressBar value={(doneCount / steps.length) * 100} tone="green" label={tx("Kemajuan alur", "Workflow progress")} />
             <ul className="mt-3 space-y-1">
               {steps.map((s) => (
                 <li key={s.label}>
@@ -144,8 +152,18 @@ export default function OverviewPage() {
 
       {project.prices.isDemo && (
         <Callout tone="warn">
-          Proyek ini memakai <b>dataset demo</b> (harga satuan dan kuantitas contoh BUILD 2026). Ganti dengan data dan harga riil di Data Proses sebelum
-          dipakai untuk keputusan.
+          <T
+            id={
+              <>
+                Proyek ini memakai <b>dataset demo</b> (harga satuan dan kuantitas contoh BUILD 2026). Ganti dengan data dan harga riil di Data Proses sebelum dipakai untuk keputusan.
+              </>
+            }
+            en={
+              <>
+                This project uses the <b>demo dataset</b> (sample BUILD 2026 unit prices and quantities). Replace it with real data and prices in Process Data before using it for decisions.
+              </>
+            }
+          />
         </Callout>
       )}
 
@@ -162,7 +180,7 @@ export default function OverviewPage() {
               confidence={k.conf}
               delta={deltaPct(value, prevView(k.pick))}
               href={k.href}
-              hint={k.label === "Climate change" && results.lcia.unmapped.length ? `${results.lcia.unmapped.length} aliran belum dipetakan` : undefined}
+              hint={k.label === "Climate change" && results.lcia.unmapped.length ? tx(`${results.lcia.unmapped.length} aliran belum dipetakan`, `${results.lcia.unmapped.length} flow(s) not yet mapped`) : undefined}
             />
           );
         })}
@@ -171,20 +189,20 @@ export default function OverviewPage() {
       <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
         <Card>
           <CardHeader
-            title="Tren antar-run"
-            subtitle="Setiap titik adalah run terkunci; data bulanan akan mengisi tren ini saat ingestion periodik aktif"
+            title={tx("Tren antar-run", "Trend across runs")}
+            subtitle={tx("Setiap titik adalah run terkunci; data bulanan akan mengisi tren ini saat ingestion periodik aktif", "Each point is a locked run; monthly data will fill this trend once periodic ingestion is active")}
             action={
               <Segmented
                 size="xs"
-                ariaLabel="Indikator tren"
+                ariaLabel={tx("Indikator tren", "Trend indicator")}
                 value={trendMetric}
                 onChange={setTrendMetric}
                 options={[
                   { id: "cc", label: "GWP" },
-                  { id: "energy", label: "Energi" },
-                  { id: "water", label: "Air" },
+                  { id: "energy", label: tx("Energi", "Energy") },
+                  { id: "water", label: tx("Air", "Water") },
                   { id: "waste", label: "B3" },
-                  { id: "cost", label: "Biaya" },
+                  { id: "cost", label: tx("Biaya", "Cost") },
                 ]}
               />
             }
@@ -194,25 +212,32 @@ export default function OverviewPage() {
               <TrendLine data={trend} format={(n) => (trendMetric === "cost" ? fmtRpShort(n) : fmt(n, 2))} />
             ) : (
               <p className="py-10 text-center text-xs text-navy-700/60">
-                Butuh minimal dua run terkunci. Tekan <b>Run kalkulasi</b> di bar konteks setelah data berubah.
+                <T
+                  id={<>Butuh minimal dua run terkunci. Tekan <b>Run kalkulasi</b> di bar konteks setelah data berubah.</>}
+                  en={<>Needs at least two locked runs. Press <b>Run calculation</b> in the context bar after the data changes.</>}
+                />
               </p>
             )}
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Progress ke target" subtitle={`Penurunan intensitas per ${fu} vs run baseline ${baselineRun?.id ?? "(belum ada)"} · target ${project.targets.targetYear}`} />
+          <CardHeader title={tx("Progress ke target", "Progress to target")}
+            subtitle={tx(
+              `Penurunan intensitas per ${fu} vs run baseline ${baselineRun?.id ?? "(belum ada)"} · target ${project.targets.targetYear}`,
+              `Intensity reduction per ${fu} vs baseline run ${baselineRun?.id ?? "(none yet)"} · target ${project.targets.targetYear}`,
+            )} />
           <CardBody className="space-y-4">
             <Bullet label="Climate change" achievedPct={reduction((i) => i.ccKg)} targetPct={project.targets.gwpReductionPct} />
-            <Bullet label="Limbah B3" achievedPct={reduction((i) => i.wasteKg)} targetPct={project.targets.wasteReductionPct} />
-            <Bullet label="Air" achievedPct={reduction((i) => i.waterL)} targetPct={project.targets.waterReductionPct} />
-            {!baselineRun && <p className="text-[11px] text-navy-700/55">Kunci satu run sebagai baseline agar kemajuan bisa diukur.</p>}
+            <Bullet label={tx("Limbah B3", "Hazardous (B3) waste")} achievedPct={reduction((i) => i.wasteKg)} targetPct={project.targets.wasteReductionPct} />
+            <Bullet label={tx("Air", "Water")} achievedPct={reduction((i) => i.waterL)} targetPct={project.targets.waterReductionPct} />
+            {!baselineRun && <p className="text-[11px] text-navy-700/55">{tx("Kunci satu run sebagai baseline agar kemajuan bisa diukur.", "Lock one run as the baseline so progress can be measured.")}</p>}
           </CardBody>
         </Card>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-1">
-          <CardHeader title="Top 3 hotspot" subtitle="Klik untuk menelusuri WHY → WHERE → WHAT IF" />
+          <CardHeader title="Top 3 hotspot" subtitle={tx("Klik untuk menelusuri WHY → WHERE → WHAT IF", "Click to trace WHY → WHERE → WHAT IF")} />
           <CardBody className="space-y-2">
             {hotspots.map((h) => (
               <Link
@@ -232,8 +257,8 @@ export default function OverviewPage() {
         </Card>
         <Card>
           <CardHeader
-            title="Rekomendasi skenario"
-            subtitle="Dihitung engine dari lever terdokumentasi"
+            title={tx("Rekomendasi skenario", "Scenario recommendation")}
+            subtitle={tx("Dihitung engine dari lever terdokumentasi", "Calculated by the engine from documented levers")}
             action={best && <Badge tone={best.scenario.status === "approved" ? "green" : best.scenario.status === "recommended" ? "blue" : "neutral"}>{best.scenario.status}</Badge>}
           />
           <CardBody>
@@ -250,47 +275,59 @@ export default function OverviewPage() {
                 </div>
                 <dl className="grid grid-cols-3 gap-2 text-center">
                   <Delta label="GWP" pct={best.delta.ccKg.pct} />
-                  <Delta label="Air" pct={best.delta.waterL.pct} />
-                  <Delta label="Biaya" pct={best.delta.costRp.pct} />
+                  <Delta label={tx("Air", "Water")} pct={best.delta.waterL.pct} />
+                  <Delta label={tx("Biaya", "Cost")} pct={best.delta.costRp.pct} />
                 </dl>
                 <p className="text-xs text-navy-800">
-                  Hemat <b className="num">{fmtRp(-best.delta.costRp.abs)}</b> per periode
-                  {best.lcc.paybackYears !== null && best.scenario.capexRp > 0 && <> · payback {fmt(best.lcc.paybackYears, 1)} tahun</>}.
+                  <T
+                    id={
+                      <>
+                        Hemat <b className="num">{fmtRp(-best.delta.costRp.abs)}</b> per periode
+                        {best.lcc.paybackYears !== null && best.scenario.capexRp > 0 && <> · payback {fmt(best.lcc.paybackYears, 1)} tahun</>}.
+                      </>
+                    }
+                    en={
+                      <>
+                        Saves <b className="num">{fmtRp(-best.delta.costRp.abs)}</b> per period
+                        {best.lcc.paybackYears !== null && best.scenario.capexRp > 0 && <> · payback {fmt(best.lcc.paybackYears, 1)} years</>}.
+                      </>
+                    }
+                  />
                 </p>
                 <Link href="/simulasi" className="inline-flex items-center gap-1 text-xs font-medium text-brand-blue hover:underline">
-                  Bandingkan S0–S3 <ArrowRight className="h-3 w-3" />
+                  {tx("Bandingkan S0–S3", "Compare S0–S3")} <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
             ) : (
-              <p className="text-xs text-navy-700/60">Belum ada skenario.</p>
+              <p className="text-xs text-navy-700/60">{tx("Belum ada skenario.", "No scenarios yet.")}</p>
             )}
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Status data" subtitle="Titik kontrol 1 (validasi) dan 2 (run)" />
+          <CardHeader title={tx("Status data", "Data status")} subtitle={tx("Titik kontrol 1 (validasi) dan 2 (run)", "Control point 1 (validation) and 2 (run)")} />
           <CardBody className="space-y-3 text-xs">
             <div>
               <div className="mb-1 flex justify-between">
-                <span>Kelengkapan input</span>
+                <span>{tx("Kelengkapan input", "Input completeness")}</span>
                 <span className="num font-medium">{fmt(v.completenessPct, 0)}%</span>
               </div>
-              <ProgressBar value={v.completenessPct} tone={v.completenessPct >= 80 ? "green" : "gold"} label="Kelengkapan" />
+              <ProgressBar value={v.completenessPct} tone={v.completenessPct >= 80 ? "green" : "gold"} label={tx("Kelengkapan", "Completeness")} />
             </div>
             <div className="flex flex-wrap gap-1.5">
               <Badge tone={v.errors ? "red" : "green"}>{v.errors} error</Badge>
               <Badge tone={v.warnings ? "gold" : "green"}>{v.warnings} warning</Badge>
-              <Badge tone="blue">neraca air {fmt(v.water.closurePct, 0)}%</Badge>
-              {v.metal && <Badge tone="blue">neraca logam {fmt(Math.min(v.metal.closurePct, 999), 0)}%</Badge>}
+              <Badge tone="blue">{tx("neraca air", "water balance")} {fmt(v.water.closurePct, 0)}%</Badge>
+              {v.metal && <Badge tone="blue">{tx("neraca logam", "metal balance")} {fmt(Math.min(v.metal.closurePct, 999), 0)}%</Badge>}
             </div>
             <Link href="/data?view=cek" className="inline-flex items-center gap-1 font-medium text-brand-blue hover:underline">
-              Buka Kualitas Data <ArrowRight className="h-3 w-3" />
+              {tx("Buka Kualitas Data", "Open Data Quality")} <ArrowRight className="h-3 w-3" />
             </Link>
           </CardBody>
         </Card>
       </div>
 
       <Card>
-        <CardHeader title="Aliran biaya ringkas (MFCA)" subtitle="Kategori biaya → tahap → positive / negative product" action={<Link href="/hasil" className="text-xs font-medium text-brand-blue hover:underline">Detail MFCA</Link>} />
+        <CardHeader title={tx("Aliran biaya ringkas (MFCA)", "Cost flow summary (MFCA)")} subtitle={tx("Kategori biaya → tahap → positive / negative product", "Cost category → stage → positive / negative product")} action={<Link href="/hasil" className="text-xs font-medium text-brand-blue hover:underline">Detail MFCA</Link>} />
         <CardBody>
           <SankeyChart data={sankey} format={fmtRpShort} height={300} />
         </CardBody>

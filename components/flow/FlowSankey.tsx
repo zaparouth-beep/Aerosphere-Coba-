@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { Flow, FlowLink, FlowNode } from "@/lib/engine/flow";
+import { locale, tx as t } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 import { SEVERITY_STYLE } from "@/lib/view/titikBoros";
 
@@ -103,11 +104,11 @@ export function FlowSankey({ flow, label, format, selected, highlightStage, delt
   const hoveredNode = hover?.kind === "node" ? layout.placed.get(hover.id)?.node : undefined;
   const focusId = hoveredNode?.id ?? selected ?? activeStage;
 
-  if (!flow.links.length) return <p className="py-10 text-center text-xs text-navy-700/60">Belum ada aliran untuk indikator ini.</p>;
+  if (!flow.links.length) return <p className="py-10 text-center text-xs text-navy-700/60">{t("Belum ada aliran untuk indikator ini.", "No flow for this indicator yet.")}</p>;
 
   return (
     <div ref={ref} className="relative w-full overflow-x-auto" data-testid={testId}>
-      <svg viewBox={`0 0 ${W} ${layout.H}`} className="h-auto w-full min-w-[640px]" role="img" aria-label="Diagram alur">
+      <svg viewBox={`0 0 ${W} ${layout.H}`} className="h-auto w-full min-w-[640px]" role="img" aria-label={t("Diagram alur", "Flow diagram")}>
         {layout.links.map(({ l, d }) => {
           const id = `${l.source}→${l.target}`;
           const lit = hover?.kind === "link" ? hover.id === id : focusId ? touches(l, focusId) : false;
@@ -165,7 +166,7 @@ export function FlowSankey({ flow, label, format, selected, highlightStage, delt
                     {delta !== undefined && Math.abs(delta) >= 0.05 && (
                       <tspan fill={delta < 0 ? "#1F7A3D" : "#A61B1B"} fontWeight={700}>
                         {" "}
-                        {delta < 0 ? "▼" : "▲"} {Math.abs(delta).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%
+                        {delta < 0 ? "▼" : "▲"} {Math.abs(delta).toLocaleString(locale(), { maximumFractionDigits: 1 })}%
                       </tspan>
                     )}
                   </tspan>
@@ -176,7 +177,7 @@ export function FlowSankey({ flow, label, format, selected, highlightStage, delt
                     {delta !== undefined && Math.abs(delta) >= 0.05 && (
                       <tspan fill={delta < 0 ? "#1F7A3D" : "#A61B1B"} fontWeight={700}>
                         {" "}
-                        {delta < 0 ? "▼" : "▲"} {Math.abs(delta).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%
+                        {delta < 0 ? "▼" : "▲"} {Math.abs(delta).toLocaleString(locale(), { maximumFractionDigits: 1 })}%
                       </tspan>
                     )}
                   </tspan>
@@ -204,8 +205,10 @@ export function FlowSankey({ flow, label, format, selected, highlightStage, delt
             <>
               <p className="text-base font-semibold">{format(hoveredNode.valuePerFU)}</p>
               <p className="text-white/75">{label(hoveredNode)}</p>
-              {hoveredNode.severity && <p className="mt-1">Kelas: {SEVERITY_STYLE[hoveredNode.severity].label}</p>}
-              <p className="mt-1 text-white/60">Klik untuk melihat saran</p>
+              {hoveredNode.severity && <p className="mt-1">
+                  {t("Kelas", "Class")}: {SEVERITY_STYLE[hoveredNode.severity].label}
+                </p>}
+              <p className="mt-1 text-white/60">{t("Klik untuk melihat saran", "Click to see suggestions")}</p>
             </>
           ) : null}
         </div>

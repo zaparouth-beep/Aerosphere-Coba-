@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, CircleDot, Info, XCircle } from "lucide-react";
 import type { Confidence } from "@/lib/domain/types";
+import { tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 
 export type BadgeTone = "neutral" | "green" | "gold" | "red" | "blue" | "navy";
@@ -21,15 +22,25 @@ export function Badge({ tone = "neutral", className, children, title }: { tone?:
   );
 }
 
-export const CONFIDENCE_LABEL: Record<Confidence, string> = { High: "Tinggi", Medium: "Sedang", Low: "Rendah" };
+export const CONFIDENCE_LABEL: Readonly<Record<Confidence, string>> = {
+  get High() {
+    return tx("Tinggi", "High");
+  },
+  get Medium() {
+    return tx("Sedang", "Medium");
+  },
+  get Low() {
+    return tx("Rendah", "Low");
+  },
+};
 
 /** Confidence never relies on colour alone (PRD 3.1): icon + text. */
 export function ConfidenceBadge({ value, title }: { value: Confidence; title?: string }) {
   const Icon = value === "High" ? CheckCircle2 : value === "Medium" ? CircleDot : AlertTriangle;
   return (
-    <Badge tone={value === "High" ? "green" : value === "Medium" ? "gold" : "red"} title={title ?? `Tingkat keyakinan data: ${CONFIDENCE_LABEL[value]}`}>
+    <Badge tone={value === "High" ? "green" : value === "Medium" ? "gold" : "red"} title={title ?? tx(`Tingkat keyakinan data: ${CONFIDENCE_LABEL[value]}`, `Data confidence: ${CONFIDENCE_LABEL[value]}`)}>
       <Icon className="h-3 w-3" aria-hidden />
-      Keyakinan {CONFIDENCE_LABEL[value]}
+      {tx(`Keyakinan ${CONFIDENCE_LABEL[value]}`, `Confidence ${CONFIDENCE_LABEL[value]}`)}
     </Badge>
   );
 }

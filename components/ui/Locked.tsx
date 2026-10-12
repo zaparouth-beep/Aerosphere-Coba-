@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { FEATURE_BENEFIT, minimumPlanFor, type Feature } from "@/lib/domain/plans";
+import { tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 
 /** Locked feature card: padlock, one-sentence benefit, "Lihat paket" (PRD v1.1 §3.0.2). */
@@ -16,10 +17,10 @@ export function LockedFeature({ feature, title, className, compact }: { feature:
       <div className="min-w-0 flex-1">
         {title && <p className="text-sm font-semibold text-navy-900">{title}</p>}
         <p className="text-xs leading-relaxed text-navy-800">{FEATURE_BENEFIT[feature]}</p>
-        <p className="mt-1 text-[11px] text-navy-700/60">Tersedia mulai paket {plan.name}.</p>
+        <p className="mt-1 text-[11px] text-navy-700/60">{tx(`Tersedia mulai paket ${plan.name}.`, `Available from the ${plan.name} plan.`)}</p>
       </div>
       <Link href="/pengaturan?tab=paket" className="shrink-0 rounded-lg border border-sand-300 bg-white px-3 py-1.5 text-xs font-medium text-navy-900 hover:bg-sand-100">
-        Lihat paket
+        {tx("Lihat paket", "View plans")}
       </Link>
     </div>
   );

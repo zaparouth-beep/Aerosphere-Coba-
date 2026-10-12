@@ -107,7 +107,7 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
     <article className="study-report relative overflow-hidden rounded-xl border border-sand-200 bg-white text-[11px] leading-relaxed text-navy-900 shadow-card print:overflow-visible print:rounded-none print:border-0 print:shadow-none">
       {watermark && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center print:fixed" aria-hidden>
-          <span className="-rotate-[28deg] select-none text-[120px] font-black uppercase tracking-widest text-navy-900/[0.06]">Contoh</span>
+          <span className="-rotate-[28deg] select-none text-[120px] font-black uppercase tracking-widest text-navy-900/[0.06]">{langs[0] === "en" ? "Sample" : "Contoh"}</span>
         </div>
       )}
       <table className="w-full border-collapse">
@@ -501,7 +501,7 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
                       <Lbl o={L.authorNote} />
                     </h3>
                     {langs.map((l, j) => (
-                      <EditableText key={l} id={`${l}:authorNote`} text="" lang={l} placeholder={`${L.authorNote[l]} — opsional`} className={cn("text-justify", j > 0 && "mt-1 italic text-navy-700/80")} label={L.authorNote[l]} />
+                      <EditableText key={l} id={`${l}:authorNote`} text="" lang={l} placeholder={`${L.authorNote[l]} — ${l === "en" ? "optional" : "opsional"}`} className={cn("text-justify", j > 0 && "mt-1 italic text-navy-700/80")} label={L.authorNote[l]} />
                     ))}
                   </div>
                 )}

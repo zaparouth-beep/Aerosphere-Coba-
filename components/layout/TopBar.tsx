@@ -1,5 +1,6 @@
 "use client";
 
+import { LangSwitch } from "@/components/layout/LangSwitch";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -7,6 +8,7 @@ import { Lock, LogOut, Menu, Search, Sparkles, UserRound } from "lucide-react";
 import { hasFeature, PLAN_BY_ID } from "@/lib/domain/plans";
 import { ROLE_LABEL, ROLES } from "@/lib/domain/permissions";
 import type { Role } from "@/lib/domain/types";
+import { tx } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { cn } from "@/lib/utils/cn";
 import { NAV_ITEMS } from "./nav";
@@ -42,7 +44,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
 
   return (
     <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-sand-200 bg-white/90 px-4 backdrop-blur md:gap-3 md:px-8">
-      <button type="button" onClick={onMenu} className="text-navy-800 md:hidden" aria-label="Buka menu">
+      <button type="button" onClick={onMenu} className="text-navy-800 md:hidden" aria-label={tx("Buka menu", "Open menu")}>
         <Menu className="h-5 w-5" />
       </button>
       <div className="min-w-0 flex-1">
@@ -54,16 +56,20 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
         onClick={() => setPaletteOpen(true)}
         className="hidden items-center gap-2 rounded-lg border border-sand-300 bg-sand-50 px-3 py-1.5 text-xs text-navy-700/60 hover:text-navy-900 lg:flex"
       >
-        <Search className="h-3.5 w-3.5" /> Cari
+        <Search className="h-3.5 w-3.5" /> {tx("Cari", "Search")}
         <kbd className="rounded border border-sand-300 bg-white px-1 text-[10px]">Ctrl K</kbd>
       </button>
+      {mounted && <LangSwitch />}
       {mounted && (
         <div
           role="radiogroup"
-          aria-label="Mode tampilan"
+          aria-label={tx("Mode tampilan", "Display mode")}
           data-tour="mode"
           className="inline-flex rounded-lg border border-sand-300 bg-white p-0.5 text-[11px] font-medium"
-          title="Mode Ringkas menampilkan yang penting saja. Mode Ahli membuka semua angka teknis."
+          title={tx(
+            "Mode Ringkas menampilkan yang penting saja. Mode Ahli membuka semua angka teknis.",
+            "Simple mode shows only the essentials. Expert mode shows every technical figure.",
+          )}
         >
           <button
             type="button"
@@ -72,7 +78,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
             onClick={() => setExpertMode(false)}
             className={cn("rounded-md px-2 py-1", !expertMode ? "bg-navy-900 text-white" : "text-navy-700/70")}
           >
-            Ringkas
+            {tx("Ringkas", "Simple")}
           </button>
           <button
             type="button"
@@ -80,9 +86,10 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
             aria-checked={expertMode}
             onClick={() => (expertAllowed ? setExpertMode(true) : router.push("/pengaturan?tab=paket"))}
             className={cn("flex items-center gap-1 rounded-md px-2 py-1", expertMode ? "bg-navy-900 text-white" : "text-navy-700/70")}
-            title={expertAllowed ? "Mode Ahli" : "Mode Ahli tersedia mulai paket Profesional"}
+            title={expertAllowed ? tx("Mode Ahli", "Expert mode") : tx("Mode Ahli tersedia mulai paket Profesional", "Expert mode is available from the Professional plan")}
           >
-            {!expertAllowed && <Lock className="h-3 w-3" aria-label="terkunci" />}Ahli
+            {!expertAllowed && <Lock className="h-3 w-3" aria-label={tx("terkunci", "locked")} />}
+            {tx("Ahli", "Expert")}
           </button>
         </div>
       )}
@@ -91,7 +98,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
         onClick={() => setUi({ copilotOpen: true })}
         className="flex items-center gap-1.5 rounded-lg bg-brand-gradient px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-95"
       >
-        <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Tanya AeroSphere</span>
+        <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{tx("Tanya AeroSphere", "Ask AeroSphere")}</span>
       </button>
       {mounted && (
         <div className="relative">
@@ -99,7 +106,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
             type="button"
             onClick={() => setProfileOpen((o) => !o)}
             aria-expanded={profileOpen}
-            aria-label="Profil dan pengaturan"
+            aria-label={tx("Profil dan pengaturan", "Profile and settings")}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-navy-900 text-xs font-semibold text-white"
           >
             {(account?.name || "?").slice(0, 1).toUpperCase()}
@@ -109,21 +116,22 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
               <div className="border-b border-sand-200 px-2 pb-2">
                 <p className="font-semibold text-navy-900">{account?.name}</p>
                 <p className="truncate text-navy-700/60">{account?.email}</p>
-                <p className="text-navy-700/60">Paket {subscription ? PLAN_BY_ID.get(subscription.plan)?.name : "—"}</p>
+                <p className="text-navy-700/60">
+                  {tx("Paket", "Plan")} {subscription ? PLAN_BY_ID.get(subscription.plan)?.name : "—"}</p>
               </div>
               {[
-                ["paket", "Paket & tagihan"],
-                ["users", "Pengguna & peran"],
-                ["proyek", "Proyek"],
-                ["keamanan", "Keamanan & jejak audit"],
+                ["paket", tx("Paket & tagihan", "Plan & billing")],
+                ["users", tx("Pengguna & peran", "Users & roles")],
+                ["proyek", tx("Proyek", "Projects")],
+                ["keamanan", tx("Keamanan & jejak audit", "Security & audit trail")],
               ].map(([tab, label]) => (
                 <Link key={tab} href={`/pengaturan?tab=${tab}`} onClick={() => setProfileOpen(false)} className="block rounded-md px-2 py-1.5 text-navy-800 hover:bg-sand-100">
                   {label}
                 </Link>
               ))}
-              <label className="mt-1 flex items-center gap-2 border-t border-sand-200 px-2 pt-2 text-navy-700/70" title="Simulasi peran untuk demo (RBAC di sisi klien)">
+              <label className="mt-1 flex items-center gap-2 border-t border-sand-200 px-2 pt-2 text-navy-700/70" title={tx("Simulasi peran untuk demo (RBAC di sisi klien)", "Role simulation for the demo (client-side RBAC)")}>
                 <UserRound className="h-3.5 w-3.5 text-brand-teal" />
-                Peran
+                {tx("Peran", "Role")}
                 <select value={user.role} onChange={(e) => setUser(user.name, e.target.value as Role)} className="ml-auto max-w-[130px] bg-transparent font-medium text-navy-900 outline-none">
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -141,7 +149,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
                 }}
                 className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-status-danger hover:bg-status-danger/5"
               >
-                <LogOut className="h-3.5 w-3.5" /> Keluar
+                <LogOut className="h-3.5 w-3.5" /> {tx("Keluar", "Sign out")}
               </button>
             </div>
           )}
@@ -167,7 +175,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     onClose();
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-navy-950/40 p-4 pt-24" onMouseDown={onClose} role="dialog" aria-label="Pencarian menu">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-navy-950/40 p-4 pt-24" onMouseDown={onClose} role="dialog" aria-label={tx("Pencarian menu", "Menu search")}>
       <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 border-b border-sand-200 px-4">
           <Search className="h-4 w-4 text-navy-700/50" />
@@ -184,7 +192,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
               if (e.key === "ArrowUp") setIdx((i) => Math.max(i - 1, 0));
               if (e.key === "Enter" && results[idx]) go(results[idx]!.href);
             }}
-            placeholder="Cari menu, mis. 'boros' atau 'laporan'…"
+            placeholder={tx("Cari menu, mis. 'boros' atau 'laporan'…", "Search menus, e.g. 'waste' or 'reports'…")}
             className="h-12 flex-1 bg-transparent text-sm outline-none"
           />
         </div>
@@ -208,7 +216,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
               </li>
             );
           })}
-          {!results.length && <li className="px-3 py-6 text-center text-xs text-navy-700/55">Tidak ada yang cocok.</li>}
+          {!results.length && <li className="px-3 py-6 text-center text-xs text-navy-700/55">{tx("Tidak ada yang cocok.", "No matches.")}</li>}
         </ul>
       </div>
     </div>

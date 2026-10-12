@@ -1,15 +1,16 @@
+import { getLang, tx } from "@/lib/i18n";
 import type { Confidence, DataMeta, Pedigree, Project, SourceType, StageId } from "@/lib/domain/types";
 import { CHEMICAL_CATEGORIES, STAGE_IDS, type LciResult } from "./lci";
 import { concentrationFactor } from "./units";
 
 /* -------------------------------- Pedigree ------------------------------- */
 
-export const SOURCE_TIER: Record<SourceType, { tier: number; label: string }> = {
-  measured: { tier: 1, label: "Tier 1 — terukur" },
-  calculated: { tier: 2, label: "Tier 2 — dihitung" },
-  supplier: { tier: 3, label: "Tier 3 — data pemasok" },
-  database: { tier: 4, label: "Tier 4 — database LCA" },
-  literature: { tier: 5, label: "Tier 5 — literatur/estimasi" },
+export const SOURCE_TIER: Record<SourceType, { tier: number; readonly label: string }> = {
+  measured: { tier: 1, get label() { return tx("Tier 1 — terukur", "Tier 1 — measured"); } },
+  calculated: { tier: 2, get label() { return tx("Tier 2 — dihitung", "Tier 2 — calculated"); } },
+  supplier: { tier: 3, get label() { return tx("Tier 3 — data pemasok", "Tier 3 — supplier data"); } },
+  database: { tier: 4, get label() { return tx("Tier 4 — database LCA", "Tier 4 — LCA database"); } },
+  literature: { tier: 5, get label() { return tx("Tier 5 — literatur/estimasi", "Tier 5 — literature/estimate"); } },
 };
 
 export const PEDIGREE_KEYS: Array<{ key: keyof Pedigree; label: string }> = [
@@ -55,6 +56,8 @@ export interface Issue {
   code: string;
   severity: Severity;
   message: string;
+  /** English text of the same message (results stay identical whatever the interface language). */
+  messageEn?: string;
   entityId?: string;
   tab: IssueTab;
   value?: string;
@@ -89,10 +92,12 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
   const issues: Issue[] = [];
   const add = (i: Omit<Issue, "key">) => issues.push({ ...i, key: `${i.code}:${i.entityId ?? "-"}` });
   const fmt = (n: number) => n.toLocaleString("id-ID", { maximumFractionDigits: 2 });
+  // English text uses English number format; both are stored so results do not depend on the interface language.
+  const fmtEn = (n: number) => n.toLocaleString("en-GB", { maximumFractionDigits: 2 });
 
   // Blocking rules (FR-04.1)
   for (const f of lci.flows) {
-    if (f.error) add({ code: "UNIT_UNKNOWN", severity: "error", message: `${f.name}: ${f.error}`, entityId: f.id, tab: "input" });
+    if (f.error) add({ code: "UNIT_UNKNOWN", severity: "error", message: `${f.name}: ${f.error}`, messageEn: `${f.name}: ${unitErrorEn(f.error)}`, entityId: f.id, tab: "input" });
   }
   const negatives = [
     ...project.inputs.filter((i) => i.quantity < 0).map((i) => ({ id: i.id, name: i.name, tab: "input" as const })),
@@ -100,12 +105,12 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
     ...project.waste.filter((w) => w.quantityKg < 0).map((w) => ({ id: w.id, name: w.wasteType, tab: "waste" as const })),
     ...project.effluent.filter((e) => e.value < 0).map((e) => ({ id: e.id, name: e.parameter, tab: "effluent" as const })),
   ];
-  for (const n of negatives) add({ code: "NEGATIVE_VALUE", severity: "error", message: `${n.name} bernilai negatif. Pemakaian dan buangan tidak boleh kurang dari nol.`, entityId: n.id, tab: n.tab });
+  for (const n of negatives) add({ code: "NEGATIVE_VALUE", severity: "error", message: `${n.name} bernilai negatif. Pemakaian dan buangan tidak boleh kurang dari nol.`, messageEn: `${n.name} is negative. Use and discharge cannot be less than zero.`, entityId: n.id, tab: n.tab });
   if (!(lci.referenceFlow > 0)) {
-    add({ code: "FU_ZERO", severity: "error", message: "Total luas dilapisi masih nol, jadi angka per m² belum bisa dihitung. Isi luas (atau jumlah part) di bagian Produksi.", tab: "production" });
+    add({ code: "FU_ZERO", severity: "error", message: "Total luas dilapisi masih nol, jadi angka per m² belum bisa dihitung. Isi luas (atau jumlah part) di bagian Produksi.", messageEn: "The total plated area is still zero, so per-m² figures cannot be calculated yet. Enter the area (or number of parts) in the Production section.", tab: "production" });
   }
   if (project.inputs.some((i) => i.basis === "batch") && !(project.production.batches > 0)) {
-    add({ code: "BATCH_ZERO", severity: "error", message: "Ada data yang dicatat per batch, tetapi jumlah batch dalam periode ini masih nol. Isi jumlah batch di bagian Produksi.", tab: "production" });
+    add({ code: "BATCH_ZERO", severity: "error", message: "Ada data yang dicatat per batch, tetapi jumlah batch dalam periode ini masih nol. Isi jumlah batch di bagian Produksi.", messageEn: "Some data is recorded per batch, but the number of batches in this period is still zero. Enter the number of batches in the Production section.", tab: "production" });
   }
 
   const stageCompleteness = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 } as Record<StageId, number>;
@@ -121,7 +126,7 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
       const hasEnergyOrChem = rows.some((i) => i.quantity > 0 && (i.category === "Energy" || CHEMICAL_CATEGORIES.includes(i.category)));
       // Utilities (E) and WWTP (F) can be energy-only; every in-boundary stage needs something.
       if (!hasEnergyOrChem) {
-        add({ code: "STAGE_NO_DATA", severity: "error", message: `Tahap ${stage.name} ikut dihitung, tetapi belum ada data listrik atau bahan kimianya. Isi datanya atau keluarkan tahap ini dari perhitungan.`, entityId: stage.id, tab: "input" });
+        add({ code: "STAGE_NO_DATA", severity: "error", message: `Tahap ${stage.name} ikut dihitung, tetapi belum ada data listrik atau bahan kimianya. Isi datanya atau keluarkan tahap ini dari perhitungan.`, messageEn: `Stage ${stage.name} is included in the calculation but has no electricity or chemical data yet. Enter its data or exclude this stage from the calculation.`, entityId: stage.id, tab: "input" });
       }
     }
   }
@@ -138,6 +143,10 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
         outM3 > inM3
           ? `Air buangan dan penguapan (${fmt(outM3)} m³) lebih besar dari air masuk (${fmt(inM3)} m³). Periksa angka air masuk atau volume air buangan.`
           : `Ada ${fmt(inM3 - outM3)} m³ air masuk yang tidak tercatat keluar (air masuk ${fmt(inM3)} m³, keluar ${fmt(outM3)} m³). Periksa volume air buangan dan penguapan.`,
+      messageEn:
+        outM3 > inM3
+          ? `Wastewater and evaporation (${fmtEn(outM3)} m³) exceed the water in (${fmtEn(inM3)} m³). Check the water-in figure or the wastewater volume.`
+          : `${fmtEn(inM3 - outM3)} m³ of water in is not recorded as leaving (water in ${fmtEn(inM3)} m³, out ${fmtEn(outM3)} m³). Check the wastewater and evaporation volumes.`,
       tab: "production",
       value: `${fmt(outM3)} m³`,
       reference: `${fmt(inM3)} m³ ±10%`,
@@ -157,6 +166,7 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
         code: "METAL_BALANCE",
         severity: "warning",
         message: `Lapisan logam yang seharusnya terbentuk (${fmt(lci.coatingMassKg)} kg) lebih berat dari logam dan bahan kimia yang dimasukkan di tahap Plating Utama (${fmt(inputKg)} kg). Periksa ketebalan lapisan, luas, atau data anoda.`,
+        messageEn: `The metal coating that should form (${fmtEn(lci.coatingMassKg)} kg) is heavier than the metal and chemicals added at the Main plating stage (${fmtEn(inputKg)} kg). Check the coating thickness, area or anode data.`,
         tab: "production",
       });
     }
@@ -167,33 +177,33 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
   if (/^ni/i.test(project.production.coatingMetal) && project.scope.fuType === "m2" && ref > 0 && Math.abs(project.production.coatingThicknessUm - 150) <= 30) {
     const kwh = lci.totals.energyKwh / ref;
     if (kwh < NI_BENCHMARK.kwh[0] || kwh > NI_BENCHMARK.kwh[1]) {
-      add({ code: "BENCHMARK_ENERGY", severity: "warning", message: `Listrik ${fmt(kwh)} kWh per m² berada di luar kisaran literatur untuk lapisan nikel 150 µm (${NI_BENCHMARK.kwh[0]}–${NI_BENCHMARK.kwh[1]} kWh per m²). Periksa angka meter.`, tab: "input" });
+      add({ code: "BENCHMARK_ENERGY", severity: "warning", message: `Listrik ${fmt(kwh)} kWh per m² berada di luar kisaran literatur untuk lapisan nikel 150 µm (${NI_BENCHMARK.kwh[0]}–${NI_BENCHMARK.kwh[1]} kWh per m²). Periksa angka meter.`, messageEn: `Electricity of ${fmtEn(kwh)} kWh per m² is outside the literature range for a 150 µm nickel coating (${NI_BENCHMARK.kwh[0]}–${NI_BENCHMARK.kwh[1]} kWh per m²). Check the meter readings.`, tab: "input" });
     }
     const water = lci.totals.waterL / ref;
     if (water < NI_BENCHMARK.waterL[0] || water > NI_BENCHMARK.waterL[1]) {
-      add({ code: "BENCHMARK_WATER", severity: "warning", message: `Air ${fmt(water)} liter per m² berada di luar kisaran literatur (${NI_BENCHMARK.waterL[0]}–${NI_BENCHMARK.waterL[1]} liter per m²). Periksa angka flowmeter.`, tab: "input" });
+      add({ code: "BENCHMARK_WATER", severity: "warning", message: `Air ${fmt(water)} liter per m² berada di luar kisaran literatur (${NI_BENCHMARK.waterL[0]}–${NI_BENCHMARK.waterL[1]} liter per m²). Periksa angka flowmeter.`, messageEn: `Water of ${fmtEn(water)} litres per m² is outside the literature range (${NI_BENCHMARK.waterL[0]}–${NI_BENCHMARK.waterL[1]} litres per m²). Check the flowmeter readings.`, tab: "input" });
     }
   }
 
   // Effluent limits (FR-04.5) → compliance findings.
   for (const e of project.effluent) {
     if (e.limit !== undefined && e.limit > 0 && e.value > e.limit && concentrationFactor(e.unit) !== null) {
-      add({ code: "EFFLUENT_LIMIT", severity: "warning", compliance: true, message: `${e.parameter} di air buangan ${fmt(e.value)} ${e.unit}, melebihi batas yang diizinkan (${fmt(e.limit)} ${e.unit}).`, entityId: e.id, tab: "effluent", value: `${fmt(e.value)} ${e.unit}`, reference: `${fmt(e.limit)} ${e.unit}` });
+      add({ code: "EFFLUENT_LIMIT", severity: "warning", compliance: true, message: `${e.parameter} di air buangan ${fmt(e.value)} ${e.unit}, melebihi batas yang diizinkan (${fmt(e.limit)} ${e.unit}).`, messageEn: `${e.parameter} in the wastewater is ${fmtEn(e.value)} ${e.unit}, above the permitted limit (${fmtEn(e.limit)} ${e.unit}).`, entityId: e.id, tab: "effluent", value: `${fmt(e.value)} ${e.unit}`, reference: `${fmt(e.limit)} ${e.unit}` });
     }
   }
   if (project.effluent.every((e) => e.limit === undefined)) {
-    add({ code: "EFFLUENT_LIMIT_EMPTY", severity: "info", message: "Batas baku mutu air buangan belum diisi, jadi kepatuhan belum bisa dicek. Isi batasnya sesuai izin pembuangan fasilitas.", tab: "effluent" });
+    add({ code: "EFFLUENT_LIMIT_EMPTY", severity: "info", message: "Batas baku mutu air buangan belum diisi, jadi kepatuhan belum bisa dicek. Isi batasnya sesuai izin pembuangan fasilitas.", messageEn: "Wastewater quality limits have not been entered, so compliance cannot be checked yet. Enter the limits from the facility's discharge permit.", tab: "effluent" });
   }
 
   if (project.prices.isDemo) {
-    add({ code: "PRICE_DEMO", severity: "warning", message: "Harga yang dipakai masih harga contoh. Ganti dengan harga dari faktur sebelum angka biaya dipakai untuk keputusan.", tab: "prices" });
+    add({ code: "PRICE_DEMO", severity: "warning", message: "Harga yang dipakai masih harga contoh. Ganti dengan harga dari faktur sebelum angka biaya dipakai untuk keputusan.", messageEn: "The prices used are still sample prices. Replace them with prices from invoices before using cost figures for decisions.", tab: "prices" });
   }
   if (unmapped.length > 0) {
-    add({ code: "UNMAPPED", severity: "warning", message: `${unmapped.length} bahan belum punya data dampak dari database, jadi jejak karbonnya belum terhitung: ${unmapped.slice(0, 6).join(", ")}${unmapped.length > 6 ? ", …" : ""}. Hasil tetap bisa dilihat, tetapi belum bisa dijadikan hasil resmi.`, tab: "mapping" });
+    add({ code: "UNMAPPED", severity: "warning", message: `${unmapped.length} bahan belum punya data dampak dari database, jadi jejak karbonnya belum terhitung: ${unmapped.slice(0, 6).join(", ")}${unmapped.length > 6 ? ", …" : ""}. Hasil tetap bisa dilihat, tetapi belum bisa dijadikan hasil resmi.`, messageEn: `${unmapped.length} material(s) have no impact data from the database yet, so their carbon footprint is not calculated: ${unmapped.slice(0, 6).join(", ")}${unmapped.length > 6 ? ", …" : ""}. Results can still be viewed but cannot become an official result yet.`, tab: "mapping" });
   }
   const lowRows = project.inputs.filter((i) => i.quantity > 0 && confidenceOf(i.meta) === "Low");
   if (lowRows.length > 0) {
-    add({ code: "DQ_LOW", severity: "info", message: `${lowRows.length} angka masih perkiraan (keyakinan rendah): ${lowRows.slice(0, 5).map((r) => r.name).join(", ")}${lowRows.length > 5 ? ", …" : ""}. Ganti dengan data meter atau faktur bila ada.`, tab: "input" });
+    add({ code: "DQ_LOW", severity: "info", message: `${lowRows.length} angka masih perkiraan (keyakinan rendah): ${lowRows.slice(0, 5).map((r) => r.name).join(", ")}${lowRows.length > 5 ? ", …" : ""}. Ganti dengan data meter atau faktur bila ada.`, messageEn: `${lowRows.length} figure(s) are still estimates (low confidence): ${lowRows.slice(0, 5).map((r) => r.name).join(", ")}${lowRows.length > 5 ? ", …" : ""}. Replace them with meter or invoice data where available.`, tab: "input" });
   }
 
   const accepted = project.dataset.acceptedWarnings;
@@ -216,3 +226,19 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
 }
 
 export { STAGE_IDS };
+
+/**
+ * English for the unit-conversion errors of units.ts (Indonesian there), so the
+ * UNIT_UNKNOWN issue carries both languages. Unknown texts are passed through.
+ */
+function unitErrorEn(err: string): string {
+  let m = err.match(/^satuan "(.*)" tidak dikenali/);
+  if (m) return `unit "${m[1]}" is not recognised. Choose a unit from the list (e.g. kg, L, kWh)`;
+  if (err.startsWith("udara tekan dicatat dalam Nm³")) return "compressed air is recorded in Nm³, so a compressor kWh per Nm³ factor is needed (enter it in the Production section)";
+  m = err.match(/^satuan "(.*)" tidak cocok untuk jenis data ini \(seharusnya (.*)\)$/);
+  if (m) return `unit "${m[1]}" does not fit this kind of data (expected ${m[2]})`;
+  return err;
+}
+
+/** Issue text in the interface language. */
+export const issueText = (i: Pick<Issue, "message" | "messageEn">): string => (getLang() === "en" && i.messageEn ? i.messageEn : i.message);

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { effectiveStatus, PLAN_BY_ID } from "@/lib/domain/plans";
+import { tx } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { cn } from "@/lib/utils/cn";
 import { NAV_ITEMS, type NavItem } from "./nav";
@@ -57,7 +58,7 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
           collapsed ? "md:w-16" : "md:w-60",
           mobileOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full",
         )}
-        aria-label="Navigasi utama"
+        aria-label={tx("Navigasi utama", "Main navigation")}
       >
         <div className={cn("flex items-center gap-2.5 border-b border-white/10 px-4 py-4", collapsed && "md:justify-center md:px-2")}>
           <Image src={`${BASE}/brand/mark-white.png`} alt="" width={36} height={36} className="h-9 w-9 shrink-0" unoptimized />
@@ -65,9 +66,9 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
             <p className="text-[15px] font-semibold tracking-wide">
               AeroSphere <span className="bg-brand-gradient bg-clip-text text-transparent">LCA</span>
             </p>
-            <p className="truncate text-[10px] uppercase tracking-[0.06em] text-white/45">Manufaktur berkelanjutan</p>
+            <p className="truncate text-[10px] uppercase tracking-[0.06em] text-white/45">{tx("Manufaktur berkelanjutan", "Sustainable manufacturing")}</p>
           </div>
-          <button type="button" onClick={onClose} className="ml-auto text-white/60 md:hidden" aria-label="Tutup menu">
+          <button type="button" onClick={onClose} className="ml-auto text-white/60 md:hidden" aria-label={tx("Tutup menu", "Close menu")}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -79,20 +80,20 @@ export function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose:
           href="/pengaturan?tab=paket"
           className={cn("block border-t border-white/10 px-4 py-3 text-[11px] text-white/55 hover:bg-white/5", collapsed && "md:hidden")}
         >
-          <p className="truncate font-medium text-white/85">{account?.company || account?.name || "Akun demo"}</p>
+          <p className="truncate font-medium text-white/85">{account?.company || account?.name || tx("Akun demo", "Demo account")}</p>
           <p className="mt-0.5 flex items-center gap-1.5">
-            Paket <span className="font-semibold text-brand-gold">{plan?.name ?? "—"}</span>
-            {status === "trial" && <span className="text-white/45">· uji coba</span>}
-            {status === "expired" && <span className="text-status-danger">· berakhir</span>}
+            {tx("Paket", "Plan")} <span className="font-semibold text-brand-gold">{plan?.name ?? "—"}</span>
+            {status === "trial" && <span className="text-white/45">· {tx("uji coba", "trial")}</span>}
+            {status === "expired" && <span className="text-status-danger">· {tx("berakhir", "ended")}</span>}
           </p>
         </Link>
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
           className="hidden items-center justify-center gap-2 border-t border-white/10 py-2.5 text-[11px] text-white/45 hover:text-white md:flex"
-          aria-label={collapsed ? "Lebarkan sidebar" : "Ciutkan sidebar"}
+          aria-label={collapsed ? tx("Lebarkan sidebar", "Expand sidebar") : tx("Ciutkan sidebar", "Collapse sidebar")}
         >
-          {collapsed ? <ChevronsRight className="h-4 w-4" /> : <><ChevronsLeft className="h-4 w-4" /> Ciutkan</>}
+          {collapsed ? <ChevronsRight className="h-4 w-4" /> : <><ChevronsLeft className="h-4 w-4" /> {tx("Ciutkan", "Collapse")}</>}
         </button>
       </aside>
     </>

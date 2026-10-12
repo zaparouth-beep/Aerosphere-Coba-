@@ -1,3 +1,4 @@
+import { tx } from "@/lib/i18n";
 import type { Basis, Dimension, InputCategory, Production } from "@/lib/domain/types";
 
 /** Canonical units (PRD 2.1.3 step 3): kg, L, kWh, pcs. */
@@ -91,9 +92,15 @@ export function basisFactor(basis: Basis, periodMonths: number, batches: number)
 }
 
 export const BASIS_LABEL: Record<Basis, string> = {
-  period: "per periode",
-  month: "per bulan",
-  batch: "per batch",
+  get period() {
+    return tx("per periode", "per period");
+  },
+  get month() {
+    return tx("per bulan", "per month");
+  },
+  get batch() {
+    return tx("per batch", "per batch");
+  },
 };
 
 /** Effluent concentration unit → kg of substance per m³ effluent. */

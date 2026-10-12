@@ -8,6 +8,7 @@
  */
 
 import type JSZipType from "jszip";
+import { tx } from "@/lib/i18n";
 
 const decode = (s: string) =>
   s
@@ -73,7 +74,7 @@ export async function readXlsxLite(buf: ArrayBuffer): Promise<Array<{ name: stri
   const wbTarget = elements(rootRels, "Relationship").find((r) => /officeDocument$/.test(r.attrs.Type ?? ""))?.attrs.Target;
   const wbPath = wbTarget ? resolve("", wbTarget) : "xl/workbook.xml";
   const wbXml = await read(wbPath);
-  if (!wbXml) throw new Error("File ini bukan workbook Excel yang valid.");
+  if (!wbXml) throw new Error(tx("File ini bukan workbook Excel yang valid.", "This file is not a valid Excel workbook."));
   const relsPath = resolve(wbPath, `_rels/${wbPath.split("/").pop()}.rels`);
   const rels = new Map(elements((await read(relsPath)) ?? "", "Relationship").map((r) => [r.attrs.Id, r.attrs]));
 

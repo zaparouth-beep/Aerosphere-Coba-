@@ -1,4 +1,5 @@
 import type { InputCategory, StageId } from "@/lib/domain/types";
+import { tx } from "@/lib/i18n";
 import type { ExtractedDoc, ExtractedTable } from "./docExtract";
 
 /**
@@ -382,26 +383,26 @@ function readTable(t: ExtractedTable, locale: NumberLocale): ReadRow[] {
     if (!stage && c.kind !== "impact" && c.kind !== "production" && c.kind !== "effluent") {
       stage = stageOf(name) ?? DEFAULT_STAGE[c.category ?? c.kind] ?? null;
       stageGuessed = true;
-      if (stage) notes.push(`Tahap ditebak: ${stage}`);
+      if (stage) notes.push(tx(`Tahap ditebak: ${stage}`, `Stage guessed: ${stage}`));
     }
     if (c.kind === "effluent") stage = "F";
 
     let confidence: Confidence = c.explicit && !stageGuessed ? "high" : "medium";
     if (c.kind === "ignore") {
       confidence = "low";
-      notes.push(unit ? `Satuan “${unit}” belum dikenali` : "Satuan tidak ditemukan");
+      notes.push(unit ? tx(`Satuan “${unit}” belum dikenali`, `Unit “${unit}” not recognised`) : tx("Satuan tidak ditemukan", "Unit not found"));
     }
     if (!unit) {
       confidence = "low";
-      if (c.kind !== "ignore") notes.push("Satuan tidak ditemukan");
+      if (c.kind !== "ignore") notes.push(tx("Satuan tidak ditemukan", "Unit not found"));
     }
     if (c.kind === "impact" && !c.impactKey) {
       confidence = "medium";
-      notes.push("Kategori dampak belum dikenali");
+      notes.push(tx("Kategori dampak belum dikenali", "Impact category not recognised"));
     }
     if (quantity < 0) {
       confidence = "low";
-      notes.push("Nilai negatif");
+      notes.push(tx("Nilai negatif", "Negative value"));
     }
 
     out.push({
@@ -441,8 +442,8 @@ export function summarise(rows: ReadRow[]): ReadSummary {
   const outputs = used.filter((r) => OUTPUT_KINDS.includes(r.kind)).length;
   const hasArea = used.some((r) => r.kind === "production" && r.productionField === "areaM2");
   const problems: string[] = [];
-  if (!inputs) problems.push("Belum ada data input (bahan kimia, listrik, air, …). Dokumen harus berisi input dan output.");
-  if (!outputs) problems.push("Belum ada data output (emisi udara, air buangan, limbah B3). Dokumen harus berisi input dan output.");
+  if (!inputs) problems.push(tx("Belum ada data input (bahan kimia, listrik, air, …). Dokumen harus berisi input dan output.", "No input data yet (chemicals, electricity, water, …). The document must contain inputs and outputs."));
+  if (!outputs) problems.push(tx("Belum ada data output (emisi udara, air buangan, limbah B3). Dokumen harus berisi input dan output.", "No output data yet (air emissions, wastewater, hazardous B3 waste). The document must contain inputs and outputs."));
   return {
     inputs,
     outputs,

@@ -3,6 +3,7 @@
 import ExpertWhatIf from "@/components/expert/ExpertWhatIf";
 import { ChangeLab } from "@/components/simulasi/ChangeLab";
 import { Callout } from "@/components/ui/Feedback";
+import { T, tx } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useLiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
 
@@ -21,9 +22,12 @@ export default function Page() {
       {activeRunId && (
         <div data-testid="sim-live-note">
           <Callout>
-            Simulasi selalu dihitung dari <b>data terkini</b>. Menu lain sedang menampilkan hasil tersimpan #{activeRunId}.{" "}
+            <T
+              id={<>Simulasi selalu dihitung dari <b>data terkini</b>. Menu lain sedang menampilkan hasil tersimpan #{activeRunId}.</>}
+              en={<>The simulation is always calculated from the <b>current data</b>. Other menus are showing saved result #{activeRunId}.</>}
+            />{" "}
             <button type="button" className="font-medium text-brand-blue underline" onClick={() => setUi({ activeRunId: null })}>
-              Tampilkan data terkini di semua menu
+              {tx("Tampilkan data terkini di semua menu", "Show current data in all menus")}
             </button>
           </Callout>
         </div>

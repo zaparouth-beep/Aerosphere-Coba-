@@ -2,6 +2,19 @@
 
 Format: satu entri per milestone (lihat `docs/AUDIT.md` Bagian 7). Angka golden mengacu ke `docs/AEROSPHERE_SPEC.md` §4.8.
 
+## Aplikasi dua bahasa: Indonesia dan English · 2026-10-12
+
+### Ditambahkan
+- Tombol **ID | EN** di bar atas aplikasi dan header situs publik. Pilihan disimpan di browser; bahasa bawaan Indonesia.
+- Semua halaman diterjemahkan: Beranda, Data Saya (termasuk unggah dokumen), Hasil, Titik Boros, Simulasi Perbaikan, Laporan (keempat jenis, termasuk arahan perbaikan dan mode ubah teks), Pengaturan, Bantuan, halaman Mode Ahli, situs publik, masuk/daftar, pilih paket, dan onboarding. Juga pemberitahuan, pesan validasi, dan pesan dari mesin hitung.
+- Format angka dan tanggal mengikuti bahasa (`1.234,5` ↔ `1,234.5`).
+- `lib/i18n.tsx` (`tx`, `T`, `pick`, `locale`), `components/layout/LangRoot.tsx`, `components/layout/LangSwitch.tsx`, panduan dan daftar istilah `docs/I18N.md`, spesifikasi §5.0a.
+- Hasil hitung tetap identik di kedua bahasa. Teks yang tersimpan di hasil (pesan validasi, peringatan, langkah trace) menyimpan dua bahasa. Tes `tests/i18n/engine_language.test.ts` memastikan hash sama.
+- Tes e2e `tests/e2e/bahasa.spec.ts` (ganti bahasa, tersimpan setelah muat ulang). Tangkapan layar: `docs/screenshots/bahasa-inggris-*.png`.
+
+### Catatan
+- Data proyek tidak diterjemahkan, termasuk proyek contoh: nama/deskripsi simulasi, tujuan kajian, asumsi, nama periode. Isi template Excel juga tetap Indonesia agar bisa dibaca ulang.
+
 ## Arahan perbaikan mengikuti hasil hitung · 2026-10-12
 
 ### Masalah

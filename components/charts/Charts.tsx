@@ -20,6 +20,7 @@ import {
   Layer,
   Rectangle,
 } from "recharts";
+import { locale, tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 import { CATEGORICAL, CHROME, sequentialColor } from "./palette";
 
@@ -46,7 +47,7 @@ function TooltipBox({ title, rows }: { title?: string; rows: Array<{ label: stri
 export function BarList({
   items,
   format,
-  emptyText = "Belum ada data.",
+  emptyText = tx("Belum ada data.", "No data yet."),
 }: {
   items: Array<{ label: string; value: number; color?: string; note?: string }>;
   format: (v: number) => string;
@@ -86,7 +87,7 @@ export function Share100({
 }) {
   return (
     <div>
-      <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1" aria-label="Legenda">
+      <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1" aria-label={tx("Legenda", "Legend")}>
         {segments.map((s) => (
           <span key={s.id} className="flex items-center gap-1.5 text-[11px] text-navy-800">
             <span className="h-2.5 w-2.5 rounded-sm" style={{ background: s.color }} />
@@ -107,7 +108,7 @@ export function Share100({
                 return (
                   <div
                     key={s.id}
-                    title={`${r.label} · ${s.label}: ${v.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`}
+                    title={`${r.label} · ${s.label}: ${v.toLocaleString(locale(), { maximumFractionDigits: 1 })}%`}
                     className="flex h-full items-center justify-center text-[10px] font-semibold text-white"
                     style={{ width: `${v}%`, background: s.color }}
                   >
@@ -146,7 +147,7 @@ export function Heatmap({
       <table className="w-full border-separate border-spacing-[3px] text-xs">
         <thead>
           <tr>
-            <th className="sticky left-0 bg-white px-2 py-1 text-left font-medium text-navy-700/70">Tahap</th>
+            <th className="sticky left-0 bg-white px-2 py-1 text-left font-medium text-navy-700/70">{tx("Tahap", "Stage")}</th>
             {columns.map((c) => (
               <th key={c.id} scope="col" className="min-w-[78px] px-1 py-1 text-center text-[11px] font-medium leading-tight text-navy-700/80">
                 {c.label}
@@ -171,7 +172,7 @@ export function Heatmap({
                       type="button"
                       disabled={v === undefined}
                       onClick={() => onCellClick?.(r.id, c.id)}
-                      title={v === undefined ? "Tidak ada data" : `${r.label} · ${c.label}: ${v.toLocaleString("id-ID", { maximumFractionDigits: 1 })}%${hot ? " (hotspot)" : ""}`}
+                      title={v === undefined ? tx("Tidak ada data", "No data") : `${r.label} · ${c.label}: ${v.toLocaleString(locale(), { maximumFractionDigits: 1 })}%${hot ? " (hotspot)" : ""}`}
                       className={cn(
                         "num flex h-9 w-full items-center justify-center rounded-md text-[11px] font-medium transition-shadow",
                         hot && "ring-2 ring-navy-900",
@@ -180,7 +181,7 @@ export function Heatmap({
                       )}
                       style={v === undefined ? undefined : { background: sequentialColor(t), color: t > 0.5 ? "#fff" : CHROME.text }}
                     >
-                      {v === undefined ? "–" : `${v.toLocaleString("id-ID", { maximumFractionDigits: 0 })}%`}
+                      {v === undefined ? "–" : `${v.toLocaleString(locale(), { maximumFractionDigits: 0 })}%`}
                     </button>
                   </td>
                 );
@@ -208,15 +209,15 @@ export function ParetoChart({ data, height = 280 }: { data: Array<{ name: string
           content={({ active, payload }) => {
             if (!active || !payload?.length) return null;
             const d = payload[0]!.payload as (typeof data)[number];
-            return <TooltipBox title={d.name} rows={[{ label: "Kontribusi", value: `${d.sharePct.toFixed(1)}%` }, { label: "Kumulatif", value: `${d.cumulativePct.toFixed(1)}%` }]} />;
+            return <TooltipBox title={d.name} rows={[{ label: tx("Kontribusi", "Contribution"), value: `${d.sharePct.toFixed(1)}%` }, { label: tx("Kumulatif", "Cumulative"), value: `${d.cumulativePct.toFixed(1)}%` }]} />;
           }}
         />
-        <Bar dataKey="sharePct" name="Kontribusi" radius={[4, 4, 0, 0]} maxBarSize={28}>
+        <Bar dataKey="sharePct" name={tx("Kontribusi", "Contribution")} radius={[4, 4, 0, 0]} maxBarSize={28}>
           {data.map((d) => (
             <Cell key={d.name} fill={d.top20 ? CATEGORICAL[0] : "#a3c4e0"} />
           ))}
         </Bar>
-        <Line type="monotone" dataKey="cumulativePct" name="Kumulatif" stroke={CATEGORICAL[3]} strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="cumulativePct" name={tx("Kumulatif", "Cumulative")} stroke={CATEGORICAL[3]} strokeWidth={2} dot={{ r: 3 }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -233,7 +234,7 @@ export function Waterfall({ steps, format, height = 260 }: { steps: Array<{ labe
         ? { label: s.label, base: 0, size: s.value, kind: "total", raw: s.value }
         : { label: s.label, base: Math.min(s.value, s.value - s.delta), size: Math.abs(s.delta), kind: s.delta <= 0 ? "down" : "up", raw: s.delta },
     ),
-    ...(last && steps.length > 1 ? [{ label: "Skenario", base: 0, size: last.value, kind: "total", raw: last.value }] : []),
+    ...(last && steps.length > 1 ? [{ label: tx("Skenario", "Scenario"), base: 0, size: last.value, kind: "total", raw: last.value }] : []),
   ];
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -245,7 +246,7 @@ export function Waterfall({ steps, format, height = 260 }: { steps: Array<{ labe
           content={({ active, payload }) => {
             if (!active || !payload?.length) return null;
             const d = payload[0]!.payload as (typeof data)[number];
-            return <TooltipBox title={d.label} rows={[{ label: d.kind === "total" ? "Nilai" : "Δ", value: format(d.raw) }]} />;
+            return <TooltipBox title={d.label} rows={[{ label: d.kind === "total" ? tx("Nilai", "Value") : "Δ", value: format(d.raw) }]} />;
           }}
         />
         <Bar dataKey="base" stackId="w" fill="transparent" isAnimationActive={false} />
@@ -301,7 +302,7 @@ export function DecisionBubble({ points, height = 260 }: { points: Array<{ code:
     <ResponsiveContainer width="100%" height={height}>
       <ScatterChart margin={{ top: 16, right: 24, bottom: 24, left: 8 }}>
         <CartesianGrid stroke={CHROME.grid} />
-        <XAxis type="number" dataKey="dCostPct" name="Δ biaya" unit="%" tick={AXIS_TICK} axisLine={{ stroke: CHROME.axis }} label={{ value: "Δ biaya (%)", position: "insideBottom", offset: -12, fontSize: 11, fill: CHROME.muted }} />
+        <XAxis type="number" dataKey="dCostPct" name={tx("Δ biaya", "Δ cost")} unit="%" tick={AXIS_TICK} axisLine={{ stroke: CHROME.axis }} label={{ value: tx("Δ biaya (%)", "Δ cost (%)"), position: "insideBottom", offset: -12, fontSize: 11, fill: CHROME.muted }} />
         <YAxis type="number" dataKey="dCcPct" name="Δ climate change" unit="%" tick={AXIS_TICK} axisLine={false} width={48} label={{ value: "Δ GWP (%)", angle: -90, position: "insideLeft", fontSize: 11, fill: CHROME.muted }} />
         <ZAxis type="number" dataKey="size" range={[80, 600]} />
         <ReferenceLine x={0} stroke={CHROME.axis} />
@@ -314,9 +315,9 @@ export function DecisionBubble({ points, height = 260 }: { points: Array<{ code:
               <TooltipBox
                 title={`${d.code} ${d.name}`}
                 rows={[
-                  { label: "Δ biaya", value: `${d.dCostPct.toFixed(1)}%` },
+                  { label: tx("Δ biaya", "Δ cost"), value: `${d.dCostPct.toFixed(1)}%` },
                   { label: "Δ GWP", value: `${d.dCcPct.toFixed(1)}%` },
-                  { label: "Δ air", value: `${d.dWaterPct.toFixed(1)}%` },
+                  { label: tx("Δ air", "Δ water"), value: `${d.dWaterPct.toFixed(1)}%` },
                 ]}
               />
             );
@@ -353,7 +354,7 @@ export function TrendLine({ data, format, height = 220, target }: { data: Array<
         <XAxis dataKey="label" tick={{ ...AXIS_TICK, fontSize: 10 }} axisLine={{ stroke: CHROME.axis }} tickLine={false} />
         <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={56} tickFormatter={(v: number) => format(v)} />
         {target !== undefined && <ReferenceLine y={target} stroke={CATEGORICAL[2]} strokeDasharray="5 4" label={{ value: "Target", fontSize: 10, fill: CATEGORICAL[2], position: "right" }} />}
-        <Tooltip content={({ active, payload, label }) => (active && payload?.length ? <TooltipBox title={String(label)} rows={[{ label: "Nilai", value: format(Number(payload[0]!.value)) }]} /> : null)} />
+        <Tooltip content={({ active, payload, label }) => (active && payload?.length ? <TooltipBox title={String(label)} rows={[{ label: tx("Nilai", "Value"), value: format(Number(payload[0]!.value)) }]} /> : null)} />
         <Line type="monotone" dataKey="value" stroke={CATEGORICAL[0]} strokeWidth={2} dot={{ r: 4, strokeWidth: 2, stroke: "#fff" }} />
       </LineChart>
     </ResponsiveContainer>
@@ -370,7 +371,7 @@ export function Bullet({ label, achievedPct, targetPct, note }: { label: string;
       <div className="mb-1 flex items-baseline justify-between text-xs">
         <span className="text-navy-800">{label}</span>
         <span className="num text-navy-900">
-          {achievedPct.toLocaleString("id-ID", { maximumFractionDigits: 1 })}% <span className="text-navy-700/55">/ target {targetPct}%</span>
+          {achievedPct.toLocaleString(locale(), { maximumFractionDigits: 1 })}% <span className="text-navy-700/55">/ target {targetPct}%</span>
         </span>
       </div>
       <div className="relative h-3 w-full rounded bg-sand-100">
@@ -392,7 +393,7 @@ export interface SankeyData {
 }
 
 export function SankeyChart({ data, format, height = 340 }: { data: SankeyData; format: (v: number) => string; height?: number }) {
-  if (!data.links.length) return <p className="py-10 text-center text-xs text-navy-700/55">Belum ada aliran untuk digambar.</p>;
+  if (!data.links.length) return <p className="py-10 text-center text-xs text-navy-700/55">{tx("Belum ada aliran untuk digambar.", "No flows to draw yet.")}</p>;
   return (
     <ResponsiveContainer width="100%" height={height}>
       <Sankey
@@ -419,7 +420,7 @@ export function SankeyChart({ data, format, height = 340 }: { data: SankeyData; 
             const p = payload[0]!.payload as { source?: { name: string }; target?: { name: string }; value: number; name?: string; payload?: { source?: { name: string }; target?: { name: string }; value: number } };
             const inner = p.payload ?? p;
             const title = inner.source && inner.target ? `${inner.source.name} → ${inner.target.name}` : (p.name ?? "");
-            return <TooltipBox title={title} rows={[{ label: "Nilai", value: format(inner.value) }]} />;
+            return <TooltipBox title={title} rows={[{ label: tx("Nilai", "Value"), value: format(inner.value) }]} />;
           }}
         />
       </Sankey>

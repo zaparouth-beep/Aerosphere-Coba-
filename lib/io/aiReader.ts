@@ -1,3 +1,4 @@
+import { tx } from "@/lib/i18n";
 import type { ExtractedDoc } from "./docExtract";
 import { guessLocale, normaliseUnit, parseNumber, type ReadRow } from "./smartReader";
 
@@ -82,8 +83,8 @@ export function fromAi(rows: AiRow[], doc: ExtractedDoc, chunkName: string, star
     .filter((r) => r.kind !== "ignore")
     .map((r, i) => {
       const found = numbers.some((n) => same(n, r.quantity));
-      const notes = ["Dibaca AI"];
-      if (!found) notes.push("Angka tidak ditemukan di dokumen — periksa sebelum dipakai");
+      const notes = [tx("Dibaca AI", "Read by AI")];
+      if (!found) notes.push(tx("Angka tidak ditemukan di dokumen — periksa sebelum dipakai", "Number not found in the document — check before using"));
       const confidence: ReadRow["confidence"] = !found ? "low" : r.confidence;
       return {
         id: `ai${startId + i}`,
@@ -126,7 +127,7 @@ export async function readWithAi(doc: ExtractedDoc, onProgress?: (p: AiProgress)
       const c = chunks[i]!;
       const res = await fetch(AI_ENDPOINT, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fileName: doc.fileName, name: c.name, text: c.text }) });
       const body = (await res.json().catch(() => ({}))) as { rows?: AiRow[]; error?: string };
-      if (!res.ok || !body.rows) throw new Error(body.error ?? `Layanan AI tidak menjawab (${res.status}).`);
+      if (!res.ok || !body.rows) throw new Error(body.error ?? tx(`Layanan AI tidak menjawab (${res.status}).`, `The AI service did not respond (${res.status}).`));
       results[i] = fromAi(body.rows, doc, c.name, i * 1000);
       onProgress?.({ done: ++done, total: chunks.length });
     }

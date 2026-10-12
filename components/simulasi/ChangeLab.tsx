@@ -6,8 +6,9 @@ import { FlowExplorer } from "@/components/flow/FlowExplorer";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import type { Project } from "@/lib/domain/types";
 import type { Indicators } from "@/lib/engine/calculate";
-import type { ScenarioOutcome } from "@/lib/engine/scenario";
+import { isNothingNote, type ScenarioOutcome } from "@/lib/engine/scenario";
 import type { RunResult } from "@/lib/engine/types";
+import { locale, tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 import { fmtRp, fmtSig } from "@/lib/utils/format";
 
@@ -24,15 +25,15 @@ type MetricKey = keyof ScenarioOutcome["delta"];
 
 /** Every effect a simulation can have; carbon and wasted value are always shown, the rest only when they change. */
 const METRICS: Array<{ key: MetricKey; label: string; unit: string; always?: boolean; rp?: boolean }> = [
-  { key: "ccKg", label: "Jejak karbon", unit: "kg CO₂e", always: true },
-  { key: "wasteValueRp", label: "Nilai terbuang", unit: "", rp: true, always: true },
-  { key: "costRp", label: "Biaya proses", unit: "", rp: true },
-  { key: "energyKwh", label: "Listrik", unit: "kWh" },
-  { key: "waterL", label: "Air", unit: "L" },
-  { key: "chemicalKg", label: "Bahan kimia", unit: "kg" },
-  { key: "wasteKg", label: "Limbah B3", unit: "kg" },
-  { key: "airKg", label: "Emisi udara langsung", unit: "kg" },
-  { key: "effluentMetalKg", label: "Logam di air buangan", unit: "kg" },
+  { key: "ccKg", get label() { return tx("Jejak karbon", "Carbon footprint"); }, unit: "kg CO₂e", always: true },
+  { key: "wasteValueRp", get label() { return tx("Nilai terbuang", "Wasted value"); }, unit: "", rp: true, always: true },
+  { key: "costRp", get label() { return tx("Biaya proses", "Process cost"); }, unit: "", rp: true },
+  { key: "energyKwh", get label() { return tx("Listrik", "Electricity"); }, unit: "kWh" },
+  { key: "waterL", get label() { return tx("Air", "Water"); }, unit: "L" },
+  { key: "chemicalKg", get label() { return tx("Bahan kimia", "Chemicals"); }, unit: "kg" },
+  { key: "wasteKg", get label() { return tx("Limbah B3", "Hazardous (B3) waste"); }, unit: "kg" },
+  { key: "airKg", get label() { return tx("Emisi udara langsung", "Direct air emissions"); }, unit: "kg" },
+  { key: "effluentMetalKg", get label() { return tx("Logam di air buangan", "Metals in wastewater"); }, unit: "kg" },
 ];
 
 const changed = (o: ScenarioOutcome, k: MetricKey) => Math.abs(o.delta[k].pct) >= 0.05;
@@ -50,7 +51,7 @@ function DeltaChip({ label, pct }: { label: string; pct: number }) {
       )}
     >
       <I className="h-3 w-3" aria-hidden />
-      {label} {flat ? "tetap" : `${down ? "−" : "+"}${Math.abs(pct).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`}
+      {label} {flat ? tx("tetap", "unchanged") : `${down ? "−" : "+"}${Math.abs(pct).toLocaleString(locale(), { maximumFractionDigits: 1 })}%`}
     </span>
   );
 }
@@ -67,10 +68,16 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
 
   return (
     <Card>
-      <CardHeader title="Coba perubahan" subtitle="Pilih satu perbaikan, lihat pita mana yang menyusut di alur, lalu sematkan hasilnya untuk dibandingkan." />
+      <CardHeader
+        title={tx("Coba perubahan", "Try a change")}
+        subtitle={tx(
+          "Pilih satu perbaikan, lihat pita mana yang menyusut di alur, lalu sematkan hasilnya untuk dibandingkan.",
+          "Pick one improvement, see which bands shrink in the flow, then pin the result to compare.",
+        )}
+      />
       <CardBody className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Perbaikan yang diterapkan">
-          <span className="text-xs font-medium text-navy-900">Terapkan:</span>
+        <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label={tx("Perbaikan yang diterapkan", "Improvement applied")}>
+          <span className="text-xs font-medium text-navy-900">{tx("Terapkan:", "Apply:")}</span>
           {usable.map((o) => (
             <button
               key={o.scenario.id}
@@ -86,7 +93,7 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
             >
               <span className="block font-semibold">{o.scenario.name || o.scenario.code}</span>
               <span className={cn("block text-[10px]", activeId === o.scenario.id ? "text-white/75" : "text-navy-700/60")}>
-                hemat {fmtRp(o.lcc.annualSavingRp)}/tahun
+                {tx(`hemat ${fmtRp(o.lcc.annualSavingRp)}/tahun`, `saves ${fmtRp(o.lcc.annualSavingRp)}/year`)}
               </span>
             </button>
           ))}
@@ -108,17 +115,17 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
             )}
           </div>
 
-          <aside className="space-y-3 rounded-xl border border-sand-200 bg-white p-4 text-xs" aria-label="Analitik perubahan" data-testid="change-panel">
+          <aside className="space-y-3 rounded-xl border border-sand-200 bg-white p-4 text-xs" aria-label={tx("Analitik perubahan", "Change analytics")} data-testid="change-panel">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-navy-700/55">Analitik perubahan</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-navy-700/55">{tx("Analitik perubahan", "Change analytics")}</p>
               <span className="rounded-full bg-sand-100 px-2 py-0.5 text-[10px] text-navy-800" data-testid="pin-count">
-                {pins.length} pin aktif
+                {tx(`${pins.length} pin aktif`, `${pins.length} active ${pins.length === 1 ? "pin" : "pins"}`)}
               </span>
             </div>
             {active && (
               <div className="rounded-lg border border-navy-900/20 bg-sand-50 p-3">
                 <p className="font-semibold text-navy-900">{active.scenario.name}</p>
-                <p className="mt-0.5 text-navy-700/70">Hemat {fmtRp(active.lcc.annualSavingRp)} per tahun</p>
+                <p className="mt-0.5 text-navy-700/70">{tx(`Hemat ${fmtRp(active.lcc.annualSavingRp)} per tahun`, `Saves ${fmtRp(active.lcc.annualSavingRp)} per year`)}</p>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {metricsOf(active).map((m) => (
                     <DeltaChip key={m.key} label={m.label} pct={active.delta[m.key].pct} />
@@ -128,9 +135,9 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
                 <table className="mt-2 w-full text-[11px]" data-testid="change-values">
                   <thead>
                     <tr className="text-left text-navy-700/60">
-                      <th className="py-0.5 font-medium">Per periode</th>
-                      <th className="py-0.5 text-right font-medium">Sekarang</th>
-                      <th className="py-0.5 text-right font-medium">Sesudah</th>
+                      <th className="py-0.5 font-medium">{tx("Per periode", "Per period")}</th>
+                      <th className="py-0.5 text-right font-medium">{tx("Sekarang", "Now")}</th>
+                      <th className="py-0.5 text-right font-medium">{tx("Sesudah", "After")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -146,9 +153,9 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
                     })}
                   </tbody>
                 </table>
-                {active.assumptions.some((a) => a.startsWith("Tidak ada ")) && (
+                {active.assumptions.some((a) => isNothingNote(a)) && (
                   <p className="mt-2 rounded-md bg-status-warn/10 px-2 py-1 text-[11px] text-navy-900" role="status" data-testid="change-nothing">
-                    {active.assumptions.filter((a) => a.startsWith("Tidak ada ")).join(" ")}
+                    {active.assumptions.filter((a) => isNothingNote(a)).join(" ")}
                   </p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-3">
@@ -158,10 +165,10 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
                     onClick={() => setPins((p) => [...p, active.scenario.id])}
                     className="inline-flex items-center gap-1 font-medium text-navy-900 hover:underline disabled:opacity-45"
                   >
-                    <Pin className="h-3.5 w-3.5" /> {pins.includes(active.scenario.id) ? "Sudah disematkan" : "Sematkan"}
+                    <Pin className="h-3.5 w-3.5" /> {pins.includes(active.scenario.id) ? tx("Sudah disematkan", "Pinned") : tx("Sematkan", "Pin")}
                   </button>
                   <button type="button" onClick={() => open(active.scenario.id)} className="inline-flex items-center gap-1 font-medium text-brand-blue hover:underline">
-                    Lihat perhitungannya <ArrowRight className="h-3 w-3" />
+                    {tx("Lihat perhitungannya", "See the calculation")} <ArrowRight className="h-3 w-3" />
                   </button>
                 </div>
               </div>
@@ -175,11 +182,11 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
                         <Pin className="mr-1 inline h-3 w-3 text-brand-gold" aria-hidden />
                         {o.scenario.name}
                       </p>
-                      <button type="button" aria-label={`Lepas pin ${o.scenario.name}`} onClick={() => setPins((p) => p.filter((x) => x !== o.scenario.id))} className="text-navy-700/60 hover:text-navy-900">
+                      <button type="button" aria-label={tx(`Lepas pin ${o.scenario.name}`, `Unpin ${o.scenario.name}`)} onClick={() => setPins((p) => p.filter((x) => x !== o.scenario.id))} className="text-navy-700/60 hover:text-navy-900">
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <p className="mt-0.5 text-navy-700/70">Hemat {fmtRp(o.lcc.annualSavingRp)}/tahun</p>
+                    <p className="mt-0.5 text-navy-700/70">{tx(`Hemat ${fmtRp(o.lcc.annualSavingRp)}/tahun`, `Saves ${fmtRp(o.lcc.annualSavingRp)}/year`)}</p>
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {metricsOf(o).map((m) => (
                         <DeltaChip key={m.key} label={m.label} pct={o.delta[m.key].pct} />
@@ -189,7 +196,7 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
                 ))}
               </ul>
             ) : (
-              <p className="text-navy-700/65">Sematkan beberapa perbaikan untuk membandingkan hasilnya berdampingan.</p>
+              <p className="text-navy-700/65">{tx("Sematkan beberapa perbaikan untuk membandingkan hasilnya berdampingan.", "Pin several improvements to compare their results side by side.")}</p>
             )}
           </aside>
         </div>

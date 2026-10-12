@@ -1,7 +1,22 @@
 import { AlertTriangle, CheckCircle2, MinusCircle, XCircle } from "lucide-react";
+import { tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 
 export type StatusWord = "Baik" | "Perlu perhatian" | "Kritis" | "Belum ada pembanding";
+
+/** Display text for a status word (the word itself stays Indonesian as an identifier). */
+export function statusLabel(status: StatusWord): string {
+  switch (status) {
+    case "Baik":
+      return tx("Baik", "Good");
+    case "Perlu perhatian":
+      return tx("Perlu perhatian", "Needs attention");
+    case "Kritis":
+      return tx("Kritis", "Critical");
+    default:
+      return tx("Belum ada pembanding", "No comparison yet");
+  }
+}
 
 /**
  * Status word for a "lower is better" indicator vs the previous saved result
@@ -29,7 +44,7 @@ export function StatusPill({ status, className }: { status: StatusWord; classNam
       )}
     >
       <Icon className="h-3 w-3" aria-hidden />
-      {status}
+      {statusLabel(status)}
     </span>
   );
 }

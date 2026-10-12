@@ -1,3 +1,4 @@
+import { locale, tx } from "@/lib/i18n";
 import type { LeverSettings, Project, StageId } from "@/lib/domain/types";
 import type { Results } from "./calculate";
 import { STAGE_IDS } from "./lci";
@@ -10,6 +11,7 @@ import type { ScenarioOutcome } from "./scenario";
  * results payload; the guardrail rejects any template with free digits
  * (AC-05). This MVP runs rule-based in the browser; an LLM can later fill the
  * same templates server-side without changing the guardrail.
+ * Insights are built at display time, so their text follows the interface language.
  */
 
 export type Values = Record<string, string>;
@@ -22,10 +24,10 @@ export class GuardrailError extends Error {}
 export function render(template: string, values: Values): string {
   let free = template.replace(/\{\{[\w.]+\}\}/g, "");
   for (const lit of ALLOWED_LITERALS) free = free.split(lit).join("");
-  if (/\d/.test(free)) throw new GuardrailError(`Angka bebas di narasi ditolak: "${template}"`);
+  if (/\d/.test(free)) throw new GuardrailError(tx(`Angka bebas di narasi ditolak: "${template}"`, `Free number in narrative rejected: "${template}"`));
   return template.replace(/\{\{([\w.]+)\}\}/g, (_, key: string) => {
     const v = values[key];
-    if (v === undefined) throw new GuardrailError(`Placeholder tanpa nilai hasil: ${key}`);
+    if (v === undefined) throw new GuardrailError(tx(`Placeholder tanpa nilai hasil: ${key}`, `Placeholder without a result value: ${key}`));
     return v;
   });
 }
@@ -38,8 +40,8 @@ export interface Insight {
   refs: string[];
 }
 
-const n = (v: number, d = 1) => (Number.isFinite(v) ? v.toLocaleString("id-ID", { maximumFractionDigits: d }) : "–");
-const rp = (v: number) => (Number.isFinite(v) ? `Rp${Math.round(v).toLocaleString("id-ID")}` : "–");
+const n = (v: number, d = 1) => (Number.isFinite(v) ? v.toLocaleString(locale(), { maximumFractionDigits: d }) : "–");
+const rp = (v: number) => (Number.isFinite(v) ? `Rp${Math.round(v).toLocaleString(locale())}` : "–");
 
 export function buildInsights(project: Project, r: Results, outcomes: ScenarioOutcome[] = []): Insight[] & { rejected: string[] } {
   const stageName = (id: string) => project.stages.find((s) => s.id === id)?.name ?? id;
@@ -73,8 +75,14 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "hot-energy",
       kind: "hotspot",
-      title: "Titik boros listrik",
-      text: render("Tahap {{hot.energy.stage}} memakai {{hot.energy.share}} dari seluruh listrik lini. Rata-rata pemakaian listrik {{lci.energy.perFu}}.", values),
+      title: tx("Titik boros listrik", "Electricity hotspot"),
+      text: render(
+        tx(
+          "Tahap {{hot.energy.stage}} memakai {{hot.energy.share}} dari seluruh listrik lini. Rata-rata pemakaian listrik {{lci.energy.perFu}}.",
+          "Stage {{hot.energy.stage}} uses {{hot.energy.share}} of all electricity on the line. Average electricity use is {{lci.energy.perFu}}.",
+        ),
+        values,
+      ),
       refs: ["run.lci.byStage.energy", "run.lci.intensity.energy"],
     }));
   }
@@ -82,8 +90,8 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "hot-waste",
       kind: "hotspot",
-      title: "Titik boros limbah berbahaya",
-      text: render("Tahap {{hot.waste.stage}} menghasilkan {{hot.waste.share}} dari limbah berbahaya (B3) lini.", values),
+      title: tx("Titik boros limbah berbahaya", "Hazardous waste hotspot"),
+      text: render(tx("Tahap {{hot.waste.stage}} menghasilkan {{hot.waste.share}} dari limbah berbahaya (B3) lini.", "Stage {{hot.waste.stage}} produces {{hot.waste.share}} of the line's hazardous (B3) waste."), values),
       refs: ["run.lci.byStage.waste"],
     }));
   }
@@ -97,8 +105,8 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "impact-cc",
       kind: "impact",
-      title: "Jejak karbon",
-      text: render("Jejak karbon {{cc.perFu}}. Penyumbang terbesar: {{cc.topSource}} ({{cc.topShare}}).", values),
+      title: tx("Jejak karbon", "Carbon footprint"),
+      text: render(tx("Jejak karbon {{cc.perFu}}. Penyumbang terbesar: {{cc.topSource}} ({{cc.topShare}}).", "Carbon footprint {{cc.perFu}}. Largest contributor: {{cc.topSource}} ({{cc.topShare}})."), values),
       refs: ["run.lcia.perFu.cc", "run.lcia.bySource"],
     }));
   }
@@ -114,9 +122,12 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "cost-loss",
       kind: "cost",
-      title: "Nilai yang terbuang",
+      title: tx("Nilai yang terbuang", "Wasted value"),
       text: render(
-        "Bahan kimia, air, dan pengolahan limbah yang terbuang bernilai {{waste.value}} ({{waste.share}} dari biaya proses). Terbesar di tahap {{waste.topStage}}: {{waste.topValue}}.",
+        tx(
+          "Bahan kimia, air, dan pengolahan limbah yang terbuang bernilai {{waste.value}} ({{waste.share}} dari biaya proses). Terbesar di tahap {{waste.topStage}}: {{waste.topValue}}.",
+          "Wasted chemicals, water and waste treatment are worth {{waste.value}} ({{waste.share}} of process cost). Largest at stage {{waste.topStage}}: {{waste.topValue}}.",
+        ),
         values,
       ),
       refs: ["run.analysis.waste.totalRp", "run.analysis.waste.perStage"],
@@ -130,9 +141,12 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
   tryPush(() => ({
     id: "quality",
     kind: "quality",
-    title: "Kesiapan data",
+    title: tx("Kesiapan data", "Data readiness"),
     text: render(
-      "Data terisi {{dq.completeness}}, ada {{dq.errors}} kesalahan, dan {{dq.unmapped}} jenis buangan belum punya faktor dampak. Angka dampak hanya lengkap bila semua buangan sudah punya faktor.",
+      tx(
+        "Data terisi {{dq.completeness}}, ada {{dq.errors}} kesalahan, dan {{dq.unmapped}} jenis buangan belum punya faktor dampak. Angka dampak hanya lengkap bila semua buangan sudah punya faktor.",
+        "Data is {{dq.completeness}} complete, with {{dq.errors}} error(s), and {{dq.unmapped}} item(s) have no impact factor yet. Impact figures are only complete once every item has a factor.",
+      ),
       values,
     ),
     refs: ["run.validation", "run.lcia.unmapped"],
@@ -149,8 +163,14 @@ export function buildInsights(project: Project, r: Results, outcomes: ScenarioOu
     tryPush(() => ({
       id: "recommendation",
       kind: "recommendation",
-      title: "Perbaikan yang disarankan",
-      text: render("{{rec.name}} memberi hasil terbaik: jejak karbon {{rec.cc}}, air {{rec.water}}, hemat biaya {{rec.cost}} per periode.", values),
+      title: tx("Perbaikan yang disarankan", "Suggested improvement"),
+      text: render(
+        tx(
+          "{{rec.name}} memberi hasil terbaik: jejak karbon {{rec.cc}}, air {{rec.water}}, hemat biaya {{rec.cost}} per periode.",
+          "{{rec.name}} gives the best result: carbon footprint {{rec.cc}}, water {{rec.water}}, cost saving {{rec.cost}} per period.",
+        ),
+        values,
+      ),
       refs: ["scenario.compare"],
     }));
   }
@@ -169,32 +189,32 @@ export function parseWhatIf(text: string): { levers: LeverSettings; summary: str
   const drag = num(/(?:drag[\s-]?out|larutan terbawa)[^\d]*(\d+(?:\.\d+)?)\s*%/);
   if (drag !== null) {
     levers.dragout = { reductionPct: drag };
-    summary.push(`Kurangi larutan terbawa part ${drag}%`);
+    summary.push(tx(`Kurangi larutan terbawa part ${drag}%`, `Reduce drag-out from parts by ${drag}%`));
   }
   const rinse = num(/(?:bilas|rinse)[^\d]*(\d+)\s*(?:tingkat|tahap|stage)/);
   if (rinse !== null) {
     levers.countercurrent = { stagesOld: 2, stagesNew: rinse, ratio: 1000 };
-    summary.push(`Bilasan bertingkat: 2 → ${rinse} tangki`);
+    summary.push(tx(`Bilasan bertingkat: 2 → ${rinse} tangki`, `Counter-current rinse: 2 → ${rinse} tanks`));
   }
   const rect = t.match(/(?:rectifier|penyearah)[^\d]*(\d+(?:\.\d+)?)\s*%?[^\d]+(\d+(?:\.\d+)?)\s*%/);
   if (rect) {
     levers.rectifier = { etaOld: Number(rect[1]), etaNew: Number(rect[2]) };
-    summary.push(`Efisiensi penyearah arus ${rect[1]}% → ${rect[2]}%`);
+    summary.push(tx(`Efisiensi penyearah arus ${rect[1]}% → ${rect[2]}%`, `Rectifier efficiency ${rect[1]}% → ${rect[2]}%`));
   }
-  const grid = num(/(?:grid|listrik)[^\d]*(0\.\d+)/);
+  const grid = num(/(?:grid|listrik|electricity)[^\d]*(0\.\d+)/);
   if (grid !== null) {
     levers.gridFactor = { kgCO2ePerKwh: grid };
-    summary.push(`Listrik lebih bersih: ${grid} kg CO₂e/kWh`);
+    summary.push(tx(`Listrik lebih bersih: ${grid} kg CO₂e/kWh`, `Cleaner electricity: ${grid} kg CO₂e/kWh`));
   }
-  const mist = num(/(?:mist|kabut)[^\d]*(\d+(?:\.\d+)?)\s*%/);
+  const mist = num(/(?:mist|kabut|fume)[^\d]*(\d+(?:\.\d+)?)\s*%/);
   if (mist !== null) {
     levers.mistSuppressant = { reductionPct: mist };
-    summary.push(`Penekan kabut: kabut −${mist}%`);
+    summary.push(tx(`Penekan kabut: kabut −${mist}%`, `Mist suppressant: mist −${mist}%`));
   }
-  const heat = num(/(?:heater|pemanas|tutup tangki)[^\d]*(\d+(?:\.\d+)?)\s*%/);
+  const heat = num(/(?:heater|pemanas|tutup tangki|tank cover)[^\d]*(\d+(?:\.\d+)?)\s*%/);
   if (heat !== null) {
     levers.tankCover = { heatReductionPct: heat, mistReductionPct: 0 };
-    summary.push(`Tutup & insulasi tangki: panas −${heat}%`);
+    summary.push(tx(`Tutup & insulasi tangki: panas −${heat}%`, `Tank covers & insulation: heat −${heat}%`));
   }
   return summary.length ? { levers, summary } : null;
 }

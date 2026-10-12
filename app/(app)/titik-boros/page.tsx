@@ -10,6 +10,7 @@ import { buildTitikBoros } from "@/lib/engine/titikBoros";
 import type { StageCode } from "@/lib/engine/types";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
+import { tx } from "@/lib/i18n";
 import { downloadBlob } from "@/lib/utils/export";
 import { tableTsv } from "@/lib/view/titikBoros";
 
@@ -37,12 +38,15 @@ export default function Page() {
   if (!model) {
     return (
       <Callout tone="warn">
-        Hasil ini dibuat dengan mesin hitung versi lama, jadi titik boros per tahap belum bisa ditampilkan. Tekan “Hitung hasil” di bar atas untuk membuat hasil baru.
+        {tx(
+          "Hasil ini dibuat dengan mesin hitung versi lama, jadi titik boros per tahap belum bisa ditampilkan. Tekan “Hitung hasil” di bar atas untuk membuat hasil baru.",
+          "This result was made with an older version of the calculation engine, so waste hotspots per stage cannot be shown yet. Press “Calculate results” in the top bar to make a new one.",
+        )}
       </Callout>
     );
   }
 
-  const resultLabel = run ? `Hasil #${run.id}` : "data terkini (belum disimpan)";
+  const resultLabel = run ? `${tx("Hasil", "Result")} #${run.id}` : tx("data terkini (belum disimpan)", "current data (not saved)");
   const onExcel = async () => {
     const { buildTitikBorosWorkbook } = await import("@/lib/io/titikBorosExport");
     const blob = await buildTitikBorosWorkbook(project, model, resultLabel);
@@ -51,9 +55,9 @@ export default function Page() {
   const onCopy = async () => {
     try {
       await navigator.clipboard.writeText(tableTsv(project, model));
-      notify("success", "Tabel titik boros disalin. Tempel di Excel atau dokumen.");
+      notify("success", tx("Tabel titik boros disalin. Tempel di Excel atau dokumen.", "Waste hotspot table copied. Paste it into Excel or a document."));
     } catch {
-      notify("error", "Browser tidak mengizinkan menyalin. Pakai tombol Unduh tabel (Excel).");
+      notify("error", tx("Browser tidak mengizinkan menyalin. Pakai tombol Unduh tabel (Excel).", "The browser does not allow copying. Use the Download table (Excel) button."));
     }
   };
 
@@ -67,18 +71,24 @@ export default function Page() {
 
       <Card>
         <CardHeader
-          title={view === "batang" ? "Porsi tiap tahap per indikator" : "Alur: dari sumber ke tahap ke total lini"}
+          title={view === "batang" ? tx("Porsi tiap tahap per indikator", "Share of each stage per indicator") : tx("Alur: dari sumber ke tahap ke total lini", "Flow: from source to stage to line total")}
           subtitle={
             view === "batang"
-              ? `Satu batang = 100% satu indikator (${resultLabel}). Angka di kanan = total per 1 m² permukaan dilapisi.`
-              : `Pilih indikator, arahkan kursor ke pita untuk angka, klik kotak untuk saran dan telusuri lebih dalam (${resultLabel}).`
+              ? tx(
+                  `Satu batang = 100% satu indikator (${resultLabel}). Angka di kanan = total per 1 m² permukaan dilapisi.`,
+                  `One bar = 100% of one indicator (${resultLabel}). Number on the right = total per 1 m² of plated surface.`,
+                )
+              : tx(
+                  `Pilih indikator, arahkan kursor ke pita untuk angka, klik kotak untuk saran dan telusuri lebih dalam (${resultLabel}).`,
+                  `Choose an indicator, hover over a band for numbers, click a box for suggestions and drill down (${resultLabel}).`,
+                )
           }
           action={
-            <div className="inline-flex rounded-lg border border-sand-200 p-0.5 text-xs" role="radiogroup" aria-label="Tampilan grafik">
+            <div className="inline-flex rounded-lg border border-sand-200 p-0.5 text-xs" role="radiogroup" aria-label={tx("Tampilan grafik", "Chart view")}>
               {(
                 [
-                  ["batang", "Batang 100%", BarChart3],
-                  ["alur", "Alur", GitFork],
+                  ["batang", tx("Batang 100%", "100% bars"), BarChart3],
+                  ["alur", tx("Alur", "Flow"), GitFork],
                 ] as const
               ).map(([id, l, I]) => (
                 <button

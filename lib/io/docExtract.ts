@@ -5,6 +5,8 @@
  * have no text layer and come back empty.
  */
 
+import { tx } from "@/lib/i18n";
+
 export type DocKind = "xlsx" | "csv" | "pdf" | "docx";
 
 export interface ExtractedTable {
@@ -104,7 +106,12 @@ export async function extractXlsx(buf: ArrayBuffer): Promise<ExtractedTable[]> {
     try {
       return await readXlsxLite(buf);
     } catch {
-      throw new Error("File Excel ini tidak bisa dibaca. Buka di Excel lalu simpan ulang sebagai .xlsx, atau ekspor ke CSV.");
+      throw new Error(
+        tx(
+          "File Excel ini tidak bisa dibaca. Buka di Excel lalu simpan ulang sebagai .xlsx, atau ekspor ke CSV.",
+          "This Excel file can't be read. Open it in Excel and save it again as .xlsx, or export it to CSV.",
+        ),
+      );
     }
   }
 }
@@ -179,7 +186,7 @@ export async function extractPdf(buf: ArrayBuffer): Promise<ExtractedTable[]> {
       items.push({ str: it.str, x: it.transform[4] as number, y: it.transform[5] as number, w: it.width });
     }
     const rows = pdfItemsToRows(items);
-    if (rows.length) tables.push({ name: `Halaman ${p}`, rows });
+    if (rows.length) tables.push({ name: tx(`Halaman ${p}`, `Page ${p}`), rows });
   }
   await doc.destroy();
   return tables;
@@ -193,11 +200,11 @@ export function htmlToTables(html: string, parse: (html: string) => Document): E
   const tables: ExtractedTable[] = [];
   dom.querySelectorAll("table").forEach((t, i) => {
     const rows = [...t.querySelectorAll("tr")].map((tr) => [...tr.querySelectorAll("th,td")].map((c) => clean(c.textContent))).filter((r) => r.some((c) => c));
-    if (rows.length) tables.push({ name: `Tabel ${i + 1}`, rows });
+    if (rows.length) tables.push({ name: tx(`Tabel ${i + 1}`, `Table ${i + 1}`), rows });
     t.remove();
   });
   const paras = [...dom.querySelectorAll("p,li,h1,h2,h3,h4")].map((p) => clean(p.textContent)).filter(Boolean);
-  if (paras.length) tables.push({ name: "Teks", rows: paras.map((p) => [p]) });
+  if (paras.length) tables.push({ name: tx("Teks", "Text"), rows: paras.map((p) => [p]) });
   return tables;
 }
 
@@ -210,9 +217,14 @@ export async function extractDocx(buf: ArrayBuffer): Promise<ExtractedTable[]> {
 /* --------------------------------- Entry --------------------------------- */
 
 export async function extractDocument(file: File): Promise<ExtractedDoc> {
-  if (file.size > MAX_UPLOAD_BYTES) throw new Error("File melebihi 25 MB.");
+  if (file.size > MAX_UPLOAD_BYTES) throw new Error(tx("File melebihi 25 MB.", "The file is larger than 25 MB."));
   const kind = kindOf(file.name);
-  if (!kind) throw new Error("Jenis file belum didukung. Gunakan .xlsx, .csv, .pdf, atau .docx (file .xls lama: simpan ulang sebagai .xlsx).");
+  if (!kind) throw new Error(
+      tx(
+        "Jenis file belum didukung. Gunakan .xlsx, .csv, .pdf, atau .docx (file .xls lama: simpan ulang sebagai .xlsx).",
+        "This file type isn't supported yet. Use .xlsx, .csv, .pdf or .docx (old .xls files: save again as .xlsx).",
+      ),
+    );
   const buf = await file.arrayBuffer();
   const tables =
     kind === "xlsx"
@@ -223,7 +235,11 @@ export async function extractDocument(file: File): Promise<ExtractedDoc> {
           ? await extractPdf(buf)
           : await extractDocx(buf);
   if (!tables.some((t) => t.rows.length)) {
-    throw new Error(kind === "pdf" ? "PDF ini tidak berisi teks (kemungkinan hasil scan). Gunakan PDF berteks, Excel, atau Word." : "Dokumen kosong atau tidak berisi tabel/teks.");
+    throw new Error(
+      kind === "pdf"
+        ? tx("PDF ini tidak berisi teks (kemungkinan hasil scan). Gunakan PDF berteks, Excel, atau Word.", "This PDF contains no text (probably a scan). Use a text PDF, Excel or Word.")
+        : tx("Dokumen kosong atau tidak berisi tabel/teks.", "The document is empty or contains no tables/text."),
+    );
   }
   return { fileName: file.name, kind, tables, text: tableText(tables) };
 }

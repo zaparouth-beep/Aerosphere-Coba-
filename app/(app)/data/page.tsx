@@ -15,10 +15,11 @@ import { LockedFeature } from "@/components/ui/Locked";
 import { Tabs } from "@/components/ui/Tabs";
 import { can } from "@/lib/domain/permissions";
 import { hasFeature } from "@/lib/domain/plans";
-import type { Issue } from "@/lib/engine/quality";
+import { issueText, type Issue } from "@/lib/engine/quality";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults } from "@/lib/store/useResults";
 import { fmt, fmtDate } from "@/lib/utils/format";
+import { tx } from "@/lib/i18n";
 
 type View = "isi" | "cek" | "studi";
 
@@ -47,9 +48,9 @@ function DataSaya() {
           value={view}
           onChange={go}
           tabs={[
-            { id: "isi", label: "Isi data" },
-            { id: "cek", label: "Cek data", count: problems },
-            { id: "studi", label: expert ? "Goal & Scope" : "Pengaturan studi" },
+            { id: "isi", label: tx("Isi data", "Enter data") },
+            { id: "cek", label: tx("Cek data", "Check data"), count: problems },
+            { id: "studi", label: expert ? "Goal & Scope" : tx("Pengaturan studi", "Study settings") },
           ]}
         />
       </Card>
@@ -60,15 +61,20 @@ function DataSaya() {
           <ExpertGoalScope />
         ) : hasFeature(subscription, "expertMode") ? (
           <Callout>
-            Pengaturan studi memakai bawaan: dihitung per 1 m² permukaan dilapisi, dari pembersihan awal sampai pengolahan air limbah. Untuk mengubahnya,
-            aktifkan Mode Ahli di kanan atas.
+            {tx(
+              "Pengaturan studi memakai bawaan: dihitung per 1 m² permukaan dilapisi, dari pembersihan awal sampai pengolahan air limbah. Untuk mengubahnya, aktifkan Mode Ahli di kanan atas.",
+              "Study settings use the defaults: calculated per 1 m² of plated surface, from initial cleaning through wastewater treatment. To change them, turn on Expert mode at the top right.",
+            )}
           </Callout>
         ) : (
           <div className="space-y-3">
             <Callout>
-              Pengaturan studi memakai bawaan: dihitung per 1 m² permukaan dilapisi, dari pembersihan awal sampai pengolahan air limbah.
+              {tx(
+                "Pengaturan studi memakai bawaan: dihitung per 1 m² permukaan dilapisi, dari pembersihan awal sampai pengolahan air limbah.",
+                "Study settings use the defaults: calculated per 1 m² of plated surface, from initial cleaning through wastewater treatment.",
+              )}
             </Callout>
-            <LockedFeature feature="expertMode" title="Ubah pengaturan studi" />
+            <LockedFeature feature="expertMode" title={tx("Ubah pengaturan studi", "Change study settings")} />
           </div>
         ))}
     </div>
@@ -91,26 +97,37 @@ function CekRingkas() {
 
   return (
     <div className="space-y-4">
-      {!isLive && <Callout>Pemeriksaan ini memakai data dari hasil tersimpan yang dipilih. Pilih “data terkini” di bar atas untuk memeriksa data terbaru.</Callout>}
+      {!isLive && (
+        <Callout>
+          {tx(
+            "Pemeriksaan ini memakai data dari hasil tersimpan yang dipilih. Pilih “data terkini” di bar atas untuk memeriksa data terbaru.",
+            "This check uses data from the selected saved result. Choose “current data” in the top bar to check the latest data.",
+          )}
+        </Callout>
+      )}
       <Card>
         <CardHeader
-          title="Cek data"
-          info={{ what: "Pemeriksaan otomatis: angka kosong, satuan salah, dan neraca air yang tidak masuk akal.", why: "Hasil hanya sebaik datanya.", action: "Perbaiki yang merah, terima yang kuning dengan alasan, lalu setujui data." }}
+          title={tx("Cek data", "Check data")}
+          info={{
+            what: tx("Pemeriksaan otomatis: angka kosong, satuan salah, dan neraca air yang tidak masuk akal.", "Automatic checks: empty numbers, wrong units, and water balances that don't add up."),
+            why: tx("Hasil hanya sebaik datanya.", "Results are only as good as the data."),
+            action: tx("Perbaiki yang merah, terima yang kuning dengan alasan, lalu setujui data.", "Fix the red items, accept the yellow ones with a reason, then approve the data."),
+          }}
           subtitle={
             approved
-              ? `Data disetujui ${fmtDate(project.dataset.approvedAt)} oleh ${project.dataset.approvedBy}.`
+              ? tx(`Data disetujui ${fmtDate(project.dataset.approvedAt)} oleh ${project.dataset.approvedBy}.`, `Data approved ${fmtDate(project.dataset.approvedAt)} by ${project.dataset.approvedBy}.`)
               : v.errors
-                ? `Ada ${v.errors} hal yang wajib diperbaiki sebelum data bisa disetujui.`
-                : "Tidak ada kesalahan. Periksa peringatan, lalu setujui data."
+                ? tx(`Ada ${v.errors} hal yang wajib diperbaiki sebelum data bisa disetujui.`, `${v.errors} item(s) must be fixed before the data can be approved.`)
+                : tx("Tidak ada kesalahan. Periksa peringatan, lalu setujui data.", "No errors. Review the warnings, then approve the data.")
           }
           action={
             approved ? (
               <Badge tone="green">
-                <BadgeCheck className="h-3.5 w-3.5" /> Data disetujui
+                <BadgeCheck className="h-3.5 w-3.5" /> {tx("Data disetujui", "Data approved")}
               </Badge>
             ) : (
-              <Button variant="brand" disabled={!v.readyForApproval || !can(role, "approveDataset")} onClick={approveDataset} title={can(role, "approveDataset") ? undefined : "Butuh peran Data Steward atau Admin"}>
-                <BadgeCheck className="h-4 w-4" /> Setujui data
+              <Button variant="brand" disabled={!v.readyForApproval || !can(role, "approveDataset")} onClick={approveDataset} title={can(role, "approveDataset") ? undefined : tx("Butuh peran Data Steward atau Admin", "Requires the Data Steward or Admin role")}>
+                <BadgeCheck className="h-4 w-4" /> {tx("Setujui data", "Approve data")}
               </Button>
             )
           }
@@ -118,14 +135,14 @@ function CekRingkas() {
         <CardBody className="space-y-4">
           <div>
             <div className="mb-1 flex justify-between text-xs">
-              <span>Data terisi</span>
+              <span>{tx("Data terisi", "Data filled in")}</span>
               <span className="num font-medium">{fmt(v.completenessPct, 0)}%</span>
             </div>
-            <ProgressBar value={v.completenessPct} tone={v.completenessPct >= 80 ? "green" : "gold"} label="Data terisi" />
+            <ProgressBar value={v.completenessPct} tone={v.completenessPct >= 80 ? "green" : "gold"} label={tx("Data terisi", "Data filled in")} />
           </div>
           {issues.length === 0 ? (
             <p className="flex items-center gap-2 rounded-lg bg-status-ok/5 p-3 text-sm text-status-ok">
-              <CheckCircle2 className="h-4 w-4" /> Semua data lolos pemeriksaan.
+              <CheckCircle2 className="h-4 w-4" /> {tx("Semua data lolos pemeriksaan.", "All data passed the checks.")}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -134,23 +151,27 @@ function CekRingkas() {
                 return (
                   <li key={i.key} className="flex flex-wrap items-start gap-3 rounded-lg border border-sand-200 p-3">
                     {i.severity === "error" ? (
-                      <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-danger" aria-label="Wajib diperbaiki" />
+                      <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-danger" aria-label={tx("Wajib diperbaiki", "Must be fixed")} />
                     ) : (
-                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warn" aria-label="Perlu diperiksa" />
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warn" aria-label={tx("Perlu diperiksa", "Needs review")} />
                     )}
                     <div className="min-w-0 flex-1 text-sm text-navy-900">
-                      <p>{i.message}</p>
+                      <p>{issueText(i)}</p>
                       <p className="mt-0.5 text-[11px] text-navy-700/60">
-                        {i.severity === "error" ? "Wajib diperbaiki" : isAccepted ? `Diterima: “${accepted[i.key]}”` : "Perlu diperiksa — boleh diterima dengan alasan"}
+                        {i.severity === "error"
+                          ? tx("Wajib diperbaiki", "Must be fixed")
+                          : isAccepted
+                            ? tx(`Diterima: “${accepted[i.key]}”`, `Accepted: “${accepted[i.key]}”`)
+                            : tx("Perlu diperiksa — boleh diterima dengan alasan", "Needs review — may be accepted with a reason")}
                       </p>
                     </div>
                     <div className="flex gap-1.5">
                       <Link href={`/data?tab=${i.tab === "scope" ? "input" : i.tab}`} className="inline-flex h-8 items-center rounded-lg px-2 text-xs font-medium text-brand-blue hover:bg-sand-100">
-                        Perbaiki
+                        {tx("Perbaiki", "Fix")}
                       </Link>
                       {i.severity === "warning" && !isAccepted && (
                         <Button size="sm" variant="secondary" disabled={approved || !can(role, "acceptWarning")} onClick={() => setAccepting(i)}>
-                          Terima dengan alasan
+                          {tx("Terima dengan alasan", "Accept with a reason")}
                         </Button>
                       )}
                     </div>
@@ -160,19 +181,19 @@ function CekRingkas() {
             </ul>
           )}
           <div className="flex flex-wrap items-center gap-2 border-t border-sand-200 pt-3 text-xs text-navy-700/70">
-            Setelah data disetujui, tekan
+            {tx("Setelah data disetujui, tekan", "Once the data is approved, press")}
             <Button size="sm" onClick={() => runCalculation("draft")} disabled={v.errors > 0}>
-              Hitung hasil
+              {tx("Hitung hasil", "Calculate results")}
             </Button>
-            untuk menyimpan hasil dengan nomor.
+            {tx("untuk menyimpan hasil dengan nomor.", "to save a numbered result.")}
           </div>
         </CardBody>
       </Card>
       <ReasonDialog
         open={!!accepting}
-        title="Terima peringatan"
-        description={accepting?.message ?? ""}
-        confirmLabel="Terima"
+        title={tx("Terima peringatan", "Accept warning")}
+        description={(accepting ? issueText(accepting) : undefined) ?? ""}
+        confirmLabel={tx("Terima", "Accept")}
         onCancel={() => setAccepting(null)}
         onConfirm={(r) => {
           if (accepting) acceptWarning(accepting.key, r);

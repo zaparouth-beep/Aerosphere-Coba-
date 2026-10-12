@@ -14,13 +14,35 @@ import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults } from "@/lib/store/useResults";
 import { cn } from "@/lib/utils/cn";
 import { fmt, fmtDate } from "@/lib/utils/format";
+import { pick, tx } from "@/lib/i18n";
 
-const STEPS = ["Tujuan", "FU & reference flow", "Boundary", "Cut-off & alokasi", "Metode & database"] as const;
+const STEPS = [
+  { id: "Tujuan", en: "Goal" },
+  { id: "FU & reference flow", en: "FU & reference flow" },
+  { id: "Boundary", en: "Boundary" },
+  { id: "Cut-off & alokasi", en: "Cut-off & allocation" },
+  { id: "Metode & database", en: "Method & database" },
+] as const;
 
-const BOUNDARY_LABEL: Record<BoundaryType, { label: string; desc: string }> = {
-  "gate-to-gate": { label: "Gate-to-gate", desc: "Hanya emisi langsung lini (tanpa produksi hulu input)." },
-  "gate-to-gate+upstream": { label: "Gate-to-gate + upstream", desc: "Lini A–F + produksi hulu input lewat dataset background (default)." },
-  "cradle-to-gate": { label: "Cradle-to-gate", desc: "Ditambah pengolahan limbah B3 di vendor (Scope 3 kat. 5)." },
+const BOUNDARY_LABEL: Record<BoundaryType, { label: string; readonly desc: string }> = {
+  "gate-to-gate": {
+    label: "Gate-to-gate",
+    get desc() {
+      return tx("Hanya emisi langsung lini (tanpa produksi hulu input).", "Direct line emissions only (no upstream production of inputs).");
+    },
+  },
+  "gate-to-gate+upstream": {
+    label: "Gate-to-gate + upstream",
+    get desc() {
+      return tx("Lini A–F + produksi hulu input lewat dataset background (default).", "Line A–F + upstream production of inputs via background datasets (default).");
+    },
+  },
+  "cradle-to-gate": {
+    label: "Cradle-to-gate",
+    get desc() {
+      return tx("Ditambah pengolahan limbah B3 di vendor (Scope 3 kat. 5).", "Plus hazardous (B3) waste treatment at the vendor (Scope 3 cat. 5).");
+    },
+  },
 };
 
 export default function GoalScopePage() {
@@ -42,23 +64,27 @@ export default function GoalScopePage() {
       <Card>
         <CardHeader
           eyebrow="M01 · ISO 14044 §4.2"
-          title={`Goal & Scope — versi ${scope.version}`}
-          subtitle={locked ? `Dikunci ${fmtDate(scope.lockedAt)} oleh ${scope.lockedBy}. Run baru merujuk versi ini.` : "Draf: lengkapi lima langkah lalu kunci. Setiap perubahan setelah dikunci membuat versi baru."}
+          title={`Goal & Scope — ${tx("versi", "version")} ${scope.version}`}
+          subtitle={
+            locked
+              ? tx(`Dikunci ${fmtDate(scope.lockedAt)} oleh ${scope.lockedBy}. Run baru merujuk versi ini.`, `Locked ${fmtDate(scope.lockedAt)} by ${scope.lockedBy}. New runs refer to this version.`)
+              : tx("Draf: lengkapi lima langkah lalu kunci. Setiap perubahan setelah dikunci membuat versi baru.", "Draft: complete the five steps, then lock. Any change after locking creates a new version.")
+          }
           action={
             locked ? (
               <Button variant="secondary" onClick={() => setReasonOpen(true)}>
-                <Unlock className="h-4 w-4" /> Buat versi baru
+                <Unlock className="h-4 w-4" /> {tx("Buat versi baru", "Create new version")}
               </Button>
             ) : (
               <Button variant="brand" onClick={lockScope}>
-                <Lock className="h-4 w-4" /> Kunci Scope v{scope.version}
+                <Lock className="h-4 w-4" /> {tx("Kunci Scope", "Lock Scope")} v{scope.version}
               </Button>
             )
           }
         />
-        <ol className="flex flex-wrap gap-1 border-b border-sand-200 px-4 py-3" aria-label="Langkah wizard">
+        <ol className="flex flex-wrap gap-1 border-b border-sand-200 px-4 py-3" aria-label={tx("Langkah wizard", "Wizard steps")}>
           {STEPS.map((s, i) => (
-            <li key={s}>
+            <li key={s.id}>
               <button
                 type="button"
                 onClick={() => setStep(i)}
@@ -69,7 +95,7 @@ export default function GoalScopePage() {
                 )}
               >
                 <span className={cn("flex h-4 w-4 items-center justify-center rounded-full text-[10px]", step === i ? "bg-white text-navy-900" : "bg-sand-200")}>{i + 1}</span>
-                {s}
+                {pick(s)}
               </button>
             </li>
           ))}
@@ -78,10 +104,10 @@ export default function GoalScopePage() {
           <fieldset disabled={locked} className="space-y-4 disabled:opacity-80">
             {step === 0 && (
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Tujuan studi" hint="Apa yang ingin dijawab dan untuk keputusan apa.">
+                <Field label={tx("Tujuan studi", "Study goal")} hint={tx("Apa yang ingin dijawab dan untuk keputusan apa.", "What the study should answer and which decision it supports.")}>
                   <TextInput multiline rows={4} value={scope.goal} onCommit={(v) => set({ goal: v })} />
                 </Field>
-                <Field label="Audiens & penggunaan" hint="Klaim komparatif publik butuh critical review independen (ISO 14044 §6).">
+                <Field label={tx("Audiens & penggunaan", "Audience & intended use")} hint={tx("Klaim komparatif publik butuh critical review independen (ISO 14044 §6).", "Public comparative assertions need an independent critical review (ISO 14044 §6).")}>
                   <TextInput multiline rows={4} value={scope.intendedAudience} onCommit={(v) => set({ intendedAudience: v })} />
                 </Field>
               </div>
@@ -89,31 +115,33 @@ export default function GoalScopePage() {
             {step === 1 && (
               <div className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-4">
-                  <Field label="Satuan fungsi (FU)">
+                  <Field label={tx("Satuan fungsi (FU)", "Functional unit (FU)")}>
                     <Select value={scope.fuType} onChange={(e) => set({ fuType: e.target.value as FuType })}>
-                      <option value="m2">1 m² permukaan ter-plating (primer)</option>
-                      <option value="part">1 part (pendukung)</option>
-                      <option value="kg">1 kg komponen ter-plating (pendukung)</option>
+                      <option value="m2">{tx("1 m² permukaan ter-plating (primer)", "1 m² of plated surface (primary)")}</option>
+                      <option value="part">{tx("1 part (pendukung)", "1 part (supporting)")}</option>
+                      <option value="kg">{tx("1 kg komponen ter-plating (pendukung)", "1 kg of plated component (supporting)")}</option>
                     </Select>
                   </Field>
-                  <Field label="Luas ter-plating per periode (m²)">
+                  <Field label={tx("Luas ter-plating per periode (m²)", "Plated area per period (m²)")}>
                     <NumberInput value={project.production.areaM2} min={0} onCommit={(v) => updateProduction({ areaM2: v ?? 0 })} />
                   </Field>
-                  <Field label="Jumlah part per periode">
+                  <Field label={tx("Jumlah part per periode", "Parts per period")}>
                     <NumberInput value={project.production.parts} min={0} onCommit={(v) => updateProduction({ parts: v ?? 0 })} />
                   </Field>
-                  <Field label="Massa komponen per periode (kg)">
+                  <Field label={tx("Massa komponen per periode (kg)", "Component mass per period (kg)")}>
                     <NumberInput value={project.production.componentMassKg} min={0} onCommit={(v) => updateProduction({ componentMassKg: v ?? 0 })} />
                   </Field>
                 </div>
                 <p className="text-xs text-navy-800">
-                  Reference flow saat ini: <b className="num">{fmt(results.lci.referenceFlow)} {FU_LABEL[scope.fuType]}</b> per {project.periodLabel}
-                  {project.production.reworkPct > 0 && <> (sudah dikurangi rework {fmt(project.production.reworkPct)}%)</>}.
+                  {tx("Reference flow saat ini", "Current reference flow")}: <b className="num">{fmt(results.lci.referenceFlow)} {FU_LABEL[scope.fuType]}</b> per {project.periodLabel}
+                  {project.production.reworkPct > 0 && <> {tx(`(sudah dikurangi rework ${fmt(project.production.reworkPct)}%)`, `(net of ${fmt(project.production.reworkPct)}% rework)`)}</>}.
                 </p>
                 {scope.fuType === "kg" && (
                   <Callout tone="warn">
-                    FU per kg kurang tepat bila luas permukaan antar-part sangat bervariasi: Takuma et al. (2018) mencatat fluktuasi bulanan karena bentuk dan
-                    luas part berbeda. Pertahankan 1 m² sebagai FU primer (FR-01.4).
+                    {tx(
+                      "FU per kg kurang tepat bila luas permukaan antar-part sangat bervariasi: Takuma et al. (2018) mencatat fluktuasi bulanan karena bentuk dan luas part berbeda. Pertahankan 1 m² sebagai FU primer (FR-01.4).",
+                      "A per-kg FU is less suitable when surface area varies widely between parts: Takuma et al. (2018) report monthly fluctuations because part shapes and areas differ. Keep 1 m² as the primary FU (FR-01.4).",
+                    )}
                   </Callout>
                 )}
               </div>
@@ -121,7 +149,7 @@ export default function GoalScopePage() {
             {step === 2 && (
               <div className="space-y-4">
                 <div>
-                  <p className="mb-2 text-xs font-medium text-navy-800">Klik tahap untuk memasukkan/mengeluarkan dari boundary (tahap di luar boundary tampil abu-abu).</p>
+                  <p className="mb-2 text-xs font-medium text-navy-800">{tx("Klik tahap untuk memasukkan/mengeluarkan dari boundary (tahap di luar boundary tampil abu-abu).", "Click a stage to include/exclude it from the boundary (stages outside the boundary are greyed out).")}</p>
                   <div className="flex flex-wrap items-stretch gap-2">
                     {project.stages.map((st, i) => (
                       <div key={st.id} className="flex items-center gap-2">
@@ -142,7 +170,7 @@ export default function GoalScopePage() {
                             <span className="text-xs font-semibold text-navy-900">{st.name}</span>
                           </span>
                           <span className="mt-1 block text-[11px] text-navy-700/65">{st.subprocesses.join(", ")}</span>
-                          <span className="mt-1.5 block text-[10px] font-medium uppercase tracking-wide text-navy-700/55">{st.inBoundary ? "Dalam boundary" : "Di luar boundary"}</span>
+                          <span className="mt-1.5 block text-[10px] font-medium uppercase tracking-wide text-navy-700/55">{st.inBoundary ? tx("Dalam boundary", "In boundary") : tx("Di luar boundary", "Outside boundary")}</span>
                         </button>
                         {i < project.stages.length - 1 && <ArrowRight className="h-4 w-4 shrink-0 text-navy-700/30" aria-hidden />}
                       </div>
@@ -162,30 +190,30 @@ export default function GoalScopePage() {
             )}
             {step === 3 && (
               <div className="grid gap-4 md:grid-cols-3">
-                <Field label="Aturan cut-off (% massa & energi)" hint="Aliran di bawah ambang boleh dikecualikan bila dicatat di daftar asumsi.">
+                <Field label={tx("Aturan cut-off (% massa & energi)", "Cut-off rule (% mass & energy)")} hint={tx("Aliran di bawah ambang boleh dikecualikan bila dicatat di daftar asumsi.", "Flows below the threshold may be excluded if recorded in the assumptions list.")}>
                   <NumberInput value={scope.cutoffPct} min={0} onCommit={(v) => set({ cutoffPct: v ?? 0 })} disabled={locked} />
                 </Field>
-                <Field label="Kunci alokasi utilitas & IPAL">
+                <Field label={tx("Kunci alokasi utilitas & IPAL", "Allocation key for utilities & WWTP")}>
                   <Select value={scope.allocation} onChange={(e) => set({ allocation: e.target.value as AllocationKey })}>
-                    <option value="m2">Per m² ter-plating</option>
-                    <option value="mass">Per massa</option>
-                    <option value="hours">Per jam proses</option>
+                    <option value="m2">{tx("Per m² ter-plating", "Per plated m²")}</option>
+                    <option value="mass">{tx("Per massa", "Per mass")}</option>
+                    <option value="hours">{tx("Per jam proses", "Per process hour")}</option>
                   </Select>
                 </Field>
-                <Field label="Periode data">
+                <Field label={tx("Periode data", "Data period")}>
                   <Input value={project.periodLabel} disabled />
                 </Field>
               </div>
             )}
             {step === 4 && (
               <div className="grid gap-4 md:grid-cols-3">
-                <Field label="Metode LCIA primer" hint="EF 3.1; ReCiPe 2016 hanya uji sensitivitas, tidak digabung (P6).">
+                <Field label={tx("Metode LCIA primer", "Primary LCIA method")} hint={tx("EF 3.1; ReCiPe 2016 hanya uji sensitivitas, tidak digabung (P6).", "EF 3.1; ReCiPe 2016 is for sensitivity checks only, not combined (P6).")}>
                   <Input value={`${project.method.primary} · ${project.method.release}`} disabled />
                 </Field>
-                <Field label="Pelaporan GHG">
+                <Field label={tx("Pelaporan GHG", "GHG reporting")}>
                   <Input value="IPCC AR6 GWP100" disabled />
                 </Field>
-                <Field label="Database background">
+                <Field label={tx("Database background", "Background database")}>
                   <TextInput value={scope.backgroundDb} onCommit={(v) => set({ backgroundDb: v })} />
                 </Field>
               </div>
@@ -193,16 +221,16 @@ export default function GoalScopePage() {
           </fieldset>
           <div className="mt-5 flex justify-between">
             <Button variant="secondary" disabled={step === 0} onClick={() => setStep(step - 1)}>
-              Kembali
+              {tx("Kembali", "Back")}
             </Button>
             {step < STEPS.length - 1 ? (
               <Button onClick={() => setStep(step + 1)}>
-                Lanjut <ArrowRight className="h-4 w-4" />
+                {tx("Lanjut", "Next")} <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
               !locked && (
                 <Button variant="brand" onClick={lockScope}>
-                  <Lock className="h-4 w-4" /> Kunci Scope v{scope.version}
+                  <Lock className="h-4 w-4" /> {tx("Kunci Scope", "Lock Scope")} v{scope.version}
                 </Button>
               )
             )}
@@ -212,20 +240,26 @@ export default function GoalScopePage() {
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Card>
-          <CardHeader title="Kartu Goal & Scope" subtitle="Siap masuk laporan ISO 14044" />
+          <CardHeader title={tx("Kartu Goal & Scope", "Goal & Scope card")} subtitle={tx("Siap masuk laporan ISO 14044", "Ready for the ISO 14044 report")} />
           <CardBody>
             <dl className="grid gap-x-6 gap-y-3 text-xs sm:grid-cols-2">
-              <Item term="Tujuan" detail={scope.goal} />
-              <Item term="Audiens" detail={scope.intendedAudience} />
-              <Item term="Satuan fungsi" detail={`1 ${FU_LABEL[scope.fuType]}; reference flow ${fmt(results.lci.referenceFlow)} ${FU_LABEL[scope.fuType]} per ${project.periodLabel}`} />
-              <Item term="Boundary" detail={`${BOUNDARY_LABEL[scope.boundary].label}; tahap: ${project.stages.filter((s) => s.inBoundary).map((s) => s.id).join(", ")}`} />
-              <Item term="Cut-off & alokasi" detail={`< ${fmt(scope.cutoffPct)}% massa/energi; alokasi per ${scope.allocation === "m2" ? "m²" : scope.allocation === "mass" ? "massa" : "jam proses"}`} />
-              <Item term="Metode & database" detail={`${project.method.primary} (${project.method.release}); ${scope.backgroundDb}`} />
+              <Item term={tx("Tujuan", "Goal")} detail={scope.goal} />
+              <Item term={tx("Audiens", "Audience")} detail={scope.intendedAudience} />
+              <Item term={tx("Satuan fungsi", "Functional unit")} detail={`1 ${FU_LABEL[scope.fuType]}; reference flow ${fmt(results.lci.referenceFlow)} ${FU_LABEL[scope.fuType]} per ${project.periodLabel}`} />
+              <Item term="Boundary" detail={`${BOUNDARY_LABEL[scope.boundary].label}; ${tx("tahap", "stages")}: ${project.stages.filter((s) => s.inBoundary).map((s) => s.id).join(", ")}`} />
+              <Item
+                term={tx("Cut-off & alokasi", "Cut-off & allocation")}
+                detail={tx(
+                  `< ${fmt(scope.cutoffPct)}% massa/energi; alokasi per ${scope.allocation === "m2" ? "m²" : scope.allocation === "mass" ? "massa" : "jam proses"}`,
+                  `< ${fmt(scope.cutoffPct)}% mass/energy; allocation per ${scope.allocation === "m2" ? "m²" : scope.allocation === "mass" ? "mass" : "process hour"}`,
+                )}
+              />
+              <Item term={tx("Metode & database", "Method & database")} detail={`${project.method.primary} (${project.method.release}); ${scope.backgroundDb}`} />
             </dl>
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Daftar asumsi bernomor" />
+          <CardHeader title={tx("Daftar asumsi bernomor", "Numbered assumptions list")} />
           <CardBody>
             <ol className="space-y-2">
               {scope.assumptions.map((a, i) => (
@@ -236,11 +270,11 @@ export default function GoalScopePage() {
                     rows={2}
                     disabled={locked}
                     value={a}
-                    ariaLabel={`Asumsi ${i + 1}`}
+                    ariaLabel={`${tx("Asumsi", "Assumption")} ${i + 1}`}
                     onCommit={(v) => set({ assumptions: scope.assumptions.map((x, j) => (j === i ? v : x)) })}
                   />
                   {!locked && (
-                    <button type="button" aria-label="Hapus asumsi" className="mt-1.5 text-navy-700/40 hover:text-status-danger" onClick={() => set({ assumptions: scope.assumptions.filter((_, j) => j !== i) })}>
+                    <button type="button" aria-label={tx("Hapus asumsi", "Delete assumption")} className="mt-1.5 text-navy-700/40 hover:text-status-danger" onClick={() => set({ assumptions: scope.assumptions.filter((_, j) => j !== i) })}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}
@@ -248,8 +282,8 @@ export default function GoalScopePage() {
               ))}
             </ol>
             {!locked && (
-              <Button variant="secondary" size="sm" className="mt-3" onClick={() => set({ assumptions: [...scope.assumptions, "Asumsi baru"] })}>
-                <Plus className="h-3.5 w-3.5" /> Tambah asumsi
+              <Button variant="secondary" size="sm" className="mt-3" onClick={() => set({ assumptions: [...scope.assumptions, tx("Asumsi baru", "New assumption")] })}>
+                <Plus className="h-3.5 w-3.5" /> {tx("Tambah asumsi", "Add assumption")}
               </Button>
             )}
           </CardBody>
@@ -257,7 +291,7 @@ export default function GoalScopePage() {
       </div>
 
       <Card>
-        <CardHeader title="Riwayat versi scope" subtitle="Run lama tetap merujuk versinya (FR-01.3)" action={<History className="h-4 w-4 text-navy-700/40" />} />
+        <CardHeader title={tx("Riwayat versi scope", "Scope version history")} subtitle={tx("Run lama tetap merujuk versinya (FR-01.3)", "Older runs keep referring to their version (FR-01.3)")} action={<History className="h-4 w-4 text-navy-700/40" />} />
         <CardBody>
           <ul className="space-y-1.5 text-xs">
             {[...project.scopeHistory, scope].reverse().map((s) => (
@@ -265,10 +299,10 @@ export default function GoalScopePage() {
                 <Badge tone={s.version === scope.version ? "blue" : "neutral"}>v{s.version}</Badge>
                 {s.lockedAt ? (
                   <span className="flex items-center gap-1 text-navy-800">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-status-ok" /> dikunci {fmtDate(s.lockedAt)} oleh {s.lockedBy}
+                    <CheckCircle2 className="h-3.5 w-3.5 text-status-ok" /> {tx(`dikunci ${fmtDate(s.lockedAt)} oleh ${s.lockedBy}`, `locked ${fmtDate(s.lockedAt)} by ${s.lockedBy}`)}
                   </span>
                 ) : (
-                  <span className="text-navy-700/60">draf</span>
+                  <span className="text-navy-700/60">{tx("draf", "draft")}</span>
                 )}
                 <span className="text-navy-700/55">· FU {FU_LABEL[s.fuType]} · {BOUNDARY_LABEL[s.boundary].label}</span>
               </li>
@@ -279,9 +313,9 @@ export default function GoalScopePage() {
 
       <ReasonDialog
         open={reasonOpen}
-        title={`Buat Scope v${scope.version + 1}`}
-        description="Versi terkunci tidak diubah; versi baru dibuat sebagai draf dan run berikutnya merujuk versi baru."
-        confirmLabel="Buat versi baru"
+        title={`${tx("Buat Scope", "Create Scope")} v${scope.version + 1}`}
+        description={tx("Versi terkunci tidak diubah; versi baru dibuat sebagai draf dan run berikutnya merujuk versi baru.", "The locked version is not changed; a new version is created as a draft and the next runs refer to it.")}
+        confirmLabel={tx("Buat versi baru", "Create new version")}
         onCancel={() => setReasonOpen(false)}
         onConfirm={(reason) => {
           newScopeVersion(reason);

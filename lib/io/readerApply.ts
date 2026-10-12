@@ -1,6 +1,7 @@
 import { meta, newId, screeningMapping } from "@/lib/domain/templates";
 import type { AirEmission, EffluentParam, ExternalImpact, HazardousWaste, InputFlow, Project } from "@/lib/domain/types";
 import { CATEGORY_DIMENSION, parseUnit } from "@/lib/engine/units";
+import { tx } from "@/lib/i18n";
 import type { ReadRow } from "./smartReader";
 
 /**
@@ -37,7 +38,7 @@ export function buildImport(rows: ReadRow[], project: Project, source: string): 
         const category = r.category ?? "Chemical";
         const parsed = parseUnit(r.unit);
         if (!parsed || parsed.dim !== CATEGORY_DIMENSION[category]) {
-          skipped.push({ row: r, reason: `Satuan “${r.unit}” tidak cocok untuk ${category}` });
+          skipped.push({ row: r, reason: tx(`Satuan “${r.unit}” tidak cocok untuk ${category}`, `Unit “${r.unit}” doesn't fit ${category}`) });
           continue;
         }
         inputs.push({
@@ -57,7 +58,7 @@ export function buildImport(rows: ReadRow[], project: Project, source: string): 
       case "air": {
         const k = MASS_TO_KG[r.unit];
         if (k === undefined) {
-          skipped.push({ row: r, reason: `Emisi udara perlu satuan massa (kg), bukan “${r.unit}”` });
+          skipped.push({ row: r, reason: tx(`Emisi udara perlu satuan massa (kg), bukan “${r.unit}”`, `Air emissions need a mass unit (kg), not “${r.unit}”`) });
           continue;
         }
         airEmissions.push({ id: newId("air"), parameter: r.name, relevance: note, applicable: true, stageId: stage, quantityKg: q * k, basis: r.basis, meta: meta(r.sourceType, source, "Dibaca dari dokumen") });
@@ -69,7 +70,7 @@ export function buildImport(rows: ReadRow[], project: Project, source: string): 
       case "waste": {
         const k = MASS_TO_KG[r.unit];
         if (k === undefined) {
-          skipped.push({ row: r, reason: `Limbah B3 perlu satuan massa (kg), bukan “${r.unit}”` });
+          skipped.push({ row: r, reason: tx(`Limbah B3 perlu satuan massa (kg), bukan “${r.unit}”`, `B3 waste needs a mass unit (kg), not “${r.unit}”`) });
           continue;
         }
         waste.push({
@@ -98,7 +99,7 @@ export function buildImport(rows: ReadRow[], project: Project, source: string): 
         externalImpacts.push({ key: r.impactKey, label: r.name, value: q, unit: r.unit, source });
         break;
       default:
-        skipped.push({ row: r, reason: "Jenis baris belum ditentukan" });
+        skipped.push({ row: r, reason: tx("Jenis baris belum ditentukan", "Row type not set yet") });
     }
   }
 

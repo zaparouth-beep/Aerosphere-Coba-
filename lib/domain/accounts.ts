@@ -1,4 +1,5 @@
 import { sha256Hex } from "@/lib/engine/hash";
+import { tx } from "@/lib/i18n";
 import type { PlanId } from "./plans";
 import type { Role } from "./types";
 
@@ -36,8 +37,12 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     email: "demo@aerosphere.demo",
     hash: "799a6a4349cd1e991c28276d2ddc260f8c6cdf0cb9072b4082f9fb9ec3661e11",
-    name: "Pengguna Demo",
-    company: "Pabrik contoh (demo semua fitur)",
+    get name() {
+      return tx("Pengguna Demo", "Demo User");
+    },
+    get company() {
+      return tx("Pabrik contoh (demo semua fitur)", "Sample plant (all-features demo)");
+    },
     role: "Admin",
     // Full access for the jury demo: every feature, no "Contoh" watermark.
     plan: "industri",

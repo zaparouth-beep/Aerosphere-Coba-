@@ -20,7 +20,7 @@ export function runAnalysis(input: ProjectInput, factors: FactorSet): RunResult 
   const active = input.components.filter((c) => !c.deletedAt);
   const area = input.areaPlatedM2;
   const warnings: EngineWarning[] = [];
-  if (!(area > 0)) warnings.push({ code: "NO_AREA", message: "Luas permukaan dilapisi belum diisi, jadi angka per m² tidak bisa dihitung." });
+  if (!(area > 0)) warnings.push({ code: "NO_AREA", message: "Luas permukaan dilapisi belum diisi, jadi angka per m² tidak bisa dihitung.", messageEn: "The plated surface area has not been entered, so per-m² figures cannot be calculated." });
 
   // Inventory per stage (§4.3).
   const perStage = Object.fromEntries(
@@ -40,10 +40,10 @@ export function runAnalysis(input: ProjectInput, factors: FactorSet): RunResult 
 
   const impacts = computeImpacts(factors, active, water.loadsKg, area, trace);
   if (factors.status === "screening") {
-    warnings.push({ code: "SCREENING_FACTORS", message: `Faktor dampak berstatus skrining (${factors.version}); belum hasil LCA formal.` });
+    warnings.push({ code: "SCREENING_FACTORS", message: `Faktor dampak berstatus skrining (${factors.version}); belum hasil LCA formal.`, messageEn: `Impact factors are screening factors (${factors.version}); not yet a formal LCA result.` });
   }
   for (const i of impacts) {
-    if (i.status === "partial") warnings.push({ code: "FACTOR_MISSING", message: `${i.labelId}: ${i.missing.length} komponen belum punya faktor dan belum dihitung.` });
+    if (i.status === "partial") warnings.push({ code: "FACTOR_MISSING", message: `${i.labelId}: ${i.missing.length} komponen belum punya faktor dan belum dihitung.`, messageEn: `${i.labelEn}: ${i.missing.length} component(s) have no factor yet and are not calculated.` });
   }
 
   const costs = computeCosts(active, input.prices, trace);
@@ -62,14 +62,16 @@ export function runAnalysis(input: ProjectInput, factors: FactorSet): RunResult 
     wasteValueRp: costs.waste.totalRp,
   };
   for (const [k, unit] of [["electricityKWh", "kWh"], ["waterL", "L"], ["chemicalKg", "kg"], ["wasteB3Kg", "kg"]] as const) {
-    trace.add({ id: `inventory.${k}`, label: `Total ${k}`, formula: "Σ komponen", inputs: {}, result: { value: totals[k], unit } });
+    trace.add({ id: `inventory.${k}`, label: `Total ${k}`, labelEn: `Total ${k}`, formula: "Σ komponen", formulaEn: "Σ components", inputs: {}, result: { value: totals[k], unit } });
   }
   const div = area > 0 ? area : NaN;
   const perFU = Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, v / div])) as unknown as Totals;
   trace.add({
     id: "cost.perFU",
     label: "Biaya proses per m²",
+    labelEn: "Process cost per m²",
     formula: "biaya proses ÷ luas dilapisi",
+    formulaEn: "process cost ÷ plated area",
     inputs: { biaya: { value: totals.costRp, unit: "Rp" }, luas: { value: area, unit: "m²" } },
     result: { value: perFU.costRp, unit: "Rp/m²" },
   });

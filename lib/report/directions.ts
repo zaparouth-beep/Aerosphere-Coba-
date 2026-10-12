@@ -2,7 +2,7 @@ import type { LeverId, LeverSettings, Project, StageId } from "@/lib/domain/type
 import { indicatorsOf, type Indicators, type Results } from "@/lib/engine/calculate";
 import type { HotspotMetric } from "@/lib/engine/hotspot";
 import { STAGE_IDS } from "@/lib/engine/lci";
-import { activeLevers, evaluateScenario, LEVER_DEFAULTS, LEVERS as LEVER_DEFS, type ScenarioOutcome } from "@/lib/engine/scenario";
+import { activeLevers, evaluateScenario, isNothingNote, LEVER_DEFAULTS, LEVERS as LEVER_DEFS, type ScenarioOutcome } from "@/lib/engine/scenario";
 import { concentrationFactor } from "@/lib/engine/units";
 import { overallConfidence, plainStage } from "@/lib/view/summary";
 
@@ -411,7 +411,7 @@ function computeCandidates(project: Project, results: Results, outcomes: Scenari
     );
   }
   return [...outcomes.map((o) => ({ outcome: o, auto: false })), ...autos.map((o) => ({ outcome: o, auto: true }))]
-    .filter(({ outcome }) => !outcome.assumptions.some((a) => a.startsWith("Tidak ada ")))
+    .filter(({ outcome }) => !outcome.assumptions.some((a) => isNothingNote(a)))
     .map((c) => ({ ...c, score: scoreOf(c.outcome, base, perYear) }))
     .filter((c) => c.score > 0.05)
     .sort((a, b) => b.score - a.score);
