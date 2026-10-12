@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { Fragment } from "react";
+import { DirectionsList } from "@/components/report/Directions";
+import { EditableText, useReportEdits } from "@/components/report/Editable";
 import { REFERENCES } from "@/lib/content/reasons";
 import type { StudyRow } from "@/lib/engine/study";
 import { STAGE_CODES } from "@/lib/engine/types";
@@ -29,14 +31,24 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
   const t = Object.fromEntries(langs.map((l) => [l, studyText(ctx, l)])) as Partial<Record<Lang, StudyText>>;
   const first = t[langs[0]!]!;
   const { model, project } = ctx;
+  const edits = useReportEdits();
+  const directions = ctx.directions?.[langs[0]!] ?? [];
 
-  /** One text block per language; English is set in italics under Indonesian in Dwibahasa. */
-  const Txt = ({ pick, as: As = "p", className }: { pick: (x: StudyText) => string; as?: "p" | "span" | "h1"; className?: string }) => (
+  /** One editable text block per language (id `${lang}:${field}`); English is set in italics under Indonesian in Dwibahasa. */
+  const Txt = ({ field, pick, as = "p", className }: { field: string; pick: (x: StudyText) => string; as?: "p" | "span" | "h1"; className?: string }) => (
     <>
       {langs.map((l, i) => (
-        <As key={l} className={cn(className, i > 0 && "mt-1 italic text-navy-700/80")} lang={l}>
+        <EditableText key={l} id={`${l}:${field}`} text={pick(t[l]!)} as={as} lang={l} className={cn(className, i > 0 && "mt-1 italic text-navy-700/80")} label={field} />
+      ))}
+    </>
+  );
+  /** Fixed text (footer: result number and classification are not editable). */
+  const Fixed = ({ pick }: { pick: (x: StudyText) => string }) => (
+    <>
+      {langs.map((l, i) => (
+        <p key={l} className={cn(i > 0 && "mt-1 italic text-navy-700/80")} lang={l}>
           {pick(t[l]!)}
-        </As>
+        </p>
       ))}
     </>
   );
@@ -115,7 +127,7 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
           <tr>
             <td className="px-6 pb-5 md:px-10 print:px-0 print:pb-0">
               <div className="mt-4 border-t border-sand-300 pt-2 text-[8.5px] leading-snug text-navy-700/70">
-                <Txt pick={(x) => x.footer} />
+                <Fixed pick={(x) => x.footer} />
               </div>
             </td>
           </tr>
@@ -125,12 +137,12 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
             <td className="px-6 md:px-10 print:px-0">
               {/* ---------------------------- Halaman 1 ---------------------------- */}
               <section className="pt-3 text-center">
-                <Txt pick={(x) => x.title} as="h1" className="text-lg font-bold text-navy-900" />
+                {Txt({ field: "title", pick: (x) => x.title, as: "h1", className: "text-lg font-bold text-navy-900" })}
                 <p className="mt-1 text-[11px] text-navy-700/70">{first.subtitle}</p>
               </section>
 
               <section className="mt-3">
-                <Txt pick={(x) => x.opening} />
+                {Txt({ field: "opening", pick: (x) => x.opening })}
                 <ul className="mt-1.5 list-disc space-y-0.5 pl-6">
                   {first.standards.map((s, i) => (
                     <li key={s}>
@@ -146,17 +158,17 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
 
               <section className="break-inside-avoid">
                 <H2 o={L.objective} />
-                <Txt pick={(x) => x.objective} className="text-justify" />
+                {Txt({ field: "objective", pick: (x) => x.objective, className: "text-justify" })}
               </section>
 
               <section className="break-inside-avoid">
                 <H2 o={L.scope} />
-                <Txt pick={(x) => x.scope} className="text-justify" />
+                {Txt({ field: "scope", pick: (x) => x.scope, className: "text-justify" })}
               </section>
 
               <section>
                 <H2 o={L.conclusion} />
-                <Txt pick={(x) => x.conclusionIntro} className="text-justify" />
+                {Txt({ field: "conclusionIntro", pick: (x) => x.conclusionIntro, className: "text-justify" })}
                 {(
                   [
                     ["a.", L.cradle, (x: StudyText) => x.cradleItems],
@@ -197,7 +209,7 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
                     <li className="flex gap-1.5">
                       <span aria-hidden>•</span>
                       <span>
-                        <Txt pick={(x) => x.grave} as="span" className="block" />
+                        {Txt({ field: "grave", pick: (x) => x.grave, as: "span", className: "block" })}
                       </span>
                     </li>
                   </ul>
@@ -210,7 +222,7 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
                     }}
                   />
                 </p>
-                <Txt pick={(x) => x.closing} className="mt-3 text-justify" />
+                {Txt({ field: "closing", pick: (x) => x.closing, className: "mt-3 text-justify" })}
               </section>
 
               {/* ---------------------------- Halaman 2 ---------------------------- */}
@@ -306,9 +318,9 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
                       }}
                     />
                   </p>
-                  <Txt pick={(x) => x.notComputedNote} />
-                  <Txt pick={(x) => x.screeningNote} />
-                  {first.partialNote && <Txt pick={(x) => x.partialNote ?? ""} />}
+                  {Txt({ field: "notComputedNote", pick: (x) => x.notComputedNote })}
+                  {Txt({ field: "screeningNote", pick: (x) => x.screeningNote })}
+                  {first.partialNote && Txt({ field: "partialNote", pick: (x) => x.partialNote ?? "" })}
                 </div>
               </section>
 
@@ -370,7 +382,7 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
                   </table>
                 </div>
                 <div className="mt-2 text-[9px] leading-snug text-navy-700/80">
-                  <Txt pick={(x) => x.absoluteNote} />
+                  {Txt({ field: "absoluteNote", pick: (x) => x.absoluteNote })}
                 </div>
 
                 <h3 className="mb-1.5 mt-4 text-[11.5px] font-semibold">
@@ -410,7 +422,7 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
 
               <section>
                 <H2 o={L.dataQuality} />
-                <Txt pick={(x) => x.dataQuality} className="text-justify" />
+                {Txt({ field: "dataQuality", pick: (x) => x.dataQuality, className: "text-justify" })}
                 <table className="study-table mt-2 border-collapse text-[9px]">
                   <thead>
                     <tr>
@@ -449,10 +461,10 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
                   {first.findings.map((f, i) => (
                     <li key={f.key} className="break-inside-avoid text-justify">
                       {langs.map((l, j) => (
-                        <p key={l} lang={l} className={cn(j > 0 && "mt-1 italic text-navy-700/80")}>
-                          {t[l]!.findings[i]!.text}
-                          {j === 0 && f.refs.length > 0 && <span className="text-navy-700/60"> [{f.refs.join(", ")}]</span>}
-                        </p>
+                        <div key={l}>
+                          <EditableText id={`${l}:finding:${f.key}`} text={t[l]!.findings[i]!.text} lang={l} className={cn(j > 0 && "mt-1 italic text-navy-700/80")} label={`Temuan ${i + 1}`} />
+                          {j === langs.length - 1 && f.refs.length > 0 && <p className="text-[9px] text-navy-700/60">[{f.refs.join(", ")}]</p>}
+                        </div>
                       ))}
                     </li>
                   ))}
@@ -460,19 +472,19 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
                 <h3 className="mb-1 mt-4 text-[11.5px] font-semibold">
                   <Lbl o={L.acrossCategories} />
                 </h3>
-                <Txt pick={(x) => x.crossCategory} />
+                {Txt({ field: "crossCategory", pick: (x) => x.crossCategory })}
 
                 <h3 className="mb-1 mt-4 text-[11.5px] font-semibold">
-                  <Lbl o={L.recommendations} />
+                  <Lbl o={directions.length ? L.directions : L.recommendations} />
                 </h3>
-                {first.recommendations.length ? (
+                {directions.length ? (
+                  <DirectionsList byLang={ctx.directions!} langs={langs} />
+                ) : first.recommendations.length ? (
                   <ol className="list-decimal space-y-2 pl-5">
                     {first.recommendations.map((_, i) => (
                       <li key={i} className="break-inside-avoid text-justify">
                         {langs.map((l, j) => (
-                          <p key={l} lang={l} className={cn(j > 0 && "mt-1 italic text-navy-700/80")}>
-                            {t[l]!.recommendations[i]}
-                          </p>
+                          <EditableText key={l} id={`${l}:rec:${i}`} text={t[l]!.recommendations[i]!} lang={l} className={cn(j > 0 && "mt-1 italic text-navy-700/80")} label={`Rekomendasi ${i + 1}`} />
                         ))}
                       </li>
                     ))}
@@ -481,6 +493,17 @@ export function LcaStudyReport({ ctx, lang, watermark }: { ctx: StudyContext; la
                   <p className="italic text-navy-700/70">
                     <Lbl o={{ id: "Belum ada simulasi perbaikan yang menghemat biaya atau menurunkan dampak.", en: "No improvement simulation saves cost or reduces impact yet." }} />
                   </p>
+                )}
+
+                {(edits.editing || langs.some((l) => edits.text(`${l}:authorNote`, ""))) && (
+                  <div className="mt-4 break-inside-avoid">
+                    <h3 className="mb-1 text-[11.5px] font-semibold">
+                      <Lbl o={L.authorNote} />
+                    </h3>
+                    {langs.map((l, j) => (
+                      <EditableText key={l} id={`${l}:authorNote`} text="" lang={l} placeholder={`${L.authorNote[l]} — opsional`} className={cn("text-justify", j > 0 && "mt-1 italic text-navy-700/80")} label={L.authorNote[l]} />
+                    ))}
+                  </div>
                 )}
 
                 {first.findings.some((f) => f.refs.length) && (

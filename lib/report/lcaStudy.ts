@@ -2,6 +2,7 @@ import { NO_REASON, reasonFor } from "@/lib/content/reasons";
 import type { Project, StageId } from "@/lib/domain/types";
 import { coatingTypeOf } from "@/lib/engine/inventory";
 import type { StudyDriver, StudyModel, StudyRow } from "@/lib/engine/study";
+import type { Direction } from "@/lib/report/directions";
 import { STAGE_CODES, STAGES, type DeviceRole, type StageCode } from "@/lib/engine/types";
 import { plainStage, type Action } from "@/lib/view/summary";
 
@@ -21,6 +22,8 @@ export interface StudyContext {
   resultId: string;
   /** ISO date of the result (or today for unsaved data). */
   date: string;
+  /** Detailed improvement directions per language (engine scenario outcomes). */
+  directions?: Partial<Record<Lang, Direction[]>>;
 }
 
 export const INFO_CLASS = { id: "Rahasia – Tenant", en: "Confidential – Tenant" } as const;
@@ -58,6 +61,8 @@ export const L = {
   perCategory: { id: "Per kategori dampak", en: "Per impact category" },
   acrossCategories: { id: "Antar kategori dampak", en: "Across impact categories" },
   recommendations: { id: "Rekomendasi", en: "Recommendations" },
+  directions: { id: "Arahan Perbaikan", en: "Improvement Directions" },
+  authorNote: { id: "Catatan penyusun", en: "Author's note" },
   references: { id: "Sumber alasan teknis", en: "Sources of the technical reasons" },
   notComputed: { id: "belum dihitung", en: "not calculated" },
   notAssessed: { id: "tidak dikaji", en: "not assessed" },
@@ -318,4 +323,53 @@ export function studyText(ctx: StudyContext, lang: Lang): StudyText {
       ? `Hasil #${ctx.resultId} · Profil faktor ${profileText(model)}; nilai ${model.valuesVersion} · ${longDate(ctx.date, lang)} · ${INFO_CLASS.id} · Belum melalui tinjauan kritis pihak ketiga`
       : `Result #${ctx.resultId} · Factor profile ${profileText(model)}; values ${model.valuesVersion} · ${longDate(ctx.date, lang)} · ${INFO_CLASS.en} · Not yet critically reviewed by a third party`,
   };
+}
+
+/** Editable single-text fields of the study report; the block id is `${lang}:${field}`. */
+export const STUDY_EDITABLE = [
+  "title",
+  "opening",
+  "objective",
+  "scope",
+  "conclusionIntro",
+  "grave",
+  "closing",
+  "notComputedNote",
+  "screeningNote",
+  "partialNote",
+  "absoluteNote",
+  "dataQuality",
+  "crossCategory",
+] as const;
+
+/** Applies user edits (resolved per block) to the generated text, for exports. */
+export function editStudyText(t: StudyText, lang: Lang, text: (id: string, original: string) => string): StudyText {
+  const out: StudyText = { ...t };
+  for (const f of STUDY_EDITABLE) {
+    const v = t[f];
+    if (typeof v === "string") (out as unknown as Record<string, string>)[f] = text(`${lang}:${f}`, v);
+  }
+  out.findings = t.findings.map((f) => ({ ...f, text: text(`${lang}:finding:${f.key}`, f.text) }));
+  out.recommendations = t.recommendations.map((r, i) => text(`${lang}:rec:${i}`, r));
+  return out;
+}
+
+/** Directions with user edits applied and left-out ones removed, for exports. */
+export function editDirections(ds: Direction[], lang: Lang, text: (id: string, original: string) => string, hidden: (id: string) => boolean): Array<Direction & { note: string }> {
+  return ds
+    .filter((d) => !hidden(`dir:${d.id}`))
+    .map((d) => {
+      const f = (k: string, v: string) => text(`${lang}:dir:${d.id}:${k}`, v);
+      return {
+        ...d,
+        title: f("title", d.title),
+        why: f("why", d.why),
+        steps: d.steps.map((x, j) => f(`step${j}`, x)),
+        owner: f("owner", d.owner),
+        target: f("target", d.target),
+        measure: f("measure", d.measure),
+        schedule: f("schedule", d.schedule),
+        note: f("note", ""),
+      };
+    });
 }

@@ -179,14 +179,14 @@ export function overallConfidence(project: Project): { level: Confidence; senten
 
 export function conclusion(r: Results, worst: WorstStage | null, actions: Action[], fmtRp: (v: number) => string, fmtPct: (v: number) => string): string[] {
   const out: string[] = [];
-  if (worst) out.push(`Tahap ${worst.stageName} paling boros: ${fmtPct(worst.sharePct)} dari ${worst.indicator}.`);
+  if (worst) out.push(`Tahap ${worst.stageName} menjadi sumber terbesar: ${fmtPct(worst.sharePct)} dari ${worst.indicator} lini.`);
   if (r.analysis && r.analysis.totals.costRp > 0) {
     // §4.5: chemicals, water and B3 handling only; energy and labour are operating cost, not waste.
-    out.push(`Bahan kimia, air, dan pengolahan limbah yang terbuang bernilai ${fmtPct(r.analysis.waste.pctOfCost)} dari biaya proses.`);
+    out.push(`Nilai bahan kimia, air, dan pengolahan limbah yang terbuang setara ${fmtPct(r.analysis.waste.pctOfCost)} biaya proses.`);
   } else if (r.mfca.totalCostRp > 0) {
-    out.push(`Bahan dan energi yang terbuang bernilai ${fmtPct((r.mfca.costLossRp / r.mfca.totalCostRp) * 100)} dari biaya proses.`);
+    out.push(`Nilai bahan dan energi yang terbuang setara ${fmtPct((r.mfca.costLossRp / r.mfca.totalCostRp) * 100)} biaya proses.`);
   }
-  if (actions[0]) out.push(`Perbaikan terbaik: ${actions[0].action.toLowerCase()}, hemat sekitar ${fmtRp(actions[0].savingRpYear)} per tahun.`);
-  else out.push("Belum ada simulasi perbaikan yang menghemat biaya; coba di menu Simulasi Perbaikan.");
+  if (actions[0]) out.push(`Perbaikan paling bermanfaat: ${actions[0].action.toLowerCase()}, perkiraan hemat ${fmtRp(actions[0].savingRpYear)} per tahun.`);
+  else out.push("Belum ada simulasi perbaikan yang menghemat biaya; susun simulasi di menu Simulasi Perbaikan.");
   return out;
 }

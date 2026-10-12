@@ -64,6 +64,19 @@ export interface Account {
   createdAt: string;
 }
 
+/** A user edit of one report text block; `base` is the engine text it was written over. */
+export interface ReportBlockEdit {
+  text: string;
+  base: string;
+  at: string;
+}
+
+export interface ReportDocEdits {
+  blocks: Record<string, ReportBlockEdit>;
+  /** Optional blocks (e.g. one improvement direction) left out of the report. */
+  hidden: string[];
+}
+
 export interface NextStep {
   action: string;
   owner: string;
@@ -86,6 +99,8 @@ interface State {
   nextSteps: NextStep[];
   /** Data saved before each document import (latest first, max 5). */
   importBackups: ImportBackup[];
+  /** Report text edits per report document (report type + result). */
+  reportEdits: Record<string, ReportDocEdits>;
   ui: Ui;
   notices: Notice[];
 
@@ -106,6 +121,10 @@ interface State {
   requireFeature: (feature: Feature, what: string) => boolean;
   consumeAiQuestion: () => boolean;
   setNextSteps: (steps: NextStep[]) => void;
+  setReportBlock: (doc: string, id: string, base: string, text: string) => void;
+  resetReportBlock: (doc: string, id: string) => void;
+  resetReportDoc: (doc: string) => void;
+  setReportHidden: (doc: string, id: string, hidden: boolean) => void;
   setUi: (patch: Partial<Ui>) => void;
 
   loadTemplate: (templateId: string) => boolean;
@@ -237,6 +256,7 @@ export const useAppStore = create<State>()(
         onboardingDone: false,
         nextSteps: [],
         importBackups: [],
+        reportEdits: {},
         ui: {
           activeRunId: null,
           compareScenarioId: null,
@@ -417,6 +437,37 @@ export const useAppStore = create<State>()(
           set({ nextSteps: steps });
           get().log("report", "next-steps", "update", { newValue: steps });
         },
+        setReportBlock: (doc, id, base, text) =>
+          set((s) => {
+            const cur = s.reportEdits[doc] ?? { blocks: {}, hidden: [] };
+            const blocks = { ...cur.blocks };
+            // Typing the engine text back exactly is the same as no edit.
+            if (text === base) delete blocks[id];
+            else blocks[id] = { text, base, at: new Date().toISOString() };
+            return { reportEdits: { ...s.reportEdits, [doc]: { ...cur, blocks } } };
+          }),
+        resetReportBlock: (doc, id) =>
+          set((s) => {
+            const cur = s.reportEdits[doc];
+            if (!cur) return {};
+            const blocks = { ...cur.blocks };
+            delete blocks[id];
+            return { reportEdits: { ...s.reportEdits, [doc]: { ...cur, blocks } } };
+          }),
+        resetReportDoc: (doc) => {
+          const rest = { ...get().reportEdits };
+          delete rest[doc];
+          set({ reportEdits: rest });
+          get().log("report", doc, "reset-report-text");
+        },
+        setReportHidden: (doc, id, hidden) =>
+          set((s) => {
+            const cur = s.reportEdits[doc] ?? { blocks: {}, hidden: [] };
+            const set2 = new Set(cur.hidden);
+            if (hidden) set2.add(id);
+            else set2.delete(id);
+            return { reportEdits: { ...s.reportEdits, [doc]: { ...cur, hidden: [...set2] } } };
+          }),
 
         loadTemplate: (templateId) => {
           const role = get().user.role;
@@ -877,6 +928,7 @@ export const useAppStore = create<State>()(
         onboardingDone: s.onboardingDone,
         nextSteps: s.nextSteps,
         importBackups: s.importBackups,
+        reportEdits: s.reportEdits,
         ui: { ...s.ui, copilotOpen: false },
       }),
       /** Corrupt or older state never crashes the app: fall back to the demo project. */
@@ -893,6 +945,7 @@ export const useAppStore = create<State>()(
           ...(state ?? {}),
           project: parsed.ok ? parsed.project : current.project,
           ui: { ...current.ui, ...(state?.ui ?? {}) },
+          reportEdits: state?.reportEdits && typeof state.reportEdits === "object" ? state.reportEdits : {},
           notices: [],
         };
       },

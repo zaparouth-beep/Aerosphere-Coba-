@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Braces, FileDown, FileSpreadsheet, Printer, ShieldCheck } from "lucide-react";
+import { DirectionsList } from "@/components/report/Directions";
+import { EditableText, ReportEditBar, ReportEditNotice, ReportEditor, useReportEdits } from "@/components/report/Editable";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
@@ -17,6 +19,7 @@ import { STAGE_IDS } from "@/lib/engine/lci";
 import { IMPACT_CATEGORIES } from "@/lib/engine/method";
 import { MFCA_COST_LABEL, type MfcaCostKey } from "@/lib/engine/mfca";
 import { buildResultsWorkbook, evidencePack, griRows, lciRows, properRows, REPORT_TEMPLATES, type ReportContext, type ReportTemplateId } from "@/lib/io/reports";
+import { buildDirections } from "@/lib/report/directions";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults, useScenarioOutcomes } from "@/lib/store/useResults";
 import { cn } from "@/lib/utils/cn";
@@ -32,6 +35,16 @@ const LAYER_TEMPLATES: Record<"teknis" | "kepatuhan", ReportTemplateId[]> = {
 };
 
 export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "kepatuhan" }) {
+  const { run } = useActiveResults();
+  const [template, setTemplate] = useState<ReportTemplateId>(LAYER_TEMPLATES[layer][0]!);
+  return (
+    <ReportEditor doc={`${template}:${run?.id ?? "DRAF"}`}>
+      <ReportBody layer={layer} template={template} setTemplate={setTemplate} />
+    </ReportEditor>
+  );
+}
+
+function ReportBody({ layer, template, setTemplate }: { layer: "teknis" | "kepatuhan"; template: ReportTemplateId; setTemplate: (t: ReportTemplateId) => void }) {
   const { project, results, run } = useActiveResults();
   const { outcomes } = useScenarioOutcomes();
   const events = useAppStore((s) => s.events);
@@ -39,17 +52,19 @@ export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "
   const log = useAppStore((s) => s.log);
   const subscription = useAppStore((s) => s.subscription);
   const setUi = useAppStore((s) => s.setUi);
+  const edits = useReportEdits();
   const templates = REPORT_TEMPLATES.filter((t) => LAYER_TEMPLATES[layer].includes(t.id));
-  const [template, setTemplate] = useState<ReportTemplateId>(LAYER_TEMPLATES[layer][0]!);
   const generatedAt = useMemo(() => new Date().toISOString(), []);
   const ctx: ReportContext = { project, results, run, outcomes, events, generatedAt, generatedBy: user.name };
   const allowed = can(user.role, "generateReport") || user.role === "Auditor";
+  const off = !allowed || edits.blocked;
+  const why = !allowed ? "Peran Anda tidak bisa membuat laporan." : edits.blockedReason;
   const history = events.filter((e) => e.action === "generate-report").slice(-10).reverse();
   const tpl = REPORT_TEMPLATES.find((t) => t.id === template)!;
 
   const record = (format: string, content: unknown) => {
     setUi({ reportDownloaded: true });
-    log("report", template, "generate-report", { newValue: { template: tpl.label, format, run: run?.id ?? "DRAFT", fileHash: hashOf(content) } });
+    log("report", template, "generate-report", { newValue: { template: tpl.label, format, run: run?.id ?? "DRAFT", fileHash: hashOf(content), editedBlocks: edits.edited } });
   };
 
   return (
@@ -82,9 +97,11 @@ export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "
             subtitle={`Sumber: ${run ? `Hasil #${run.id} (hash ${run.resultHash.slice(0, 12)}…)` : "data terkini (draf)"} · bahasa: Indonesia`}
             action={
               <>
+                <ReportEditBar />
                 <Button
                   size="sm"
-                  disabled={!allowed}
+                  disabled={off}
+                  title={why}
                   onClick={() => {
                     record("pdf", results);
                     window.print();
@@ -95,7 +112,8 @@ export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "
                 <Button
                   size="sm"
                   variant="secondary"
-                  disabled={!allowed}
+                  disabled={off}
+                  title={why}
                   onClick={async () => {
                     const blob = await buildResultsWorkbook(ctx);
                     record("xlsx", results);
@@ -107,7 +125,8 @@ export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "
                 <Button
                   size="sm"
                   variant="secondary"
-                  disabled={!allowed}
+                  disabled={off}
+                  title={why}
                   onClick={() => {
                     const rows = lciRows(ctx);
                     record("csv", rows);
@@ -116,24 +135,27 @@ export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "
                 >
                   <FileDown className="h-3.5 w-3.5" /> CSV LCI
                 </Button>
-                {layer === "kepatuhan" && hasFeature(subscription, "auditEvidence") && <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    const pack = evidencePack(ctx);
-                    record("evidence-json", pack);
-                    downloadJSON(pack, `AeroSphere-audit-evidence-${run?.id ?? "DRAF"}-${fileStamp()}.json`);
-                  }}
-                >
-                  <Braces className="h-3.5 w-3.5" /> Paket bukti audit (JSON)
-                </Button>}
+                {layer === "kepatuhan" && hasFeature(subscription, "auditEvidence") && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const pack = evidencePack(ctx);
+                      record("evidence-json", pack);
+                      downloadJSON(pack, `AeroSphere-audit-evidence-${run?.id ?? "DRAF"}-${fileStamp()}.json`);
+                    }}
+                  >
+                    <Braces className="h-3.5 w-3.5" /> Paket bukti audit (JSON)
+                  </Button>
+                )}
               </>
             }
           />
           <CardBody>
             <p className="text-[11px] text-navy-700/60">
-              Setiap file yang dibuat dicatat di jejak audit beserta hash isinya. Ekspor JSON-LD openLCA dan PDF server-side (WeasyPrint/Typst) membutuhkan backend
-              (PRD 3.4); versi browser memakai cetak ke PDF.
+              Teks laporan bisa diubah sebelum dicetak lewat “Ubah teks laporan”; angka dan tabel tetap dari mesin hitung. File Excel dan CSV berisi data hasil hitung (tanpa teks
+              laporan). Setiap file yang dibuat dicatat di jejak audit beserta hash isinya. Ekspor JSON-LD openLCA dan PDF server-side membutuhkan backend (PRD 3.4); versi browser
+              memakai cetak ke PDF.
             </p>
             {history.length > 0 && (
               <div className="mt-3">
@@ -152,6 +174,7 @@ export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "
             )}
           </CardBody>
         </Card>
+        <ReportEditNotice />
       </div>
 
       <ReportPreview ctx={ctx} template={template} />
@@ -161,17 +184,39 @@ export default function LaporanPage({ layer = "teknis" }: { layer?: "teknis" | "
 
 /* --------------------------------- Preview -------------------------------- */
 
+const STATUS_LABEL: Record<string, string> = { draft: "Draf", recommended: "Direkomendasikan", approved: "Disetujui" };
+
 function ReportPreview({ ctx, template }: { ctx: ReportContext; template: ReportTemplateId }) {
   const { project: p, results: r, run, outcomes } = ctx;
   const ind = indicatorsOf(r);
   const fu = r.lci.fuLabel;
   const tpl = REPORT_TEMPLATES.find((t) => t.id === template)!;
+  const edits = useReportEdits();
+  const directions = useMemo(() => buildDirections(p, r, outcomes, "id"), [p, r, outcomes]);
   const best = [...outcomes].sort((a, b) => a.delta.ccKg.pct + a.delta.costRp.pct - (b.delta.ccKg.pct + b.delta.costRp.pct))[0];
   const topStage = (metric: "energy" | "water" | "chemical" | "waste") => {
     let b = STAGE_IDS[0]!;
     for (const s of STAGE_IDS) if ((r.hotspot.share[s][metric] ?? 0) > (r.hotspot.share[b][metric] ?? 0)) b = s;
     return `${stageLabel(p, b)} (${fmt(r.hotspot.share[b][metric] ?? 0, 0)}%)`;
   };
+  const unmapped = r.lcia.unmapped.length;
+  const lossPct = fmtPct(r.mfca.totalCostRp ? (r.mfca.costLossRp / r.mfca.totalCostRp) * 100 : 0);
+  const ccCov = r.lcia.coverage.find((c) => c.impact === "cc");
+  const E = (id: string, text: string, className?: string) => <EditableText id={id} text={text} className={className} label={id} />;
+
+  const summary1 =
+    `Untuk setiap 1 ${fu} permukaan yang dilapisi, lini memakai **${fmt(r.lci.intensity.energy, 2)} kWh** listrik, **${fmt(r.lci.intensity.water, 1)} L** air, ` +
+    `dan **${fmt(r.lci.intensity.chemical, 2)} kg** bahan kimia, serta menghasilkan **${fmt(r.lci.intensity.waste, 2)} kg** limbah B3. ` +
+    `Jejak karbon (perubahan iklim) sebesar **${fmtSig(r.lcia.perFu.cc)} kg CO₂-eq per ${fu}**` +
+    (unmapped ? `; ${unmapped} aliran belum memiliki faktor emisi sehingga belum ikut dihitung. ` : `; seluruh aliran sudah memiliki faktor emisi. `) +
+    `Biaya proses **${fmtRp(r.mfca.costPerFu)} per ${fu}**, dan **${lossPct}** dari total biaya merupakan nilai bahan dan energi yang terbuang (negative product menurut MFCA).`;
+  const summary2 =
+    `Titik boros utama: listrik di ${topStage("energy")}, bahan kimia di ${topStage("chemical")}, air di ${topStage("water")}, dan limbah B3 di ${topStage("waste")}.` +
+    (best && (best.delta.ccKg.abs < 0 || best.delta.costRp.abs < 0)
+      ? ` Skenario dengan hasil terbaik adalah **${best.scenario.code} ${best.scenario.name}** (jejak karbon ${fmtDelta(best.delta.ccKg.pct)}, biaya ${fmtDelta(best.delta.costRp.pct)}).`
+      : "");
+  const fullDirections = template === "iso14044" || template === "decision" || template === "mfca";
+  const noteText = edits.text("catatan", "");
 
   return (
     <article className="relative mx-auto max-w-[900px] rounded-xl border border-sand-200 bg-white p-8 shadow-card print:max-w-none print:border-0 print:p-0 print:shadow-none">
@@ -193,65 +238,60 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
 
       {(template === "iso14044" || template === "onepager" || template === "decision") && (
         <Section title="Ringkasan eksekutif">
-          <p>
-            Per {fu} permukaan ter-plating, lini menggunakan <b>{fmt(r.lci.intensity.energy, 2)} kWh</b> energi, <b>{fmt(r.lci.intensity.water, 1)} L</b> air,{" "}
-            <b>{fmt(r.lci.intensity.chemical, 2)} kg</b> bahan kimia, dan menghasilkan <b>{fmt(r.lci.intensity.waste, 2)} kg</b> limbah B3. Climate change terpetakan{" "}
-            <b>{fmtSig(r.lcia.perFu.cc)} kg CO₂-eq/{fu}</b> ({r.lcia.unmapped.length} aliran belum dipetakan). Biaya proses <b>{fmtRp(r.mfca.costPerFu)}/{fu}</b>, dengan
-            negative product <b>{fmtPct(r.mfca.totalCostRp ? (r.mfca.costLossRp / r.mfca.totalCostRp) * 100 : 0)}</b> dari total biaya.
-          </p>
-          <p className="mt-2">
-            Hotspot: energi di {topStage("energy")}, kimia di {topStage("chemical")}, air di {topStage("water")}, limbah B3 di {topStage("waste")}.
-            {best && (best.delta.ccKg.abs < 0 || best.delta.costRp.abs < 0) && (
-              <>
-                {" "}
-                Skenario terbaik: <b>{best.scenario.code} {best.scenario.name}</b> (GWP {fmtDelta(best.delta.ccKg.pct)}, biaya {fmtDelta(best.delta.costRp.pct)}).
-              </>
-            )}
-          </p>
+          {E("ringkasan:1", summary1)}
+          {E("ringkasan:2", summary2, "mt-2")}
         </Section>
       )}
 
       {template === "iso14044" && (
         <>
-          <Section title="1. Goal & scope">
+          <Section title="1. Tujuan dan ruang lingkup">
             <Dl
               rows={[
-                ["Tujuan", p.scope.goal],
-                ["Audiens", p.scope.intendedAudience],
-                ["Satuan fungsi & reference flow", `1 ${fu}; ${fmt(r.lci.referenceFlow)} ${fu} per ${p.periodLabel}`],
-                ["Boundary", `${p.scope.boundary}; tahap ${p.stages.filter((s) => s.inBoundary).map((s) => s.id).join(", ")}`],
-                ["Cut-off & alokasi", `< ${fmt(p.scope.cutoffPct)}% massa/energi; alokasi per ${p.scope.allocation}`],
-                ["Metode & database", `${p.method.primary} (${p.method.release}); ${p.scope.backgroundDb}`],
-                ["Versi scope", `v${p.scope.version}${p.scope.lockedAt ? ` (dikunci ${fmtDate(p.scope.lockedAt)})` : " (draf)"}`],
+                ["Tujuan kajian", p.scope.goal],
+                ["Pengguna hasil kajian", p.scope.intendedAudience],
+                ["Satuan fungsi dan aliran acuan", `1 ${fu}; ${fmt(r.lci.referenceFlow)} ${fu} per ${p.periodLabel}`],
+                ["Batas sistem", `${p.scope.boundary}; tahap ${p.stages.filter((s) => s.inBoundary).map((s) => s.id).join(", ")}`],
+                ["Kriteria cut-off dan alokasi", `< ${fmt(p.scope.cutoffPct)}% massa/energi; alokasi per ${p.scope.allocation}`],
+                ["Metode dan basis data", `${p.method.primary} (${p.method.release}); ${p.scope.backgroundDb}`],
+                ["Versi ruang lingkup", `v${p.scope.version}${p.scope.lockedAt ? ` (dikunci ${fmtDate(p.scope.lockedAt)})` : " (draf)"}`],
               ]}
             />
-            <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs">
-              {p.scope.assumptions.map((a) => (
-                <li key={a}>{a}</li>
-              ))}
-            </ol>
+            {p.scope.assumptions.length > 0 && (
+              <>
+                <p className="mt-3 text-xs font-semibold">Asumsi kajian</p>
+                <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-xs">
+                  {p.scope.assumptions.map((a) => (
+                    <li key={a}>{a}</li>
+                  ))}
+                </ol>
+              </>
+            )}
           </Section>
-          <Section title="2. Inventori (LCI) per tahap">
+          <Section title="2. Inventori siklus hidup (LCI) per tahap">
             <StageTable ctx={ctx} />
           </Section>
           <Section title="3. Kualitas data">
-            <p>
-              Kelengkapan input {fmt(r.validation.completenessPct, 0)}%, {r.validation.errors} error, {r.validation.warnings} peringatan, neraca air {fmt(r.validation.water.closurePct, 1)}%, skor
-              pedigree rata-rata {fmt(r.validation.avgPedigree, 2)}. Dataset v{p.dataset.version} {p.dataset.status === "approved" ? `di-approve oleh ${p.dataset.approvedBy}` : "belum di-approve"}.
-            </p>
+            {E(
+              "kualitas",
+              `Kelengkapan data input ${fmt(r.validation.completenessPct, 0)}%, dengan ${r.validation.errors} kesalahan dan ${r.validation.warnings} peringatan validasi. ` +
+                `Neraca air tertutup ${fmt(r.validation.water.closurePct, 1)}% dan skor pedigree rata-rata ${fmt(r.validation.avgPedigree, 2)} (semakin kecil semakin baik). ` +
+                `Data versi ${p.dataset.version} ${p.dataset.status === "approved" ? `telah disetujui oleh ${p.dataset.approvedBy}` : "belum disetujui oleh penanggung jawab data"}.`,
+            )}
           </Section>
         </>
       )}
 
       {(template === "iso14044" || template === "pcf") && (
-        <Section title={template === "pcf" ? "Jejak karbon produk" : "4. Hasil LCIA (EF 3.1)"}>
+        <Section title={template === "pcf" ? "Jejak karbon produk" : "4. Hasil penilaian dampak (LCIA, EF 3.1)"}>
           {template === "iso14044" ? <LciaTable ctx={ctx} /> : null}
-          {template === "pcf" && (
-            <p className="mb-2">
-              Jejak karbon: <b>{fmtSig(r.lcia.perFu.cc)} kg CO₂-eq per {fu}</b> (IPCC AR6 GWP100), location-based. Cakupan: {r.lcia.coverage.find((c) => c.impact === "cc")?.covered} dari{" "}
-              {r.lcia.coverage.find((c) => c.impact === "cc")?.total} aliran background berfaktor; aliran tanpa faktor dicatat sebagai exclusion.
-            </p>
-          )}
+          {template === "pcf" &&
+            E(
+              "pcf",
+              `Jejak karbon produk sebesar **${fmtSig(r.lcia.perFu.cc)} kg CO₂-eq per ${fu}** (IPCC AR6 GWP100, metode location-based). ` +
+                `${ccCov?.covered} dari ${ccCov?.total} aliran latar belakang sudah memiliki faktor emisi; aliran tanpa faktor dicatat sebagai pengecualian dan tidak diisi nol.`,
+              "mb-2",
+            )}
           <Table caption="Scope 1, 2, 3">
             <THead>
               <tr>
@@ -270,18 +310,18 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
               ))}
             </tbody>
           </Table>
-          {r.lcia.unmapped.length > 0 && <p className="mt-2 text-xs">Exclusions (belum dipetakan): {r.lcia.unmapped.join(", ")}.</p>}
+          {unmapped > 0 && <p className="mt-2 text-xs">Pengecualian (belum memiliki faktor emisi): {r.lcia.unmapped.join(", ")}.</p>}
         </Section>
       )}
 
       {(template === "iso14044" || template === "mfca") && (
-        <Section title={template === "mfca" ? "Matriks biaya MFCA (ISO 14051)" : "5. MFCA"}>
+        <Section title={template === "mfca" ? "Matriks biaya aliran material (MFCA, ISO 14051)" : "5. Akuntansi biaya aliran material (MFCA)"}>
           <Table caption="MFCA">
             <THead>
               <tr>
-                <Th>Kategori</Th>
-                <Th align="right">Positive</Th>
-                <Th align="right">Negative</Th>
+                <Th>Kategori biaya</Th>
+                <Th align="right">Produk (positif)</Th>
+                <Th align="right">Kerugian (negatif)</Th>
               </tr>
             </THead>
             <tbody>
@@ -294,22 +334,24 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
               ))}
             </tbody>
           </Table>
-          <p className="mt-2">
-            Material masuk {fmt(r.mfca.materialInKg, 1)} kg; positive product (lapisan) {fmt(r.mfca.positiveKg, 2)} kg; material loss {fmt(r.mfca.materialLossKg, 1)} kg. Cost loss terbesar
-            per tahap: {[...r.mfca.stages].sort((a, b) => b.costLossRp - a.costLossRp).slice(0, 3).map((s) => `${stageLabel(p, s.stageId)} ${fmtRp(s.costLossRp)}`).join("; ")}.
-          </p>
+          {E(
+            "mfca",
+            `Material yang masuk ${fmt(r.mfca.materialInKg, 1)} kg; yang menjadi lapisan pada produk ${fmt(r.mfca.positiveKg, 2)} kg, dan yang hilang sebagai kerugian material ${fmt(r.mfca.materialLossKg, 1)} kg. ` +
+              `Kerugian biaya terbesar per tahap: ${[...r.mfca.stages].sort((a, b) => b.costLossRp - a.costLossRp).slice(0, 3).map((s) => `${stageLabel(p, s.stageId)} ${fmtRp(s.costLossRp)}`).join("; ")}.`,
+            "mt-2",
+          )}
         </Section>
       )}
 
       {(template === "iso14044" || template === "decision" || template === "onepager") && outcomes.length > 0 && (
-        <Section title={template === "iso14044" ? "6. Interpretasi & skenario" : "Skenario S0–S3"}>
+        <Section title={template === "iso14044" ? "6. Interpretasi dan skenario perbaikan" : "Perbandingan skenario"}>
           <Table caption="Skenario">
             <THead>
               <tr>
                 <Th>Skenario</Th>
-                <Th align="right">Δ Energi</Th>
+                <Th align="right">Δ Listrik</Th>
                 <Th align="right">Δ Air</Th>
-                <Th align="right">Δ GWP</Th>
+                <Th align="right">Δ Jejak karbon</Th>
                 <Th align="right">Δ Biaya</Th>
                 <Th>Status</Th>
               </tr>
@@ -324,7 +366,7 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
                   <Td num>{fmtDelta(o.delta.waterL.pct)}</Td>
                   <Td num>{fmtDelta(o.delta.ccKg.pct)}</Td>
                   <Td num>{fmtRp(o.delta.costRp.abs)}</Td>
-                  <Td>{o.scenario.status}</Td>
+                  <Td>{STATUS_LABEL[o.scenario.status] ?? o.scenario.status}</Td>
                 </Tr>
               ))}
             </tbody>
@@ -333,26 +375,31 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
             <div className="mt-2 text-xs">
               {outcomes.map((o) => (
                 <p key={o.scenario.id} className="mt-1">
-                  <b>{o.scenario.code} asumsi:</b> {o.assumptions.join(" ") || "–"}
+                  <b>Asumsi {o.scenario.code}:</b> {o.assumptions.join(" ") || "–"}
                 </p>
               ))}
             </div>
           )}
-          {template === "iso14044" && (
-            <p className="mt-2 text-xs">
-              Keterbatasan: aliran tanpa dataset background dan kategori tanpa CF tidak dihitung (dilaporkan di atas); ketidakpastian dihitung dari pedigree (akar jumlah kuadrat),
-              belum Monte Carlo.
-            </p>
-          )}
+          {template === "iso14044" &&
+            E(
+              "keterbatasan",
+              "Keterbatasan: aliran tanpa data latar belakang dan kategori tanpa faktor karakterisasi tidak dihitung (dicantumkan di atas). Ketidakpastian dihitung dari skor pedigree (akar jumlah kuadrat); analisis Monte Carlo belum dilakukan.",
+              "mt-2 text-xs",
+            )}
         </Section>
       )}
 
       {template === "gri" && (
-        <Section title="GRI Disclosure">
+        <Section title="Pengungkapan GRI">
+          {E(
+            "gri:intro",
+            `Tabel berikut memetakan hasil hitung lini ke pengungkapan GRI 302 (energi), 303 (air), 305 (emisi), dan 306 (limbah) untuk periode ${p.periodLabel}. Nilai berlaku untuk lini yang dikaji, bukan seluruh organisasi.`,
+            "mb-2",
+          )}
           <Table caption="GRI">
             <THead>
               <tr>
-                <Th>Disclosure</Th>
+                <Th>Pengungkapan</Th>
                 <Th>Indikator</Th>
                 <Th align="right">Nilai</Th>
                 <Th>Satuan</Th>
@@ -374,6 +421,11 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
 
       {template === "proper" && (
         <Section title="KPI PROPER">
+          {E(
+            "proper:intro",
+            `KPI berikut disiapkan sebagai bahan dokumen PROPER (efisiensi energi, penurunan emisi, efisiensi air, beban pencemar air, dan pengelolaan limbah B3) untuk periode ${p.periodLabel}. Nilai kosong berarti data pendukungnya belum tersedia.`,
+            "mb-2",
+          )}
           <Table caption="PROPER">
             <THead>
               <tr>
@@ -399,12 +451,12 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
         <Section title="Indikator utama">
           <div className="grid grid-cols-3 gap-3 text-center">
             {[
-              ["Energi", `${fmt(r.lci.intensity.energy, 2)} kWh/${fu}`],
+              ["Listrik", `${fmt(r.lci.intensity.energy, 2)} kWh/${fu}`],
               ["Air", `${fmt(r.lci.intensity.water, 1)} L/${fu}`],
               ["Limbah B3", `${fmt(r.lci.intensity.waste, 2)} kg/${fu}`],
-              ["Climate change", `${fmtSig(r.lcia.perFu.cc)} kg CO₂e/${fu}`],
-              ["Biaya", `${fmtRp(r.mfca.costPerFu)}/${fu}`],
-              ["Cost loss", fmtRp(ind.costLossRp)],
+              ["Jejak karbon", `${fmtSig(r.lcia.perFu.cc)} kg CO₂e/${fu}`],
+              ["Biaya proses", `${fmtRp(r.mfca.costPerFu)}/${fu}`],
+              ["Nilai terbuang (MFCA)", fmtRp(ind.costLossRp)],
             ].map(([k, v]) => (
               <div key={k} className="rounded-lg bg-sand-50 p-3">
                 <p className="text-[10px] uppercase tracking-wide text-navy-700/60">{k}</p>
@@ -415,21 +467,40 @@ function ReportPreview({ ctx, template }: { ctx: ReportContext; template: Report
         </Section>
       )}
 
+      {directions.length > 0 && (
+        <Section title={template === "iso14044" ? "7. Arahan perbaikan" : fullDirections ? "Arahan perbaikan" : "Arahan tindak lanjut"} wide>
+          {E(
+            "arahan:intro",
+            fullDirections
+              ? "Setiap arahan berikut disusun dari skenario yang dihitung mesin hitung: alasan, langkah kerja berurutan, penanggung jawab, target, dan cara mengukur keberhasilannya."
+              : "Ringkasan tindakan prioritas beserta target dan penanggung jawabnya. Rincian langkah kerja tersedia di laporan Scenario Decision Brief.",
+            "mb-3",
+          )}
+          <DirectionsList byLang={{ id: directions }} langs={["id"]} compact={!fullDirections} />
+        </Section>
+      )}
+
+      {(edits.editing || noteText) && (
+        <Section title="Catatan penyusun">
+          <EditableText id="catatan" text="" placeholder="Catatan penyusun laporan — opsional (mis. konteks keputusan, pihak yang dilibatkan)" label="Catatan penyusun" />
+        </Section>
+      )}
+
       <footer className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-sand-200 pt-3 text-[10px] text-navy-700/60">
         <span className="flex items-center gap-1">
-          <ShieldCheck className="h-3 w-3" /> {run ? `Run ${run.id} · hash ${run.resultHash.slice(0, 16)}…` : "DRAF — bukan dari run terkunci"} · {p.method.primary} ({p.method.release})
+          <ShieldCheck className="h-3 w-3" /> {run ? `Hasil #${run.id} · hash ${run.resultHash.slice(0, 16)}…` : "DRAF — belum berasal dari hasil tersimpan"} · {p.method.primary} ({p.method.release})
         </span>
         <span>
-          Dibuat {fmtDate(ctx.generatedAt)} oleh {ctx.generatedBy} · Confidential – Tenant · Belum melalui critical review (ISO 14044)
+          Dibuat {fmtDate(ctx.generatedAt)} oleh {ctx.generatedBy} · Rahasia – Tenant · Belum melalui tinjauan kritis pihak ketiga (ISO 14044)
         </span>
       </footer>
     </article>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, wide }: { title: string; children: React.ReactNode; wide?: boolean }) {
   return (
-    <section className="mt-6 break-inside-avoid text-sm leading-relaxed text-navy-900">
+    <section className={cn("mt-6 text-sm leading-relaxed text-navy-900", !wide && "break-inside-avoid")}>
       <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-navy-900">{title}</h3>
       {children}
     </section>
