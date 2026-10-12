@@ -473,6 +473,14 @@ Rincian nilai terbuang: kimia proses non-anoda 350 kg × 45.000 = 15.750.000; ki
 
 Pakai kamus label dari TPRD v1.1 bagian 3.0.4. Contoh wajib: titik boros (bukan hotspot), jejak karbon (bukan GWP), larutan terbawa part (bukan drag-out), penyearah arus (bukan rectifier), per 1 m² permukaan dilapisi (bukan FU). Angka dibulatkan maksimal 3 angka penting; tidak ada notasi ilmiah di Mode Ringkas.
 
+### 5.0a Dua bahasa (Indonesia / English)
+
+Seluruh aplikasi dan situs publik bisa dipakai dalam Bahasa Indonesia (bawaan) atau English lewat tombol **ID | EN** di bar atas dan header situs. Pilihan disimpan di browser. Cara kerja, aturan, dan daftar istilah ada di `docs/I18N.md`. Ringkasnya:
+- Angka dan tanggal mengikuti bahasa.
+- Hasil hitung dan hash tidak berubah karena bahasa.
+- Data milik pengguna, termasuk data proyek contoh, tidak diterjemahkan.
+- Laporan Kajian LCA tetap punya pilihan Indonesia / English / Dwibahasa sendiri, dengan bawaan mengikuti bahasa aplikasi.
+
 ### 5.1 Beranda — untuk orang yang tidak paham LCA
 
 Masalah sekarang: terlalu banyak angka dan istilah tanpa arti. Beranda harus menjawab satu pertanyaan: **"Bagaimana kondisi lini saya, dan apa yang harus saya lakukan?"**

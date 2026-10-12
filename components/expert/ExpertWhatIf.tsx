@@ -1,5 +1,6 @@
 "use client";
 
+import { timelineWord } from "@/lib/view/summary";
 import { useEffect, useMemo, useState } from "react";
 import { OPEN_SCENARIO_EVENT } from "@/components/simulasi/ChangeLab";
 import { BadgeCheck, Lock, Plus, Star, Trash2 } from "lucide-react";
@@ -500,7 +501,7 @@ function SimpleComparison() {
               <Td num>–</Td>
               {outcomes.map((o) => (
                 <Td key={o.scenario.id} num>
-                  {o.scenario.effort ? tx(o.scenario.effort, EFFORT_EN[o.scenario.effort] ?? o.scenario.effort) : "–"} · {o.scenario.timeline ?? "–"}
+                  {o.scenario.effort ? tx(o.scenario.effort, EFFORT_EN[o.scenario.effort] ?? o.scenario.effort) : "–"} · {o.scenario.timeline ? timelineWord(o.scenario.timeline) : "–"}
                 </Td>
               ))}
             </Tr>

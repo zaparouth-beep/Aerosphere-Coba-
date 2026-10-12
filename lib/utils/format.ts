@@ -26,9 +26,9 @@ export function fmtRpShort(value: number): string {
   if (!Number.isFinite(value)) return "Rp –";
   const abs = Math.abs(value);
   const sign = value < 0 ? "−" : "";
-  if (abs >= 1e9) return `${sign}Rp${fmt(abs / 1e9, 2)} ${tx("M", "bn")}`;
-  if (abs >= 1e6) return `${sign}Rp${fmt(abs / 1e6, 2)} ${tx("jt", "m")}`;
-  if (abs >= 1e3) return `${sign}Rp${fmt(abs / 1e3, 1)} ${tx("rb", "k")}`;
+  if (abs >= 1e9) return `${sign}Rp${fmt(abs / 1e9, 2)}${tx(" M", "bn")}`;
+  if (abs >= 1e6) return `${sign}Rp${fmt(abs / 1e6, 2)}${tx(" jt", "m")}`;
+  if (abs >= 1e3) return `${sign}Rp${fmt(abs / 1e3, 1)}${tx(" rb", "k")}`;
   return `${sign}Rp${fmt(abs, 0)}`;
 }
 

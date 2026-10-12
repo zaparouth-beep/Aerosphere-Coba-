@@ -14,7 +14,7 @@ import { Segmented } from "@/components/ui/Tabs";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
 import type { ImpactId } from "@/lib/domain/types";
 import { STAGE_IDS } from "@/lib/engine/lci";
-import { SCOPE_LABEL, SOURCE_LABEL, type GhgScope, type SourceKey } from "@/lib/engine/lcia";
+import { SCOPE_LABEL, SOURCE_LABEL, type GhgScope, type SourceKey, lciaErrorsText, uncharacterisedText } from "@/lib/engine/lcia";
 import { IMPACT_CATEGORIES } from "@/lib/engine/method";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults } from "@/lib/store/useResults";
@@ -98,7 +98,7 @@ export default function LciaPage() {
               </>
             }
           />
-          {l.errors.map((e) => ` ${e}`)}
+          {lciaErrorsText(l).map((e) => ` ${e}`)}
         </Callout>
       )}
 
@@ -137,7 +137,7 @@ export default function LciaPage() {
             {l.uncharacterised.length > 0 && (
               <p className="mt-3 flex items-start gap-1.5 text-[11px] text-navy-700/65">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-warn" />
-                {tx("Aliran tanpa faktor karakterisasi (dilaporkan, bukan nol)", "Flows without characterisation factors (reported, not zero)")}: {l.uncharacterised.join(", ")}.
+                {tx("Aliran tanpa faktor karakterisasi (dilaporkan, bukan nol)", "Flows without characterisation factors (reported, not zero)")}: {uncharacterisedText(l).join(", ")}.
               </p>
             )}
           </CardBody>
