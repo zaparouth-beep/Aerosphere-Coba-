@@ -47,9 +47,22 @@ test("changing a simulation setting updates the result, even while a saved resul
   await page.getByRole("button", { name: "Hitung hasil" }).click();
   const before = await rectifierSaving(page);
   await page.getByRole("button", { name: /Perbaiki penyearah arus/ }).first().click();
-  const eta = page.locator("#detail-simulasi").getByLabel("Efisiensi baru (%)");
+  const eta = page.locator("#detail-simulasi").getByLabel("Efisiensi penyearah baru (%)");
   await eta.fill("97");
   await eta.press("Enter");
   await expect(eta).toHaveValue("97");
   await expect.poll(() => rectifierSaving(page)).not.toBe(before);
+});
+
+test("simulation settings explain each improvement and figure", async ({ page }) => {
+  await loginDemo(page);
+  await go(page, "/simulasi");
+  const detail = page.locator("#detail-simulasi");
+  await expect(detail).toContainText("Berdampak pada:");
+  await expect(detail).toContainText("Perpanjang waktu tiris");
+  await expect(detail).toContainText("Bagian larutan yang tidak lagi terbawa part ke bilasan.");
+  if (process.env.SCREENSHOTS) {
+    await detail.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "docs/screenshots/simulasi-pengaturan.png" });
+  }
 });

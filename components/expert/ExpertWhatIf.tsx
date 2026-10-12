@@ -29,31 +29,157 @@ import { fmt, fmtDelta, fmtRp, fmtRpShort, fmtSig } from "@/lib/utils/format";
 
 const DEFAULTS = LEVER_DEFAULTS;
 
-const PARAMS: Record<LeverId, Array<{ key: string; label: string; text?: boolean }>> = {
-  dragout: [{ key: "reductionPct", get label() { return tx("Larutan terbawa berkurang (%)", "Drag-out reduced (%)"); } }],
+const PARAMS: Record<LeverId, Array<{ key: string; label: string; hint: string; text?: boolean }>> = {
+  dragout: [
+    {
+      key: "reductionPct",
+      get label() {
+        return tx("Pengurangan larutan terbawa (%)", "Drag-out reduction (%)");
+      },
+      get hint() {
+        return tx("Bagian larutan yang tidak lagi terbawa part ke bilasan.", "Share of solution no longer carried by parts into the rinse.");
+      },
+    },
+  ],
   countercurrent: [
-    { key: "stagesOld", get label() { return tx("Tangki bilas sekarang", "Current rinse tanks"); } },
-    { key: "stagesNew", get label() { return tx("Tangki bilas baru", "New rinse tanks"); } },
-    { key: "ratio", get label() { return tx("Target kebersihan (C₀/Cₙ)", "Cleanliness target (C₀/Cₙ)"); } },
+    {
+      key: "stagesOld",
+      get label() {
+        return tx("Jumlah tangki bilas saat ini", "Current number of rinse tanks");
+      },
+      get hint() {
+        return tx("Jumlah tahap bilas sebelum perubahan.", "Rinse stages before the change.");
+      },
+    },
+    {
+      key: "stagesNew",
+      get label() {
+        return tx("Jumlah tangki bilas rencana", "Planned number of rinse tanks");
+      },
+      get hint() {
+        return tx("Jumlah tahap bilas setelah perubahan.", "Rinse stages after the change.");
+      },
+    },
+    {
+      key: "ratio",
+      get label() {
+        return tx("Target kebersihan bilasan (C₀/Cₙ)", "Rinse cleanliness target (C₀/Cₙ)");
+      },
+      get hint() {
+        return tx("Perbandingan kadar larutan proses terhadap bilasan akhir; makin besar, makin bersih.", "Ratio of process bath to final rinse concentration; higher means cleaner.");
+      },
+    },
   ],
   rectifier: [
-    { key: "etaOld", get label() { return tx("Efisiensi sekarang (%)", "Current efficiency (%)"); } },
-    { key: "etaNew", get label() { return tx("Efisiensi baru (%)", "New efficiency (%)"); } },
+    {
+      key: "etaOld",
+      get label() {
+        return tx("Efisiensi penyearah saat ini (%)", "Current rectifier efficiency (%)");
+      },
+      get hint() {
+        return tx("Dari lembar data alat atau hasil pengukuran.", "From the equipment data sheet or a measurement.");
+      },
+    },
+    {
+      key: "etaNew",
+      get label() {
+        return tx("Efisiensi penyearah baru (%)", "New rectifier efficiency (%)");
+      },
+      get hint() {
+        return tx("Efisiensi alat pengganti menurut spesifikasi pemasok.", "Replacement efficiency from the supplier specification.");
+      },
+    },
   ],
   tankCover: [
-    { key: "heatReductionPct", get label() { return tx("Kehilangan panas turun (%)", "Heat loss reduced (%)"); } },
-    { key: "mistReductionPct", get label() { return tx("Kabut turun (%)", "Mist reduced (%)"); } },
+    {
+      key: "heatReductionPct",
+      get label() {
+        return tx("Pengurangan kehilangan panas (%)", "Heat loss reduction (%)");
+      },
+      get hint() {
+        return tx("Pengurangan listrik pemanas karena tangki tertutup.", "Lower heater electricity because the tank is covered.");
+      },
+    },
+    {
+      key: "mistReductionPct",
+      get label() {
+        return tx("Pengurangan kabut (%)", "Mist reduction (%)");
+      },
+      get hint() {
+        return tx("Kabut yang tertahan oleh penutup.", "Mist held back by the cover.");
+      },
+    },
   ],
-  mistSuppressant: [{ key: "reductionPct", get label() { return tx("Kabut berkurang (%)", "Mist reduced (%)"); } }],
+  mistSuppressant: [
+    {
+      key: "reductionPct",
+      get label() {
+        return tx("Pengurangan kabut (%)", "Mist reduction (%)");
+      },
+      get hint() {
+        return tx("Menurut data pemasok atau hasil uji kabut.", "From supplier data or a mist test.");
+      },
+    },
+  ],
   effluentTarget: [
-    { key: "parameter", get label() { return tx("Zat di air buangan", "Substance in wastewater"); }, text: true },
-    { key: "newValue", get label() { return tx("Kadar target", "Target concentration"); } },
-    { key: "flocculantIncreasePct", get label() { return tx("Bahan penggumpal naik (%)", "Flocculant increase (%)"); } },
+    {
+      key: "parameter",
+      get label() {
+        return tx("Parameter air buangan", "Wastewater parameter");
+      },
+      get hint() {
+        return tx("Tulis sama persis dengan nama di Data Saya, mis. Ni atau Cr(VI).", "Use the exact name from My Data, e.g. Ni or Cr(VI).");
+      }, text: true,
+    },
+    {
+      key: "newValue",
+      get label() {
+        return tx("Kadar target", "Target concentration");
+      },
+      get hint() {
+        return tx("Dalam satuan yang sama dengan data air buangan (mis. mg/L).", "In the same unit as the wastewater data (e.g. mg/L).");
+      },
+    },
+    {
+      key: "flocculantIncreasePct",
+      get label() {
+        return tx("Tambahan bahan penggumpal (%)", "Extra flocculant (%)");
+      },
+      get hint() {
+        return tx("Kenaikan dosis bahan kimia IPAL untuk mencapai target.", "Higher WWTP chemical dose needed to reach the target.");
+      },
+    },
   ],
-  gridFactor: [{ key: "kgCO2ePerKwh", get label() { return tx("Emisi listrik (kg CO₂e/kWh)", "Electricity emissions (kg CO₂e/kWh)"); } }],
+  gridFactor: [
+    {
+      key: "kgCO2ePerKwh",
+      get label() {
+        return tx("Faktor emisi listrik baru (kg CO₂e/kWh)", "New electricity emission factor (kg CO₂e/kWh)");
+      },
+      get hint() {
+        return tx("Dari sertifikat atau kontrak listrik.", "From the certificate or power contract.");
+      },
+    },
+  ],
   bathConcentration: [
-    { key: "cOld", get label() { return tx("Konsentrasi sekarang (g/L)", "Current concentration (g/L)"); } },
-    { key: "cNew", get label() { return tx("Konsentrasi baru (g/L)", "New concentration (g/L)"); } },
+    {
+      key: "cOld",
+      get label() {
+        return tx("Konsentrasi saat ini (g/L)", "Current concentration (g/L)");
+      },
+      get hint() {
+        return tx("Dari hasil analisis larutan.", "From the bath analysis.");
+      },
+    },
+    {
+      key: "cNew",
+      get label() {
+        return tx("Konsentrasi rencana (g/L)", "Planned concentration (g/L)");
+      },
+      get hint() {
+        return tx("Pastikan tetap di dalam batas kendali proses.", "Keep it within the process control limits.");
+      },
+    },
   ],
 };
 
@@ -155,11 +281,11 @@ export default function WhatIfPage() {
     <div className="space-y-6">
       <div className="grid gap-4 xl:grid-cols-[320px_1fr]">
         <Card className="h-fit">
-          <CardHeader title={tx("Daftar perbaikan", "Improvement list")} info="whatif" subtitle={tx(`Kondisi sekarang + maksimal ${maxScenarios} simulasi`, `Current state + up to ${maxScenarios} simulations`)} action={editable && <IconButton label={tx("Tambah simulasi", "Add simulation")} onClick={addScenario} disabled={project.scenarios.length >= maxScenarios}><Plus className="h-4 w-4" /></IconButton>} />
+          <CardHeader title={tx("Daftar simulasi", "Simulation list")} info="whatif" subtitle={tx(`Kondisi saat ini sebagai pembanding, ditambah hingga ${maxScenarios} simulasi`, `The current state as the baseline, plus up to ${maxScenarios} simulations`)} action={editable && <IconButton label={tx("Tambah simulasi", "Add simulation")} onClick={addScenario} disabled={project.scenarios.length >= maxScenarios}><Plus className="h-4 w-4" /></IconButton>} />
           <CardBody className="space-y-2">
             <div className="rounded-lg border border-sand-200 bg-sand-50 p-3 text-xs">
-              <p className="font-semibold text-navy-900">{expert ? "S0 · Baseline" : tx("Kondisi sekarang", "Current state")}</p>
-              <p className="text-navy-700/65">{tx("Data proses saat ini, tanpa perubahan", "Current process data, unchanged")}</p>
+              <p className="font-semibold text-navy-900">{expert ? "S0 · Baseline" : tx("Kondisi saat ini", "Current state")}</p>
+              <p className="text-navy-700/65">{tx("Data proses apa adanya, sebagai pembanding", "Process data as it is, used as the baseline")}</p>
             </div>
             {project.scenarios.map((s, i) => {
               const o = outcomes.find((x) => x.scenario.id === s.id);
@@ -180,8 +306,8 @@ export default function WhatIfPage() {
                   </span>
                   <span className="mt-1 flex flex-wrap gap-1">
                     <Badge tone={s.status === "approved" ? "green" : s.status === "recommended" ? "blue" : "neutral"}>{STATUS_LABEL[s.status]}</Badge>
-                    {o && <Badge tone={o.delta.ccKg.pct < 0 ? "green" : "neutral"}>{tx("Karbon", "Carbon")} {fmtDelta(o.delta.ccKg.pct)}</Badge>}
-                    {o && <Badge tone={o.delta.costRp.pct < 0 ? "green" : "neutral"}>{tx("Biaya", "Cost")} {fmtDelta(o.delta.costRp.pct)}</Badge>}
+                    {o && <Badge tone={o.delta.ccKg.pct < 0 ? "green" : "neutral"}>{tx("Jejak karbon", "Carbon footprint")} {fmtDelta(o.delta.ccKg.pct)}</Badge>}
+                    {o && <Badge tone={o.delta.costRp.pct < 0 ? "green" : "neutral"}>{tx("Biaya proses", "Process cost")} {fmtDelta(o.delta.costRp.pct)}</Badge>}
                   </span>
                 </button>
               );
@@ -194,11 +320,11 @@ export default function WhatIfPage() {
             <CardHeader
               eyebrow={expert ? tx(`Skenario ${active.code}`, `Scenario ${active.code}`) : undefined}
               title={active.name}
-              subtitle={expert ? tx("Disimpan sebagai delta terhadap baseline; engine menghitung ulang LCI → LCIA → MFCA", "Stored as a delta to the baseline; the engine recalculates LCI → LCIA → MFCA") : tx("Mesin hitung menghitung ulang seluruh lini dengan perubahan ini.", "The calculation engine recalculates the whole line with this change.")}
+              subtitle={expert ? tx("Disimpan sebagai delta terhadap baseline; engine menghitung ulang LCI → LCIA → MFCA", "Stored as a delta to the baseline; the engine recalculates LCI → LCIA → MFCA") : tx("Centang langkah perbaikan yang ingin diuji, lalu sesuaikan angkanya. Hasil seluruh lini dihitung ulang secara otomatis.", "Tick the improvements you want to test and adjust their figures. Results for the whole line are recalculated automatically.")}
               action={
                 <>
                   <Button size="sm" variant="secondary" disabled={!editable} onClick={() => markRecommended(active.id)}>
-                    <Star className="h-3.5 w-3.5" /> {tx("Tandai disarankan", "Mark as recommended")}
+                    <Star className="h-3.5 w-3.5" /> {tx("Tandai sebagai rekomendasi", "Mark as recommended")}
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => runCalculation("draft", active.id)}>
                     <Lock className="h-3.5 w-3.5" /> {tx("Simpan hasil simulasi", "Save simulation result")}
@@ -217,10 +343,10 @@ export default function WhatIfPage() {
             <CardBody className="space-y-4">
               {!hasFeature(subscription, "editScenario") && <LockedFeature feature="editScenario" compact title={tx("Ubah angka simulasi", "Edit simulation numbers")} />}
               <div className="grid gap-3 md:grid-cols-[1fr_2fr]">
-                <Field label={tx("Nama", "Name")}>
+                <Field label={tx("Nama simulasi", "Simulation name")}>
                   <TextInput value={active.name} disabled={!editable} onCommit={(v) => updateScenario(active.id, { name: v })} />
                 </Field>
-                <Field label={tx("Deskripsi", "Description")}>
+                <Field label={tx("Deskripsi singkat", "Short description")}>
                   <TextInput value={active.description} disabled={!editable} onCommit={(v) => updateScenario(active.id, { description: v })} />
                 </Field>
               </div>
@@ -234,14 +360,17 @@ export default function WhatIfPage() {
                         <input type="checkbox" className="mt-0.5" disabled={!editable} checked={on} onChange={(e) => setLever(active, lv.id, e.target.checked)} />
                         <span>
                           <span className="block text-xs font-semibold text-navy-900">{lv.label}</span>
-                          <span className="block text-[11px] text-navy-700/65">{tx("Berpengaruh ke:", "Affects:")} {lv.affects}</span>
+                          <span className="block text-[11px] text-navy-700/65">{lv.description}</span>
+                          <span className="mt-0.5 block text-[11px] text-navy-700/65">
+                            <span className="font-medium text-navy-800">{tx("Berdampak pada:", "Affects:")}</span> {lv.affects}
+                          </span>
                           {expert && <span className="block text-[10px] text-navy-700/45">{lv.technical}</span>}
                         </span>
                       </label>
                       {on && (
                         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                           {PARAMS[lv.id].map((p) => (
-                            <Field key={p.key} label={p.label}>
+                            <Field key={p.key} label={p.label} hint={p.hint}>
                               {p.text ? (
                                 <TextInput value={String(values[p.key] ?? "")} disabled={!editable} onCommit={(v) => setParam(active, lv.id, p.key, v)} />
                               ) : (
@@ -256,30 +385,30 @@ export default function WhatIfPage() {
                 })}
               </div>
               <div className="grid gap-3 md:grid-cols-3">
-                <Field label={expert ? "Capex (Rp)" : tx("Biaya investasi (Rp)", "Investment cost (Rp)")}>
+                <Field label={expert ? "Capex (Rp)" : tx("Biaya investasi (Rp)", "Investment cost (Rp)")} hint={tx("Biaya pembelian dan pemasangan alat, dibayar sekali.", "One-off cost to buy and install equipment.")}>
                   <NumberInput value={active.capexRp} min={0} disabled={!editable} onCommit={(v) => updateScenario(active.id, { capexRp: v ?? 0 })} />
                 </Field>
-                <Field label={expert ? tx("Tambahan opex (Rp/periode)", "Extra opex (Rp/period)") : tx("Tambahan biaya operasi (Rp/periode)", "Extra operating cost (Rp/period)")}>
+                <Field label={expert ? tx("Tambahan opex (Rp/periode)", "Extra opex (Rp/period)") : tx("Tambahan biaya operasional (Rp/periode)", "Extra operating cost (Rp/period)")} hint={tx("Biaya rutin baru per periode, mis. bahan aditif atau perawatan.", "New recurring cost per period, e.g. additives or maintenance.")}>
                   <NumberInput value={active.extraOpexRpPerPeriod} min={0} disabled={!editable} onCommit={(v) => updateScenario(active.id, { extraOpexRpPerPeriod: v ?? 0 })} />
                 </Field>
-                <Field label={expert ? tx("Umur aset (tahun)", "Asset lifetime (years)") : tx("Umur alat (tahun)", "Equipment lifetime (years)")}>
+                <Field label={expert ? tx("Umur aset (tahun)", "Asset lifetime (years)") : tx("Umur pakai alat (tahun)", "Equipment service life (years)")} hint={tx("Dipakai untuk menghitung masa balik modal.", "Used to calculate the payback period.")}>
                   <NumberInput value={active.lifetimeYears} min={0} disabled={!editable} onCommit={(v) => updateScenario(active.id, { lifetimeYears: v ?? 0 })} />
                 </Field>
               </div>
               <div className="grid gap-3 md:grid-cols-3">
-                <Field label={tx("Usaha", "Effort")}>
+                <Field label={tx("Tingkat kesulitan pelaksanaan", "Implementation effort")}>
                   <Select value={active.effort ?? "sedang"} disabled={!editable} onChange={(e) => updateScenario(active.id, { effort: e.target.value as Scenario["effort"] })}>
                     <option value="rendah">{tx("Rendah", "Low")}</option>
                     <option value="sedang">{tx("Sedang", "Medium")}</option>
                     <option value="tinggi">{tx("Tinggi", "High")}</option>
                   </Select>
                 </Field>
-                <Field label={tx("Perkiraan waktu", "Estimated time")}>
+                <Field label={tx("Perkiraan waktu pelaksanaan", "Estimated implementation time")}>
                   <TextInput value={active.timeline ?? ""} disabled={!editable} placeholder={tx("mis. 1–3 bulan", "e.g. 1–3 months")} onCommit={(v) => updateScenario(active.id, { timeline: v })} />
                 </Field>
               </div>
               <div className="rounded-lg border border-sand-200 bg-sand-50 p-3 text-xs">
-                <p className="mb-1 font-semibold text-navy-900">{expert ? tx("Asumsi skenario (fungsi propagasi terdokumentasi)", "Scenario assumptions (documented propagation functions)") : tx("Yang dihitung ulang", "What is recalculated")}</p>
+                <p className="mb-1 font-semibold text-navy-900">{expert ? tx("Asumsi skenario (fungsi propagasi terdokumentasi)", "Scenario assumptions (documented propagation functions)") : tx("Dasar perhitungan", "Calculation basis")}</p>
                 {activeOutcome.assumptions.length ? (
                   <ul className="list-disc space-y-0.5 pl-4 text-navy-800">
                     {activeOutcome.assumptions.map((a) => (
@@ -287,7 +416,7 @@ export default function WhatIfPage() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-navy-700/60">{tx("Centang minimal satu perbaikan.", "Tick at least one improvement.")}</p>
+                  <p className="text-navy-700/60">{tx("Centang minimal satu langkah perbaikan untuk melihat hasilnya.", "Tick at least one improvement to see its result.")}</p>
                 )}
                 <p className="mt-2 text-navy-800">
                   {tx(`Hemat ${fmtRp(activeOutcome.lcc.annualSavingRp)} per tahun · balik modal `, `Saves ${fmtRp(activeOutcome.lcc.annualSavingRp)} per year · payback `)}
@@ -451,13 +580,13 @@ function SimpleComparison() {
   const scale = (r: Row) => (r.key === "airKg" || r.key === "effluentMetalKg" ? 1000 : 1);
   return (
     <Card>
-      <CardHeader title={tx("Kondisi sekarang vs perbaikan", "Current state vs improvements")} subtitle={tx("Per 1 m² permukaan dilapisi; hijau = lebih baik", "Per 1 m² of plated surface; green = better")} />
+      <CardHeader title={tx("Kondisi saat ini dibandingkan dengan simulasi", "Current state compared with the simulations")} subtitle={tx("Nilai per 1 m² permukaan yang dilapisi; warna hijau berarti lebih baik dari kondisi saat ini.", "Values per 1 m² of plated surface; green means better than the current state.")} />
       <CardBody>
         <Table caption={tx("Perbandingan perbaikan", "Improvement comparison")}>
           <THead>
             <tr>
               <Th>{tx("Indikator", "Indicator")}</Th>
-              <Th align="right">{tx("Kondisi sekarang", "Current state")}</Th>
+              <Th align="right">{tx("Kondisi saat ini", "Current state")}</Th>
               {outcomes.map((o) => (
                 <Th key={o.scenario.id} align="right">
                   {o.scenario.name}
