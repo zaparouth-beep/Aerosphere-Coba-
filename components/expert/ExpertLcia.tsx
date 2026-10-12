@@ -20,6 +20,7 @@ import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults } from "@/lib/store/useResults";
 import { inView, stageLabel } from "@/lib/view/helpers";
 import { fmt, fmtPct, fmtSig } from "@/lib/utils/format";
+import { T, tx } from "@/lib/i18n";
 
 /** Class II water quality limit for Cr(VI) used for the grey-water indicator (PRD 2.2.4). */
 const CR6_CLASS_II_MG_L = 0.05;
@@ -33,7 +34,7 @@ export default function LciaPage() {
   const l = results.lcia;
   const ref = results.lci.referenceFlow;
   const fu = results.lci.fuLabel;
-  const suffix = fuView === "perFu" ? `/${fu}` : "/periode";
+  const suffix = fuView === "perFu" ? `/${fu}` : tx("/periode", "/period");
   const cat = IMPACT_CATEGORIES.find((c) => c.id === selected)!;
 
   const withData = IMPACT_CATEGORIES.filter((c) => l.totals[c.id] !== 0);
@@ -69,15 +70,35 @@ export default function LciaPage() {
     <div className="space-y-6">
       {(l.unmapped.length > 0 || l.errors.length > 0) && (
         <Callout tone="warn">
-          Hasil LCIA hanya mencakup aliran yang sudah dipetakan ke dataset background. {l.unmapped.length} aliran belum dipetakan (dilaporkan, tidak dianggap nol).{" "}
-          <Link className="underline" href="/data?tab=mapping">
-            Petakan aliran
-          </Link>{" "}
-          atau{" "}
-          <Link className="underline" href="/pengaturan?tab=method">
-            impor faktor dari openLCA
-          </Link>
-          .{l.errors.map((e) => ` ${e}`)}
+          <T
+            id={
+              <>
+                Hasil LCIA hanya mencakup aliran yang sudah dipetakan ke dataset background. {l.unmapped.length} aliran belum dipetakan (dilaporkan, tidak dianggap nol).{" "}
+                <Link className="underline" href="/data?tab=mapping">
+                  Petakan aliran
+                </Link>{" "}
+                atau{" "}
+                <Link className="underline" href="/pengaturan?tab=method">
+                  impor faktor dari openLCA
+                </Link>
+                .
+              </>
+            }
+            en={
+              <>
+                LCIA results only cover flows already mapped to a background dataset. {l.unmapped.length} flow(s) not yet mapped (reported, not treated as zero).{" "}
+                <Link className="underline" href="/data?tab=mapping">
+                  Map flows
+                </Link>{" "}
+                or{" "}
+                <Link className="underline" href="/pengaturan?tab=method">
+                  import factors from openLCA
+                </Link>
+                .
+              </>
+            }
+          />
+          {l.errors.map((e) => ` ${e}`)}
         </Callout>
       )}
 
@@ -91,7 +112,7 @@ export default function LciaPage() {
                 label={`${c.label}${c.legacy ? ` (${c.legacy})` : ""}`}
                 value={l.totals[c.id] === 0 ? "–" : fmtSig(v)}
                 unit={l.totals[c.id] === 0 ? "" : `${c.unit}${suffix}`}
-                hint={cov.total ? `${cov.covered}/${cov.total} aliran berfaktor` : "butuh CF/background"}
+                hint={cov.total ? tx(`${cov.covered}/${cov.total} aliran berfaktor`, `${cov.covered}/${cov.total} flows with factors`) : tx("butuh CF/background", "needs CF/background")}
               />
             </button>
           );
@@ -100,23 +121,23 @@ export default function LciaPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <CardHeader title="Kontribusi tahap A–F per kategori" subtitle="Stacked 100%; hanya kategori yang punya nilai" />
+          <CardHeader title={tx("Kontribusi tahap A–F per kategori", "Stage A–F contribution per category")} subtitle={tx("Stacked 100%; hanya kategori yang punya nilai", "Stacked 100%; only categories with values")} />
           <CardBody>
             {shareRows.length ? (
               <Share100 rows={shareRows} segments={STAGE_IDS.map((id) => ({ id, label: stageLabel(project, id), color: STAGE_COLOR[id] }))} />
             ) : (
-              <p className="py-6 text-center text-xs text-navy-700/60">Belum ada kategori dengan nilai. Petakan aliran ke dataset background.</p>
+              <p className="py-6 text-center text-xs text-navy-700/60">{tx("Belum ada kategori dengan nilai. Petakan aliran ke dataset background.", "No category has values yet. Map flows to background datasets.")}</p>
             )}
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title={`Kontributor terbesar — ${cat.label}`} subtitle={`${cat.unit}${suffix}; pilih kategori dari kartu di atas`} />
+          <CardHeader title={`${tx("Kontributor terbesar", "Largest contributors")} — ${cat.label}`} subtitle={`${cat.unit}${suffix}; ${tx("pilih kategori dari kartu di atas", "pick a category from the cards above")}`} />
           <CardBody>
-            <BarList items={contributions} format={(n) => fmtSig(n)} emptyText="Tidak ada kontribusi untuk kategori ini." />
+            <BarList items={contributions} format={(n) => fmtSig(n)} emptyText={tx("Tidak ada kontribusi untuk kategori ini.", "No contributions for this category.")} />
             {l.uncharacterised.length > 0 && (
               <p className="mt-3 flex items-start gap-1.5 text-[11px] text-navy-700/65">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-status-warn" />
-                Aliran tanpa faktor karakterisasi (dilaporkan, bukan nol): {l.uncharacterised.join(", ")}.
+                {tx("Aliran tanpa faktor karakterisasi (dilaporkan, bukan nol)", "Flows without characterisation factors (reported, not zero)")}: {l.uncharacterised.join(", ")}.
               </p>
             )}
           </CardBody>
@@ -128,55 +149,55 @@ export default function LciaPage() {
           <CardHeader
             eyebrow="GHG Protocol"
             title="Scope 1, 2, 3 (climate change)"
-            subtitle="Dipetakan dari aliran LCI, bukan dihitung ulang (PRD 2.2.7)"
-            action={<Segmented size="xs" ariaLabel="Basis Scope 2" value={basis} onChange={setBasis} options={[{ id: "location", label: "Location-based" }, { id: "market", label: "Market-based" }]} />}
+            subtitle={tx("Dipetakan dari aliran LCI, bukan dihitung ulang (PRD 2.2.7)", "Mapped from LCI flows, not recalculated (PRD 2.2.7)")}
+            action={<Segmented size="xs" ariaLabel={tx("Basis Scope 2", "Scope 2 basis")} value={basis} onChange={setBasis} options={[{ id: "location", label: "Location-based" }, { id: "market", label: "Market-based" }]} />}
           />
           <CardBody className="space-y-3">
             {basis === "market" && (
-              <Field label="Faktor emisi market-based (kg CO₂e/kWh, dari PPA/REC)" hint="Kosong = sama dengan location-based." className="max-w-xs">
+              <Field label={tx("Faktor emisi market-based (kg CO₂e/kWh, dari PPA/REC)", "Market-based emission factor (kg CO₂e/kWh, from PPA/REC)")} hint={tx("Kosong = sama dengan location-based.", "Empty = same as location-based.")} className="max-w-xs">
                 <NumberInput value={marketFactor} allowEmpty min={0} onCommit={setMarketFactor} />
               </Field>
             )}
             <BarList
               format={(n) => `${fmtSig(n)} kg CO₂e`}
               items={(Object.keys(scopes) as GhgScope[]).map((k, i) => ({ label: SCOPE_LABEL[k], value: inView(scopes[k], ref, fuView), color: CATEGORICAL[i] }))}
-              emptyText="Belum ada emisi climate change yang terpetakan."
+              emptyText={tx("Belum ada emisi climate change yang terpetakan.", "No climate change emissions mapped yet.")}
             />
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Per sumber" subtitle={`${cat.label}, ${cat.unit}${suffix}`} />
+          <CardHeader title={tx("Per sumber", "By source")} subtitle={`${cat.label}, ${cat.unit}${suffix}`} />
           <CardBody>
             <BarList
               format={(n) => fmtSig(n)}
               items={(Object.keys(SOURCE_LABEL) as SourceKey[]).map((k, i) => ({ label: SOURCE_LABEL[k], value: inView(l.bySource[k][selected], ref, fuView), color: CATEGORICAL[i % CATEGORICAL.length] })).filter((x) => x.value !== 0).sort((a, b) => b.value - a.value)}
-              emptyText="Tidak ada kontribusi."
+              emptyText={tx("Tidak ada kontribusi.", "No contributions.")}
             />
           </CardBody>
         </Card>
       </div>
 
       <Card>
-        <CardHeader eyebrow="Terpisah dari LCIA (P5)" title="Indikator operasional & kepatuhan" subtitle="Tidak dijumlahkan dengan skor dampak" />
+        <CardHeader eyebrow={tx("Terpisah dari LCIA (P5)", "Separate from LCIA (P5)")} title={tx("Indikator operasional & kepatuhan", "Operational & compliance indicators")} subtitle={tx("Tidak dijumlahkan dengan skor dampak", "Not added to impact scores")} />
         <CardBody>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <KpiCard label="Grey water Cr(VI)" icon={Droplet} value={greyWaterM3 ? fmt(inView(greyWaterM3, ref, fuView), 1) : "–"} unit={greyWaterM3 ? `m³${suffix}` : ""} hint={`beban Cr(VI) ÷ ${CR6_CLASS_II_MG_L} mg/L (kelas II)`} />
-            <KpiCard label="Emisi Cr(VI)" icon={FlaskRound} value={fmt(inView((cr6LoadKg + cr6AirKg) * 1000, ref, fuView), 2)} unit={`g${suffix}`} hint={`air ${fmt(cr6LoadKg * 1000, 1)} g + udara ${fmt(cr6AirKg * 1000, 1)} g / periode`} />
-            <KpiCard label="Limbah B3" icon={Recycle} value={fmt(inView(results.lci.totals.wasteKg, ref, fuView), 2)} unit={`kg${suffix}`} />
-            <KpiCard label="Baku mutu efluen" value={`${overLimit}`} unit="parameter melebihi" tone={overLimit ? "warn" : "default"} hint={<Link className="underline" href="/data?view=cek">lihat detail</Link>} />
+            <KpiCard label="Grey water Cr(VI)" icon={Droplet} value={greyWaterM3 ? fmt(inView(greyWaterM3, ref, fuView), 1) : "–"} unit={greyWaterM3 ? `m³${suffix}` : ""} hint={tx(`beban Cr(VI) ÷ ${CR6_CLASS_II_MG_L} mg/L (kelas II)`, `Cr(VI) load ÷ ${CR6_CLASS_II_MG_L} mg/L (class II)`)} />
+            <KpiCard label={tx("Emisi Cr(VI)", "Cr(VI) emissions")} icon={FlaskRound} value={fmt(inView((cr6LoadKg + cr6AirKg) * 1000, ref, fuView), 2)} unit={`g${suffix}`} hint={tx(`air ${fmt(cr6LoadKg * 1000, 1)} g + udara ${fmt(cr6AirKg * 1000, 1)} g / periode`, `water ${fmt(cr6LoadKg * 1000, 1)} g + air ${fmt(cr6AirKg * 1000, 1)} g / period`)} />
+            <KpiCard label={tx("Limbah B3", "Hazardous (B3) waste")} icon={Recycle} value={fmt(inView(results.lci.totals.wasteKg, ref, fuView), 2)} unit={`kg${suffix}`} />
+            <KpiCard label={tx("Baku mutu efluen", "Effluent standards")} value={`${overLimit}`} unit={tx("parameter melebihi", "parameters exceeded")} tone={overLimit ? "warn" : "default"} hint={<Link className="underline" href="/data?view=cek">{tx("lihat detail", "see details")}</Link>} />
           </div>
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Method check — peringkat hotspot" subtitle="FR-06.4: EF 3.1 vs ReCiPe 2016 hanya untuk melihat apakah peringkat konsisten, tidak digabung menjadi satu skor" />
+        <CardHeader title={tx("Method check — peringkat hotspot", "Method check — hotspot ranking")} subtitle={tx("FR-06.4: EF 3.1 vs ReCiPe 2016 hanya untuk melihat apakah peringkat konsisten, tidak digabung menjadi satu skor", "FR-06.4: EF 3.1 vs ReCiPe 2016 only to see whether the ranking is consistent, not combined into a single score")} />
         <CardBody>
-          <Table caption="Peringkat tahap per metode">
+          <Table caption={tx("Peringkat tahap per metode", "Stage ranking per method")}>
             <THead>
               <tr>
-                <Th>Peringkat</Th>
+                <Th>{tx("Peringkat", "Rank")}</Th>
                 <Th>EF 3.1 — {cat.short}</Th>
-                <Th align="right">Nilai</Th>
+                <Th align="right">{tx("Nilai", "Value")}</Th>
                 <Th>ReCiPe 2016 Midpoint (H)</Th>
               </tr>
             </THead>
@@ -186,7 +207,7 @@ export default function LciaPage() {
                   <Td num>{i + 1}</Td>
                   <Td>{stageLabel(project, r.s)}</Td>
                   <Td num>{r.v ? fmtSig(r.v) : "–"}</Td>
-                  <Td className="text-xs text-navy-700/60">{i === 0 ? <Badge>butuh CF ReCiPe dari method package</Badge> : ""}</Td>
+                  <Td className="text-xs text-navy-700/60">{i === 0 ? <Badge>{tx("butuh CF ReCiPe dari method package", "needs ReCiPe CFs from a method package")}</Badge> : ""}</Td>
                 </Tr>
               ))}
             </tbody>

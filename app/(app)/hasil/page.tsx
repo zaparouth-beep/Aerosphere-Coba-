@@ -19,6 +19,7 @@ import { lifeCycleSplit, wasteItems } from "@/lib/engine/flow";
 import { buildTitikBoros } from "@/lib/engine/titikBoros";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults, useComparison, useScenarioOutcomes } from "@/lib/store/useResults";
+import { tx } from "@/lib/i18n";
 import { fmt, fmtRpShort } from "@/lib/utils/format";
 import { confidenceFor } from "@/lib/view/helpers";
 import { headlines, stageValues, type HeadlineKey } from "@/lib/view/summary";
@@ -41,14 +42,14 @@ function Hasil() {
       <Ringkas />
       {expert ? (
         <section className="space-y-3 border-t border-sand-300 pt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-navy-700/60">Detail Mode Ahli</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-navy-700/60">{tx("Detail Mode Ahli", "Expert mode details")}</h2>
           <Card>
             <Tabs
               value={view}
               onChange={(v) => router.replace(`/hasil?view=${v}`)}
               tabs={[
-                { id: "dampak", label: "Dampak lingkungan (EF 3.1)" },
-                { id: "biaya", label: "Aliran biaya (MFCA)" },
+                { id: "dampak", label: tx("Dampak lingkungan (EF 3.1)", "Environmental impact (EF 3.1)") },
+                { id: "biaya", label: tx("Aliran biaya (MFCA)", "Cost flows (MFCA)") },
               ]}
             />
           </Card>
@@ -65,12 +66,12 @@ function LockedOrHint() {
   const subscription = useAppStore((s) => s.subscription);
   const setExpertMode = useAppStore((s) => s.setExpertMode);
   const allowed = hasFeature(subscription, "expertMode");
-  if (!allowed) return <LockedFeature feature="expertMode" title="Semua kategori dampak, emisi per Scope, dan diagram alir biaya" />;
+  if (!allowed) return <LockedFeature feature="expertMode" title={tx("Semua kategori dampak, emisi per Scope, dan diagram alir biaya", "All impact categories, emissions per Scope, and the cost flow diagram")} />;
   return (
     <Callout>
-      Ingin melihat semua kategori dampak, emisi per Scope, dan diagram alir biaya?{" "}
+      {tx("Ingin melihat semua kategori dampak, emisi per Scope, dan diagram alir biaya?", "Want to see all impact categories, emissions per Scope, and the cost flow diagram?")}{" "}
       <button type="button" className="font-medium text-brand-blue underline" onClick={() => setExpertMode(true)}>
-        Buka Mode Ahli
+        {tx("Buka Mode Ahli", "Open Expert mode")}
       </button>
     </Callout>
   );
@@ -98,7 +99,10 @@ function Ringkas() {
   if (!analysis || !model) {
     return (
       <Callout tone="warn">
-        Hasil ini dibuat dengan mesin hitung versi lama. Tekan “Hitung hasil” di bar atas untuk membuat hasil baru.
+        {tx(
+          "Hasil ini dibuat dengan mesin hitung versi lama. Tekan “Hitung hasil” di bar atas untuk membuat hasil baru.",
+          "This result was made with an older version of the calculation engine. Press “Calculate results” in the top bar to make a new one.",
+        )}
       </Callout>
     );
   }
@@ -108,7 +112,7 @@ function Ringkas() {
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_200px]">
       <div className="min-w-0 space-y-4">
-        <InfoCard project={project} run={analysis} resultLabel={run ? `#${run.id}` : "data terkini (belum disimpan)"} />
+        <InfoCard project={project} run={analysis} resultLabel={run ? `#${run.id}` : tx("data terkini (belum disimpan)", "current data (not saved)")} />
         <section id="angka-utama" className="scroll-mt-36">
           <HeadlineCards heads={heads} compareLabel={comparison?.label} />
         </section>
@@ -117,11 +121,14 @@ function Ringkas() {
           <WasteCard run={analysis} items={wasteItems(analysis)} totalPerFU={waste.totalPerFU} />
         </div>
         <Card id="alur" className="scroll-mt-36">
-          <CardHeader title="Alur bahan & energi" subtitle="Dari sumber (listrik, bahan kimia, air, …) ke tiap tahap, lalu ke total lini" />
+          <CardHeader
+            title={tx("Alur bahan & energi", "Material & energy flow")}
+            subtitle={tx("Dari sumber (listrik, bahan kimia, air, …) ke tiap tahap, lalu ke total lini", "From sources (electricity, chemicals, water, …) to each stage, then to the line total")}
+          />
           <CardBody>
             <FlowExplorer project={project} run={analysis} outcomes={outcomes} thresholdPct={project.hotspotThresholdPct} panel={false} testId="hasil-flow" />
-            <Tip href="/titik-boros" cta="Telusuri di Titik Boros">
-              Klik sebuah tahap di Titik Boros untuk melihat komponen pemicunya dan saran perbaikan.
+            <Tip href="/titik-boros" cta={tx("Telusuri di Titik Boros", "Explore in Waste Hotspots")}>
+              {tx("Klik sebuah tahap di Titik Boros untuk melihat komponen pemicunya dan saran perbaikan.", "Click a stage in Waste Hotspots to see the components driving it and improvement suggestions.")}
             </Tip>
           </CardBody>
         </Card>
@@ -129,19 +136,23 @@ function Ringkas() {
         <ExternalImpactsCard project={project} run={analysis} />
         <Card id="per-tahap" className="scroll-mt-36">
           <CardHeader
-            title="Per tahap proses"
-            info={{ what: "Besar indikator yang dipilih di setiap tahap, per 1 m² permukaan dilapisi.", why: "Tahap dengan batang terpanjang adalah tempat perbaikan paling berpengaruh.", action: "Buka Titik Boros untuk melihat penyebabnya." }}
+            title={tx("Per tahap proses", "Per process stage")}
+            info={{
+              what: tx("Besar indikator yang dipilih di setiap tahap, per 1 m² permukaan dilapisi.", "Size of the selected indicator in each stage, per 1 m² of plated surface."),
+              why: tx("Tahap dengan batang terpanjang adalah tempat perbaikan paling berpengaruh.", "The stage with the longest bar is where improvement matters most."),
+              action: tx("Buka Titik Boros untuk melihat penyebabnya.", "Open Waste Hotspots to see the causes."),
+            }}
             action={
               <Segmented
                 size="xs"
-                ariaLabel="Indikator"
+                ariaLabel={tx("Indikator", "Indicator")}
                 value={metric}
                 onChange={setMetric}
                 options={[
-                  { id: "cc", label: "Karbon" },
-                  { id: "water", label: "Air" },
-                  { id: "waste", label: "Limbah B3" },
-                  { id: "cost", label: "Biaya" },
+                  { id: "cc", label: tx("Karbon", "Carbon") },
+                  { id: "water", label: tx("Air", "Water") },
+                  { id: "waste", label: tx("Limbah B3", "B3 waste") },
+                  { id: "cost", label: tx("Biaya", "Cost") },
                 ]}
               />
             }
@@ -153,7 +164,7 @@ function Ringkas() {
             />
             {confByMetric[metric] && (
               <p className="mt-3 flex items-center gap-2 text-[11px] text-navy-700/60">
-                <ConfidenceBadge value={confByMetric[metric]!} /> berdasarkan asal angka pemakaian
+                <ConfidenceBadge value={confByMetric[metric]!} /> {tx("berdasarkan asal angka pemakaian", "based on where the usage figures come from")}
               </p>
             )}
           </CardBody>

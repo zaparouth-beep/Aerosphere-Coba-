@@ -3,6 +3,7 @@ import { meta, newId } from "@/lib/domain/templates";
 import type { AirEmission, Basis, EffluentParam, HazardousWaste, InputCategory, InputFlow, Production, Project, SourceType, StageId } from "@/lib/domain/types";
 import { parseUnit } from "@/lib/engine/units";
 import { sanitizeCell } from "@/lib/utils/export";
+import { tx } from "@/lib/i18n";
 
 /**
  * Official template "Form LCI Proses Plating" (FR-03.1) with six sheets.
@@ -177,8 +178,8 @@ export async function isTemplateWorkbook(file: File): Promise<boolean> {
 }
 
 export async function parseTemplate(file: File, project: Project): Promise<{ patch: DatasetPatch; report: ImportReport }> {
-  if (file.size > MAX_BYTES) throw new Error("File melebihi 25 MB.");
-  if (!/\.xlsx$/i.test(file.name)) throw new Error("Hanya file .xlsx yang diterima (makro .xlsm ditolak).");
+  if (file.size > MAX_BYTES) throw new Error(tx("File melebihi 25 MB.", "The file is larger than 25 MB."));
+  if (!/\.xlsx$/i.test(file.name)) throw new Error(tx("Hanya file .xlsx yang diterima (makro .xlsm ditolak).", "Only .xlsx files are accepted (.xlsm macros are rejected)."));
   const ExcelJS = await loadExcel();
   const wb: Workbook = new ExcelJS.Workbook();
   await wb.xlsx.load(await file.arrayBuffer());
@@ -204,31 +205,31 @@ export async function parseTemplate(file: File, project: Project): Promise<{ pat
       const unc = cellNumber(r.get("Ketidakpastian %"));
       const price = cellNumber(r.get("Harga Rp/unit"));
       if (!CATEGORIES.includes(category)) {
-        reject(sheetName, r.row, `Kategori "${category}" tidak dikenal`);
+        reject(sheetName, r.row, tx(`Kategori "${category}" tidak dikenal`, `Unknown category "${category}"`));
         continue;
       }
       if (!name) {
-        reject(sheetName, r.row, "Nama kosong");
+        reject(sheetName, r.row, tx("Nama kosong", "Name is empty"));
         continue;
       }
       if (!STAGES.includes(stageId)) {
-        reject(sheetName, r.row, `Tahap "${stageId}" harus A–F`);
+        reject(sheetName, r.row, tx(`Tahap "${stageId}" harus A–F`, `Stage "${stageId}" must be A–F`));
         continue;
       }
       if (quantity === null || Number.isNaN(quantity) || quantity < 0) {
-        reject(sheetName, r.row, "Kuantitas harus angka ≥ 0");
+        reject(sheetName, r.row, tx("Kuantitas harus angka ≥ 0", "Quantity must be a number ≥ 0"));
         continue;
       }
       if (!parseUnit(unit)) {
-        reject(sheetName, r.row, `Satuan "${unit}" tidak dikenal`);
+        reject(sheetName, r.row, tx(`Satuan "${unit}" tidak dikenal`, `Unknown unit "${unit}"`));
         continue;
       }
-      if (!BASES.includes(basis)) warn(sheetName, r.row, `Basis "${basis}" diganti "period"`);
-      if (!SOURCES.includes(source)) warn(sheetName, r.row, `Tipe sumber "${source}" diganti "measured"`);
+      if (!BASES.includes(basis)) warn(sheetName, r.row, tx(`Basis "${basis}" diganti "period"`, `Basis "${basis}" replaced with "period"`));
+      if (!SOURCES.includes(source)) warn(sheetName, r.row, tx(`Tipe sumber "${source}" diganti "measured"`, `Source type "${source}" replaced with "measured"`));
       const existing = byId.get(cellText(r.get("ID"))) ?? byName.get(`${category}|${name.toLowerCase()}`);
       const key = existing?.id ?? `${category}|${name.toLowerCase()}`;
       if (seen.has(key)) {
-        warn(sheetName, r.row, "Baris duplikat diabaikan (idempoten)");
+        warn(sheetName, r.row, tx("Baris duplikat diabaikan (idempoten)", "Duplicate row ignored (idempotent)"));
         continue;
       }
       seen.add(key);
@@ -260,11 +261,11 @@ export async function parseTemplate(file: File, project: Project): Promise<{ pat
     const stageId = (cellText(r.get("Tahap")).toUpperCase() || "F") as StageId;
     const id = cellText(r.get("ID"));
     if (!param || value === null || Number.isNaN(value) || value < 0) {
-      reject(SHEETS[3], r.row, "Parameter kosong atau nilai bukan angka ≥ 0");
+      reject(SHEETS[3], r.row, tx("Parameter kosong atau nilai bukan angka ≥ 0", "Parameter is empty or value is not a number ≥ 0"));
       continue;
     }
     if (!STAGES.includes(stageId)) {
-      reject(SHEETS[3], r.row, `Tahap "${stageId}" harus A–F`);
+      reject(SHEETS[3], r.row, tx(`Tahap "${stageId}" harus A–F`, `Stage "${stageId}" must be A–F`));
       continue;
     }
     const basis = (cellText(r.get("Basis")) || "period") as Basis;
@@ -291,7 +292,7 @@ export async function parseTemplate(file: File, project: Project): Promise<{ pat
         metalContentPct: cellNumber(r.get("Kadar logam %")) ?? old?.metalContentPct ?? 0,
       } as HazardousWaste);
     } else {
-      reject(SHEETS[3], r.row, `Jenis "${kind}" harus Emisi udara / Efluen / Limbah B3`);
+      reject(SHEETS[3], r.row, tx(`Jenis "${kind}" harus Emisi udara / Efluen / Limbah B3`, `Type "${kind}" must be Emisi udara / Efluen / Limbah B3`));
       continue;
     }
     report.accepted += 1;
@@ -301,7 +302,7 @@ export async function parseTemplate(file: File, project: Project): Promise<{ pat
   for (const r of rowsOf(wb.getWorksheet(SHEETS[5]))) {
     const field = cellText(r.get("Field")) as keyof Production;
     if (!(field in production) && field !== "compressorKwhPerNm3") {
-      warn(SHEETS[5], r.row, `Field "${field}" diabaikan`);
+      warn(SHEETS[5], r.row, tx(`Field "${field}" diabaikan`, `Field "${field}" ignored`));
       continue;
     }
     if (field === "coatingMetal") {
@@ -310,7 +311,7 @@ export async function parseTemplate(file: File, project: Project): Promise<{ pat
       const n = cellNumber(r.get("Nilai"));
       if (n === null) continue;
       if (Number.isNaN(n) || n < 0) {
-        reject(SHEETS[5], r.row, `${field} harus angka ≥ 0`);
+        reject(SHEETS[5], r.row, tx(`${field} harus angka ≥ 0`, `${field} must be a number ≥ 0`));
         continue;
       }
       (production as unknown as Record<string, number>)[field] = n;
@@ -319,7 +320,7 @@ export async function parseTemplate(file: File, project: Project): Promise<{ pat
   }
 
   if (!wb.getWorksheet(SHEETS[2]) && !wb.getWorksheet(SHEETS[4])) {
-    throw new Error(`Sheet "${SHEETS[2]}" / "${SHEETS[4]}" tidak ditemukan. Gunakan template resmi.`);
+    throw new Error(tx(`Sheet "${SHEETS[2]}" / "${SHEETS[4]}" tidak ditemukan. Gunakan template resmi.`, `Sheet "${SHEETS[2]}" / "${SHEETS[4]}" not found. Use the official template.`));
   }
 
   return {

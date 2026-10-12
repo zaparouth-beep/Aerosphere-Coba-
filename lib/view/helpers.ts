@@ -4,6 +4,7 @@ import { STAGE_IDS } from "@/lib/engine/lci";
 import { pedigreeScore } from "@/lib/engine/quality";
 import { STAGE_COLOR } from "@/components/charts/palette";
 import type { SankeyData } from "@/components/charts/Charts";
+import { locale, tx } from "@/lib/i18n";
 
 export function stageLabel(project: Project, id: StageId): string {
   return `${id}. ${project.stages.find((s) => s.id === id)?.name ?? id}`;
@@ -31,7 +32,7 @@ export function deltaPct(current: number, previous: number | undefined): { text:
   if (previous === undefined || !Number.isFinite(previous) || previous === 0) return null;
   const v = ((current - previous) / Math.abs(previous)) * 100;
   if (!Number.isFinite(v)) return null;
-  return { value: v, text: `${v > 0 ? "▲ +" : v < 0 ? "▼ −" : ""}${Math.abs(v).toLocaleString("id-ID", { maximumFractionDigits: 1 })}% vs run sebelumnya` };
+  return { value: v, text: `${v > 0 ? "▲ +" : v < 0 ? "▼ −" : ""}${Math.abs(v).toLocaleString(locale(), { maximumFractionDigits: 1 })}% ${tx("vs run sebelumnya", "vs previous run")}` };
 }
 
 /**
@@ -48,10 +49,10 @@ export function mfcaSankey(project: Project, r: Results, mode: "rp" | "kg"): San
   const stageIdx = new Map<StageId, number>();
   if (mode === "rp") {
     const cats = [
-      { key: "material", label: "Material", color: "#0072B2" },
-      { key: "energy", label: "Energi", color: "#E69F00" },
-      { key: "system", label: "Sistem", color: "#5b6475" },
-      { key: "waste", label: "Pengelolaan limbah", color: "#CC79A7" },
+      { key: "material", label: tx("Material", "Material"), color: "#0072B2" },
+      { key: "energy", label: tx("Energi", "Energy"), color: "#E69F00" },
+      { key: "system", label: tx("Sistem", "System"), color: "#5b6475" },
+      { key: "waste", label: tx("Pengelolaan limbah", "Waste management"), color: "#CC79A7" },
     ] as const;
     const catIdx = cats.map((c) => add(c.label, c.color));
     for (const s of STAGE_IDS) {
@@ -80,7 +81,7 @@ export function mfcaSankey(project: Project, r: Results, mode: "rp" | "kg"): San
       if (st.materialInKg <= 0) continue;
       stageIdx.set(st.stageId, add(stageLabel(project, st.stageId), STAGE_COLOR[st.stageId]));
     }
-    const pos = add("Positive product (lapisan)", "#009E73");
+    const pos = add(tx("Positive product (lapisan)", "Positive product (coating)"), "#009E73");
     const neg = add("Negative product", "#D55E00");
     for (const st of r.mfca.stages) {
       const si = stageIdx.get(st.stageId);

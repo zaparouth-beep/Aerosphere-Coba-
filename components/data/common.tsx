@@ -11,12 +11,13 @@ import { confidenceOf, defaultPedigree, PEDIGREE_KEYS, pedigreeScore, SOURCE_TIE
 import { STAGE_COLOR } from "@/components/charts/palette";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { fmt } from "@/lib/utils/format";
+import { tx } from "@/lib/i18n";
 
 export const STAGE_OPTIONS: StageId[] = ["A", "B", "C", "D", "E", "F"];
 
 export function StageSelect({ value, onChange, disabled }: { value: StageId; onChange: (v: StageId) => void; disabled?: boolean }) {
   return (
-    <Select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value as StageId)} aria-label="Tahap" className="w-[68px]">
+    <Select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value as StageId)} aria-label={tx("Tahap", "Stage")} className="w-[68px]">
       {STAGE_OPTIONS.map((s) => (
         <option key={s} value={s}>
           {s}
@@ -36,10 +37,30 @@ export function StageDot({ id }: { id: StageId }) {
 
 /** Data pedigree editor (FR-04.6, FR-03.7); changes go through the audited store action. */
 const SIMPLE_SOURCE: Array<{ id: SourceType; label: string }> = [
-  { id: "measured", label: "Dari meter / timbangan" },
-  { id: "supplier", label: "Dari faktur / catatan" },
-  { id: "calculated", label: "Dihitung" },
-  { id: "literature", label: "Perkiraan" },
+  {
+    id: "measured",
+    get label() {
+      return tx("Dari meter / timbangan", "From meter / scale");
+    },
+  },
+  {
+    id: "supplier",
+    get label() {
+      return tx("Dari faktur / catatan", "From invoice / records");
+    },
+  },
+  {
+    id: "calculated",
+    get label() {
+      return tx("Dihitung", "Calculated");
+    },
+  },
+  {
+    id: "literature",
+    get label() {
+      return tx("Perkiraan", "Estimate");
+    },
+  },
 ];
 
 export function MetaCell({ meta, onChange, disabled }: { meta: DataMeta; onChange: (m: DataMeta) => void; disabled?: boolean }) {
@@ -55,7 +76,7 @@ export function MetaCell({ meta, onChange, disabled }: { meta: DataMeta; onChang
         <Select
           value={meta.sourceType}
           disabled={disabled}
-          aria-label="Asal angka"
+          aria-label={tx("Asal angka", "Where the number comes from")}
           className="w-[150px] text-xs"
           onChange={(e) => {
             const st = e.target.value as SourceType;
@@ -77,9 +98,9 @@ export function MetaCell({ meta, onChange, disabled }: { meta: DataMeta; onChang
       <Badge tone="neutral" title={SOURCE_TIER[meta.sourceType].label}>
         T{SOURCE_TIER[meta.sourceType].tier}
       </Badge>
-      <ConfidenceBadge value={conf} title={`Skor pedigree ${fmt(pedigreeScore(meta.pedigree), 1)} · ${meta.source || "sumber belum diisi"}`} />
+      <ConfidenceBadge value={conf} title={tx(`Skor pedigree ${fmt(pedigreeScore(meta.pedigree), 1)} · ${meta.source || "sumber belum diisi"}`, `Pedigree score ${fmt(pedigreeScore(meta.pedigree), 1)} · ${meta.source || "source not filled in"}`)} />
       <IconButton
-        label="Ubah metadata & pedigree"
+        label={tx("Ubah metadata & pedigree", "Edit metadata & pedigree")}
         disabled={disabled}
         onClick={() => {
           setDraft(meta);
@@ -90,12 +111,12 @@ export function MetaCell({ meta, onChange, disabled }: { meta: DataMeta; onChang
       </IconButton>
       <Modal
         open={open}
-        title="Metadata & data pedigree"
+        title={tx("Metadata & data pedigree", "Metadata & data pedigree")}
         onClose={() => setOpen(false)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setOpen(false)}>
-              Batal
+              {tx("Batal", "Cancel")}
             </Button>
             <Button
               onClick={() => {
@@ -103,13 +124,13 @@ export function MetaCell({ meta, onChange, disabled }: { meta: DataMeta; onChang
                 setOpen(false);
               }}
             >
-              Simpan
+              {tx("Simpan", "Save")}
             </Button>
           </>
         }
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Tipe sumber (Tier 1–5)">
+          <Field label={tx("Tipe sumber (Tier 1–5)", "Source type (Tier 1–5)")}>
             <Select
               value={draft.sourceType}
               onChange={(e) => {
@@ -124,17 +145,17 @@ export function MetaCell({ meta, onChange, disabled }: { meta: DataMeta; onChang
               ))}
             </Select>
           </Field>
-          <Field label="Ketidakpastian (%)">
+          <Field label={tx("Ketidakpastian (%)", "Uncertainty (%)")}>
             <NumberInput value={draft.uncertaintyPct} min={0} onCommit={(v) => setDraft({ ...draft, uncertaintyPct: v ?? 0 })} />
           </Field>
-          <Field label="Sumber">
-            <TextInput value={draft.source} onCommit={(v) => setDraft({ ...draft, source: v })} placeholder="mis. Meter kWh panel C" />
+          <Field label={tx("Sumber", "Source")}>
+            <TextInput value={draft.source} onCommit={(v) => setDraft({ ...draft, source: v })} placeholder={tx("mis. Meter kWh panel C", "e.g. kWh meter panel C")} />
           </Field>
-          <Field label="Metode ukur">
-            <TextInput value={draft.method} onCommit={(v) => setDraft({ ...draft, method: v })} placeholder="mis. Flowmeter / invoice" />
+          <Field label={tx("Metode ukur", "Measurement method")}>
+            <TextInput value={draft.method} onCommit={(v) => setDraft({ ...draft, method: v })} placeholder={tx("mis. Flowmeter / invoice", "e.g. Flowmeter / invoice")} />
           </Field>
         </div>
-        <p className="mb-2 mt-4 text-xs font-semibold text-navy-900">Pedigree matrix (1 = terbaik, 5 = terburuk)</p>
+        <p className="mb-2 mt-4 text-xs font-semibold text-navy-900">{tx("Pedigree matrix (1 = terbaik, 5 = terburuk)", "Pedigree matrix (1 = best, 5 = worst)")}</p>
         <div className="grid grid-cols-5 gap-2">
           {PEDIGREE_KEYS.map((k) => (
             <Field key={k.key} label={k.label}>
@@ -149,9 +170,9 @@ export function MetaCell({ meta, onChange, disabled }: { meta: DataMeta; onChang
           ))}
         </div>
         <p className="mt-3 text-xs text-navy-700/70">
-          Skor {fmt(pedigreeScore(draft.pedigree), 1)} → <ConfidenceBadge value={confidenceOf(draft)} />
+          {tx("Skor", "Score")} {fmt(pedigreeScore(draft.pedigree), 1)} → <ConfidenceBadge value={confidenceOf(draft)} />
         </p>
-        <Field label="Catatan" className="mt-3">
+        <Field label={tx("Catatan", "Note")} className="mt-3">
           <TextInput multiline rows={2} value={draft.note ?? ""} onCommit={(v) => setDraft({ ...draft, note: v || undefined })} />
         </Field>
       </Modal>

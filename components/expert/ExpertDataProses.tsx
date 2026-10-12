@@ -26,18 +26,19 @@ import { useActiveResults } from "@/lib/store/useResults";
 import { cn } from "@/lib/utils/cn";
 import { downloadBlob, fileStamp } from "@/lib/utils/export";
 import { fmt } from "@/lib/utils/format";
+import { locale, pick, T, tx } from "@/lib/i18n";
 
 type Tab = "input" | "energy" | "air" | "effluent" | "waste" | "production" | "prices" | "mapping";
 
-const TABS: Array<{ id: Tab; label: string; expertLabel: string; issueTab?: IssueTab; expertOnly?: boolean }> = [
-  { id: "input", label: "Bahan kimia & air", expertLabel: "LCI Input", issueTab: "input" },
-  { id: "energy", label: "Listrik & energi", expertLabel: "Energi & Utilitas" },
-  { id: "air", label: "Udara buangan", expertLabel: "Output — Emisi udara", issueTab: "air" },
-  { id: "effluent", label: "Air buangan", expertLabel: "Output — Efluen", issueTab: "effluent" },
-  { id: "waste", label: "Limbah B3", expertLabel: "Output — Limbah B3", issueTab: "waste" },
-  { id: "production", label: "Produksi", expertLabel: "Produksi & neraca", issueTab: "production" },
-  { id: "prices", label: "Harga", expertLabel: "Harga satuan", issueTab: "prices" },
-  { id: "mapping", label: "Pemetaan database", expertLabel: "Mapping background", issueTab: "mapping", expertOnly: true },
+const TABS: Array<{ id: Tab; label: { id: string; en: string }; expertLabel: { id: string; en: string }; issueTab?: IssueTab; expertOnly?: boolean }> = [
+  { id: "input", label: { id: "Bahan kimia & air", en: "Chemicals & water" }, expertLabel: { id: "LCI Input", en: "LCI Inputs" }, issueTab: "input" },
+  { id: "energy", label: { id: "Listrik & energi", en: "Electricity & energy" }, expertLabel: { id: "Energi & Utilitas", en: "Energy & Utilities" } },
+  { id: "air", label: { id: "Udara buangan", en: "Exhaust air" }, expertLabel: { id: "Output — Emisi udara", en: "Output — Air emissions" }, issueTab: "air" },
+  { id: "effluent", label: { id: "Air buangan", en: "Wastewater" }, expertLabel: { id: "Output — Efluen", en: "Output — Effluent" }, issueTab: "effluent" },
+  { id: "waste", label: { id: "Limbah B3", en: "Hazardous (B3) waste" }, expertLabel: { id: "Output — Limbah B3", en: "Output — Hazardous (B3) waste" }, issueTab: "waste" },
+  { id: "production", label: { id: "Produksi", en: "Production" }, expertLabel: { id: "Produksi & neraca", en: "Production & balance" }, issueTab: "production" },
+  { id: "prices", label: { id: "Harga", en: "Prices" }, expertLabel: { id: "Harga satuan", en: "Unit prices" }, issueTab: "prices" },
+  { id: "mapping", label: { id: "Pemetaan database", en: "Database mapping" }, expertLabel: { id: "Mapping background", en: "Background mapping" }, issueTab: "mapping", expertOnly: true },
 ];
 
 export default function DataProsesPage() {
@@ -88,22 +89,29 @@ function DataProses() {
     <div className="space-y-6">
       {activeRunId && (
         <Callout tone="info">
-          Anda sedang melihat hasil tersimpan #{activeRunId} di menu lain. Data di sini adalah data terkini.{" "}
+          {tx(
+            `Anda sedang melihat hasil tersimpan #${activeRunId} di menu lain. Data di sini adalah data terkini.`,
+            `You are viewing saved result #${activeRunId} in other menus. The data here is the current data.`,
+          )}{" "}
           <button type="button" className="font-medium text-brand-blue underline" onClick={() => setUi({ activeRunId: null })}>
-            Tampilkan hasil data terkini
+            {tx("Tampilkan hasil data terkini", "Show results for current data")}
           </button>
         </Callout>
       )}
       <div className="grid gap-6 2xl:grid-cols-[300px_1fr]">
         <Card className="h-fit 2xl:sticky 2xl:top-[124px]">
-          <CardHeader eyebrow={expert ? "M02 · Peta proses" : undefined} title="Tahap proses" subtitle="Klik tahap untuk menyaring tabel. Lingkaran menunjukkan berapa baris yang sudah terisi." />
+          <CardHeader
+            eyebrow={expert ? tx("M02 · Peta proses", "M02 · Process map") : undefined}
+            title={tx("Tahap proses", "Process stages")}
+            subtitle={tx("Klik tahap untuk menyaring tabel. Lingkaran menunjukkan berapa baris yang sudah terisi.", "Click a stage to filter the tables. The ring shows how many rows are filled in.")}
+          />
           <CardBody className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-1">
             <button
               type="button"
               onClick={() => setStage(null)}
               className={cn("w-full rounded-lg border px-3 py-2 text-left text-xs", stage === null ? "border-navy-900 bg-navy-900 text-white" : "border-sand-300 hover:border-navy-600")}
             >
-              Semua tahap
+              {tx("Semua tahap", "All stages")}
             </button>
             {stageStats.map((s) => (
               <button
@@ -128,7 +136,8 @@ function DataProses() {
                   <span className="block truncate text-xs font-semibold text-navy-900">{expert ? s.name : plainStage(project, s.id)}</span>
                   <span className="block truncate text-[11px] text-navy-700/60">{s.subprocesses.join(", ")}</span>
                   <span className="num block text-[10px] text-navy-700/55">
-                    {s.filled}/{s.rows} baris terisi{!s.inBoundary && " · tidak dihitung"}
+                    {tx(`${s.filled}/${s.rows} baris terisi`, `${s.filled}/${s.rows} rows filled`)}
+                    {!s.inBoundary && tx(" · tidak dihitung", " · not calculated")}
                   </span>
                 </span>
               </button>
@@ -139,9 +148,12 @@ function DataProses() {
         <Card className="min-w-0">
           <CardHeader
             eyebrow={expert ? "M03 · Data ingestion" : undefined}
-            title={expert ? "Life Cycle Inventory" : "Pemakaian & buangan"}
+            title={expert ? "Life Cycle Inventory" : tx("Pemakaian & buangan", "Usage & discharges")}
             info="lci"
-            subtitle={`Data versi ${project.dataset.version} · ${approved ? "disetujui (hanya baca)" : "draf"} · ${fmt(results.validation.completenessPct, 0)}% terisi`}
+            subtitle={tx(
+              `Data versi ${project.dataset.version} · ${approved ? "disetujui (hanya baca)" : "draf"} · ${fmt(results.validation.completenessPct, 0)}% terisi`,
+              `Data version ${project.dataset.version} · ${approved ? "approved (read-only)" : "draft"} · ${fmt(results.validation.completenessPct, 0)}% filled in`,
+            )}
             action={
               <>
                 <Button
@@ -152,20 +164,26 @@ function DataProses() {
                     downloadBlob(blob, `Form-LCI-Proses-Plating-${fileStamp()}.xlsx`, blob.type);
                   }}
                 >
-                  <Download className="h-3.5 w-3.5" /> Unduh template
+                  <Download className="h-3.5 w-3.5" /> {tx("Unduh template", "Download template")}
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
                   disabled={approved || !canUpload}
-                  title={approved ? "Data sudah disetujui; buka versi baru dulu" : canUpload ? "Excel, CSV, PDF, atau Word berisi data input dan output" : "Kuota unggahan paket sudah terpakai"}
+                  title={
+                    approved
+                      ? tx("Data sudah disetujui; buka versi baru dulu", "Data is already approved; open a new version first")
+                      : canUpload
+                        ? tx("Excel, CSV, PDF, atau Word berisi data input dan output", "Excel, CSV, PDF or Word containing input and output data")
+                        : tx("Kuota unggahan paket sudah terpakai", "Your plan's upload quota is used up")
+                  }
                   onClick={() => fileRef.current?.click()}
                 >
-                  <Upload className="h-3.5 w-3.5" /> Unggah dokumen
+                  <Upload className="h-3.5 w-3.5" /> {tx("Unggah dokumen", "Upload document")}
                 </Button>
                 {backups.length > 0 && (
-                  <Button variant="ghost" size="sm" disabled={approved} onClick={() => setConfirmRestore(true)} title={`Cadangan sebelum impor ${backups[0]!.source}`}>
-                    <RotateCcw className="h-3.5 w-3.5" /> Kembalikan data sebelum unggah
+                  <Button variant="ghost" size="sm" disabled={approved} onClick={() => setConfirmRestore(true)} title={tx(`Cadangan sebelum impor ${backups[0]!.source}`, `Backup from before importing ${backups[0]!.source}`)}>
+                    <RotateCcw className="h-3.5 w-3.5" /> {tx("Kembalikan data sebelum unggah", "Restore data from before upload")}
                   </Button>
                 )}
                 <input
@@ -185,37 +203,41 @@ function DataProses() {
                         setPending({ ...parsed, file: file.name });
                       } else setDocFile(file);
                     } catch (err) {
-                      notify("error", `Impor gagal: ${(err as Error).message}`);
+                      notify("error", tx(`Impor gagal: ${(err as Error).message}`, `Import failed: ${(err as Error).message}`));
                     }
                   }}
                 />
                 <Button size="sm" onClick={() => router.push("/data?view=cek")}>
-                  <ShieldCheck className="h-3.5 w-3.5" /> Cek data
+                  <ShieldCheck className="h-3.5 w-3.5" /> {tx("Cek data", "Check data")}
                 </Button>
               </>
             }
           />
           {approved && (
             <div className="flex flex-wrap items-center gap-2 border-b border-sand-200 bg-status-ok/5 px-5 py-2.5 text-xs text-navy-800">
-              <Lock className="h-3.5 w-3.5 text-status-ok" /> Data disetujui oleh {project.dataset.approvedBy}. Perubahan membuka versi baru dan tercatat di jejak audit.
+              <Lock className="h-3.5 w-3.5 text-status-ok" />{" "}
+              {tx(
+                `Data disetujui oleh ${project.dataset.approvedBy}. Perubahan membuka versi baru dan tercatat di jejak audit.`,
+                `Data approved by ${project.dataset.approvedBy}. Changes open a new version and are recorded in the audit trail.`,
+              )}
               <Button size="sm" variant="secondary" onClick={() => setReopen(true)}>
-                Buka versi {project.dataset.version + 1}
+                {tx(`Buka versi ${project.dataset.version + 1}`, `Open version ${project.dataset.version + 1}`)}
               </Button>
             </div>
           )}
-          {!approved && readOnly && manual && <div className="border-b border-sand-200 bg-sand-50 px-5 py-2.5 text-xs text-navy-700/70">Peran Anda hanya dapat melihat data.</div>}
+          {!approved && readOnly && manual && <div className="border-b border-sand-200 bg-sand-50 px-5 py-2.5 text-xs text-navy-700/70">{tx("Peran Anda hanya dapat melihat data.", "Your role can only view data.")}</div>}
           {!manual && (
             <div className="border-b border-sand-200 px-5 py-3">
-              <LockedFeature feature="manualInput" compact title="Isi dan koreksi langsung di tabel" />
+              <LockedFeature feature="manualInput" compact title={tx("Isi dan koreksi langsung di tabel", "Fill in and correct directly in the table")} />
             </div>
           )}
-          <Tabs tabs={TABS.filter((t) => expert || !t.expertOnly).map((t) => ({ id: t.id, label: expert ? t.expertLabel : t.label, count: issueCount(t.issueTab) }))} value={tab} onChange={setTab} />
+          <Tabs tabs={TABS.filter((t) => expert || !t.expertOnly).map((t) => ({ id: t.id, label: pick(expert ? t.expertLabel : t.label), count: issueCount(t.issueTab) }))} value={tab} onChange={setTab} />
           <CardBody>
             {stage && (
               <p className="mb-3 flex items-center gap-2 text-xs text-navy-800">
-                <StageDot id={stage} /> Hanya tahap {plainStage(project, stage)}
+                <StageDot id={stage} /> {tx(`Hanya tahap ${plainStage(project, stage)}`, `Only stage ${plainStage(project, stage)}`)}
                 <button type="button" className="text-brand-blue underline" onClick={() => setStage(null)}>
-                  hapus filter
+                  {tx("hapus filter", "clear filter")}
                 </button>
               </p>
             )}
@@ -225,7 +247,7 @@ function DataProses() {
             {tab === "effluent" && <EffluentTable project={project} readOnly={readOnly} issues={issueMap} />}
             {tab === "waste" && <WasteTable project={project} readOnly={readOnly} stage={stage} />}
             {tab === "production" && <ProductionForm project={project} readOnly={readOnly} />}
-            {tab === "prices" && (manual ? <PriceForm project={project} /> : <LockedFeature feature="manualInput" title="Harga riil per item" />)}
+            {tab === "prices" && (manual ? <PriceForm project={project} /> : <LockedFeature feature="manualInput" title={tx("Harga riil per item", "Actual price per item")} />)}
             {tab === "mapping" && expert && <MappingTable project={project} readOnly={!can(role, "editData") && !can(role, "editMethod")} />}
           </CardBody>
         </Card>
@@ -234,35 +256,46 @@ function DataProses() {
       {docFile && <DocumentImport file={docFile} project={project} onClose={() => setDocFile(null)} />}
       <Modal
         open={confirmRestore}
-        title="Kembalikan data sebelum unggah"
+        title={tx("Kembalikan data sebelum unggah", "Restore data from before upload")}
         onClose={() => setConfirmRestore(false)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmRestore(false)}>
-              Batal
+              {tx("Batal", "Cancel")}
             </Button>
             <Button
               onClick={() => {
-                if (restoreImportBackup()) notify("success", "Data sebelum unggah dikembalikan sebagai versi data baru.");
+                if (restoreImportBackup()) notify("success", tx("Data sebelum unggah dikembalikan sebagai versi data baru.", "Data from before the upload was restored as a new data version."));
                 setConfirmRestore(false);
               }}
             >
-              <RotateCcw className="h-4 w-4" /> Kembalikan
+              <RotateCcw className="h-4 w-4" /> {tx("Kembalikan", "Restore")}
             </Button>
           </>
         }
       >
         {backups[0] && (
           <p>
-            Data saat ini diganti dengan data sebelum dokumen <b>{backups[0].source}</b> diunggah ({new Date(backups[0].at).toLocaleString("id-ID")}). Perubahan dicatat di jejak audit.
+            <T
+              id={
+                <>
+                  Data saat ini diganti dengan data sebelum dokumen <b>{backups[0].source}</b> diunggah ({new Date(backups[0].at).toLocaleString(locale())}). Perubahan dicatat di jejak audit.
+                </>
+              }
+              en={
+                <>
+                  The current data will be replaced with the data from before <b>{backups[0].source}</b> was uploaded ({new Date(backups[0].at).toLocaleString(locale())}). The change is recorded in the audit trail.
+                </>
+              }
+            />
           </p>
         )}
       </Modal>
       <ReasonDialog
         open={reopen}
-        title={`Buka data versi ${project.dataset.version + 1}`}
-        description="Versi yang sudah disetujui tetap utuh dan hasil tersimpan lama tidak berubah. Versi baru kembali ke status draf."
-        confirmLabel="Buka versi baru"
+        title={tx(`Buka data versi ${project.dataset.version + 1}`, `Open data version ${project.dataset.version + 1}`)}
+        description={tx("Versi yang sudah disetujui tetap utuh dan hasil tersimpan lama tidak berubah. Versi baru kembali ke status draf.", "The approved version stays intact and older saved results do not change. The new version goes back to draft status.")}
+        confirmLabel={tx("Buka versi baru", "Open new version")}
         onCancel={() => setReopen(false)}
         onConfirm={(r) => {
           reopenDataset(r);
@@ -272,21 +305,21 @@ function DataProses() {
 
       <Modal
         open={!!pending}
-        title={`Hasil membaca file — ${pending?.file ?? ""}`}
+        title={tx(`Hasil membaca file — ${pending?.file ?? ""}`, `File read result — ${pending?.file ?? ""}`)}
         onClose={() => setPending(null)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setPending(null)}>
-              Batal
+              {tx("Batal", "Cancel")}
             </Button>
             <Button
               disabled={!pending || pending.report.accepted === 0}
               onClick={() => {
-                if (pending && applyDatasetPatch(pending.patch, pending.file)) notify("success", `${pending.report.accepted} baris diterapkan dari ${pending.file}.`);
+                if (pending && applyDatasetPatch(pending.patch, pending.file)) notify("success", tx(`${pending.report.accepted} baris diterapkan dari ${pending.file}.`, `${pending.report.accepted} rows applied from ${pending.file}.`));
                 setPending(null);
               }}
             >
-              <FileSpreadsheet className="h-4 w-4" /> Terapkan {pending?.report.accepted ?? 0} baris
+              <FileSpreadsheet className="h-4 w-4" /> {tx(`Terapkan ${pending?.report.accepted ?? 0} baris`, `Apply ${pending?.report.accepted ?? 0} rows`)}
             </Button>
           </>
         }
@@ -294,18 +327,23 @@ function DataProses() {
         {pending && (
           <div className="space-y-3 text-xs">
             <div className="flex flex-wrap gap-2">
-              <Badge tone="green">{pending.report.accepted} diterima</Badge>
-              <Badge tone="red">{pending.report.rejected.length} ditolak</Badge>
-              <Badge tone="gold">{pending.report.warnings.length} peringatan</Badge>
+              <Badge tone="green">{tx(`${pending.report.accepted} diterima`, `${pending.report.accepted} accepted`)}</Badge>
+              <Badge tone="red">{tx(`${pending.report.rejected.length} ditolak`, `${pending.report.rejected.length} rejected`)}</Badge>
+              <Badge tone="gold">{tx(`${pending.report.warnings.length} peringatan`, `${pending.report.warnings.length} warnings`)}</Badge>
             </div>
-            {[...pending.report.rejected.map((r) => ({ ...r, kind: "Ditolak" })), ...pending.report.warnings.map((r) => ({ ...r, kind: "Peringatan" }))].slice(0, 40).map((r, i) => (
+            {[...pending.report.rejected.map((r) => ({ ...r, kind: tx("Ditolak", "Rejected") })), ...pending.report.warnings.map((r) => ({ ...r, kind: tx("Peringatan", "Warning") }))].slice(0, 40).map((r, i) => (
               <p key={i} className="text-navy-800">
-                <b>{r.kind}</b> · {r.sheet} baris {r.row}: {r.reason}
+                <b>{r.kind}</b> · {r.sheet} {tx("baris", "row")} {r.row}: {r.reason}
               </p>
             ))}
-            <p className="text-navy-700/60">Hanya nilai sel yang dibaca; rumus dan makro diabaikan. Baris yang ditolak tidak dipakai dan tetap dilaporkan di sini.</p>
+            <p className="text-navy-700/60">
+              {tx(
+                "Hanya nilai sel yang dibaca; rumus dan makro diabaikan. Baris yang ditolak tidak dipakai dan tetap dilaporkan di sini.",
+                "Only cell values are read; formulas and macros are ignored. Rejected rows are not used and are still reported here.",
+              )}
+            </p>
             <Link href="/pengaturan?tab=keamanan" className="text-brand-blue underline">
-              Unggahan dicatat di jejak audit
+              {tx("Unggahan dicatat di jejak audit", "Uploads are recorded in the audit trail")}
             </Link>
           </div>
         )}

@@ -1,22 +1,37 @@
 import type { Project } from "@/lib/domain/types";
 import type { Flow, FlowChange, FlowNode } from "@/lib/engine/flow";
 import type { StageCode } from "@/lib/engine/types";
+import { tx } from "@/lib/i18n";
 import { KIND, ROLE, stageName } from "@/lib/view/titikBoros";
 
 /** Words for the flow diagram; numbers come from lib/engine/flow.ts. */
 
 const CATEGORY: Record<string, string> = {
-  chemical: "Bahan kimia proses",
-  anode: "Anoda",
-  wwtp_chemical: "Bahan kimia pengolahan air limbah",
-  consumable: "Bahan habis pakai",
-  water: "Air",
-  electricity: "Listrik",
-  waste_b3: "Pengolahan & transport limbah B3",
+  get chemical() {
+    return tx("Bahan kimia proses", "Process chemicals");
+  },
+  get anode() {
+    return tx("Anoda", "Anodes");
+  },
+  get wwtp_chemical() {
+    return tx("Bahan kimia pengolahan air limbah", "Wastewater treatment chemicals");
+  },
+  get consumable() {
+    return tx("Bahan habis pakai", "Consumables");
+  },
+  get water() {
+    return tx("Air", "Water");
+  },
+  get electricity() {
+    return tx("Listrik", "Electricity");
+  },
+  get waste_b3() {
+    return tx("Pengolahan & transport limbah B3", "Hazardous (B3) waste treatment & transport");
+  },
 };
 
 export function nodeLabel(node: FlowNode, project: Project, key: string): string {
-  if (node.type === "total") return "Total lini";
+  if (node.type === "total") return tx("Total lini", "Line total");
   if (node.type === "stage") return `${node.key}. ${stageName(project, node.key as StageCode)}`;
   if (node.type === "component") return node.name;
   if (key === "waste_value") return CATEGORY[node.key] ?? node.key;
@@ -26,7 +41,7 @@ export function nodeLabel(node: FlowNode, project: Project, key: string): string
 
 /** Breadcrumb trail for the current focus. */
 export function trail(flow: Flow, project: Project): string[] {
-  const out = ["Semua tahap"];
+  const out = [tx("Semua tahap", "All stages")];
   if (flow.focus.stage) out.push(`${flow.focus.stage}. ${stageName(project, flow.focus.stage)}`);
   if (flow.focus.kind) out.push(flow.key === "waste_value" ? (CATEGORY[flow.focus.kind] ?? flow.focus.kind) : (KIND[flow.focus.kind] ?? flow.focus.kind));
   return out;

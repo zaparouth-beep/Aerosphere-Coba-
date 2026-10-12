@@ -71,12 +71,14 @@ export function computeImpacts(
       trace.add({
         id: `impact.${cat.key}.total`,
         label: `${cat.labelId} total`,
+        labelEn: `${cat.labelEn} total`,
         formula: "Σ jumlah × faktor (hulu) + Σ emisi langsung × CF",
+        formulaEn: "Σ quantity × factor (upstream) + Σ direct emission × CF",
         inputs: Object.fromEntries(Object.entries(bySource).map(([k, v]) => [k, { value: v as number, unit: cat.unit }])),
         result: { value: total, unit: cat.unit },
       });
       for (const s of STAGE_CODES) {
-        trace.add({ id: `impact.${cat.key}.stage.${s}`, label: `${cat.labelId} tahap ${s}`, formula: "Σ kontribusi komponen tahap", inputs: {}, result: { value: perStage[s] as number, unit: cat.unit } });
+        trace.add({ id: `impact.${cat.key}.stage.${s}`, label: `${cat.labelId} tahap ${s}`, labelEn: `${cat.labelEn} stage ${s}`, formula: "Σ kontribusi komponen tahap", formulaEn: "Σ stage component contributions", inputs: {}, result: { value: perStage[s] as number, unit: cat.unit } });
       }
     }
     const perFU = total !== null && areaM2 > 0 ? total / areaM2 : null;
@@ -84,7 +86,9 @@ export function computeImpacts(
       trace.add({
         id: `impact.${cat.key}.perFU`,
         label: `${cat.labelId} per m²`,
+        labelEn: `${cat.labelEn} per m²`,
         formula: "total ÷ luas dilapisi",
+        formulaEn: "total ÷ plated area",
         inputs: { total: { value: total as number, unit: cat.unit }, luas: { value: areaM2, unit: "m²" } },
         result: { value: perFU, unit: `${cat.unit}/m²` },
       });

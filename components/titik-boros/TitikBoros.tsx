@@ -11,6 +11,7 @@ import type { ScenarioOutcome } from "@/lib/engine/scenario";
 import type { IndicatorKey, Severity, TitikBorosModel, TitikBorosRow, TitikBorosStage } from "@/lib/engine/titikBoros";
 import { SEVERITIES } from "@/lib/engine/titikBoros";
 import { STAGE_CODES, type StageCode } from "@/lib/engine/types";
+import { T, tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 import { fmtRp } from "@/lib/utils/format";
 import {
@@ -23,7 +24,7 @@ import {
   GROUP_LABEL,
   INDICATOR,
   leversFor,
-  NO_REASON_TEXT,
+  noReasonText,
   perFuText,
   reasonsFor,
   SEVERITY_STYLE,
@@ -58,8 +59,8 @@ const cellStyle = (s: Severity): React.CSSProperties => ({
 
 export function Legend({ thresholdPct }: { thresholdPct: number }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs" aria-label="Legenda warna">
-      <span className="font-medium text-navy-900">Warna = porsi tahap dalam satu indikator:</span>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs" aria-label={tx("Legenda warna", "Colour legend")}>
+      <span className="font-medium text-navy-900">{tx("Warna = porsi tahap dalam satu indikator:", "Colour = stage share within one indicator:")}</span>
       {SEVERITIES.map((s) => (
         <span key={s} className="inline-flex items-center gap-1.5" data-severity={s}>
           <span className="inline-flex h-5 items-center gap-1 rounded px-1.5 text-[11px] font-semibold" style={cellStyle(s)}>
@@ -105,7 +106,10 @@ export function StackedChart({
         </div>
       ))}
       <p className="text-xs text-navy-700/70" data-testid="not-computed-note">
-        {model.notComputedCount} kategori dampak lain belum dihitung (faktor belum tersedia).
+        {tx(
+          `${model.notComputedCount} kategori dampak lain belum dihitung (faktor belum tersedia).`,
+          `${model.notComputedCount} other impact categories not calculated (factors not yet available).`,
+        )}
       </p>
     </div>
   );
@@ -176,7 +180,7 @@ function ChartRow({ project, row, focus, pinned, onFocus, expert }: { project: P
               if (row.severity[s] !== "red") return null;
               return (
                 <span key={s} className="absolute top-0.5 truncate text-[9px] font-bold uppercase tracking-wide text-[#A61B1B]" style={{ left: `${start}%`, width: `${Math.max(row.share[s], 14)}%` }}>
-                  ▲ Titik boros
+                  ▲ {tx("Titik boros", "Waste hotspot")}
                 </span>
               );
             });
@@ -247,18 +251,22 @@ export function HeatTable({
   return (
     <Card className="h-full">
       <CardHeader
-        title="Tabel titik boros"
-        subtitle={showValues ? "Nilai per 1 m² permukaan dilapisi; warna = kelas porsi tahap." : "Porsi tiap tahap dalam satu indikator; setiap baris berjumlah 100%."}
+        title={tx("Tabel titik boros", "Waste hotspot table")}
+        subtitle={
+          showValues
+            ? tx("Nilai per 1 m² permukaan dilapisi; warna = kelas porsi tahap.", "Values per 1 m² of plated surface; colour = stage share class.")
+            : tx("Porsi tiap tahap dalam satu indikator; setiap baris berjumlah 100%.", "Share of each stage within one indicator; each row adds up to 100%.")
+        }
         action={
           expert ? (
             <Segmented<"pct" | "value">
               size="xs"
-              ariaLabel="Isi sel"
+              ariaLabel={tx("Isi sel", "Cell content")}
               value={view}
               onChange={setView}
               options={[
                 { id: "pct", label: "%" },
-                { id: "value", label: "nilai" },
+                { id: "value", label: tx("nilai", "value") },
               ]}
             />
           ) : undefined
@@ -269,8 +277,8 @@ export function HeatTable({
           <table className="w-full min-w-[600px] border-collapse text-xs" data-testid="heat-table">
             <thead>
               <tr>
-                <th className="px-2 py-1.5 text-left font-semibold text-navy-900">Indikator</th>
-                <th className="px-2 py-1.5 text-left font-semibold text-navy-900">Satuan</th>
+                <th className="px-2 py-1.5 text-left font-semibold text-navy-900">{tx("Indikator", "Indicator")}</th>
+                <th className="px-2 py-1.5 text-left font-semibold text-navy-900">{tx("Satuan", "Unit")}</th>
                 {STAGE_CODES.map((s) => (
                   <th
                     key={s}
@@ -293,10 +301,10 @@ export function HeatTable({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={onExcel}>
-            <FileSpreadsheet className="h-3.5 w-3.5" /> Unduh tabel (Excel)
+            <FileSpreadsheet className="h-3.5 w-3.5" /> {tx("Unduh tabel (Excel)", "Download table (Excel)")}
           </Button>
           <Button size="sm" variant="secondary" onClick={onCopy}>
-            <Copy className="h-3.5 w-3.5" /> Salin
+            <Copy className="h-3.5 w-3.5" /> {tx("Salin", "Copy")}
           </Button>
         </div>
       </CardBody>
@@ -399,7 +407,9 @@ export function StageBoxes({
       {open.map(box)}
       {closed.length > 0 && (
         <details className="rounded-xl border border-sand-200 bg-white p-3">
-          <summary className="cursor-pointer text-xs font-medium text-brand-blue">Lihat tahap lain ({closed.length})</summary>
+          <summary className="cursor-pointer text-xs font-medium text-brand-blue">
+            {tx("Lihat tahap lain", "See other stages")} ({closed.length})
+          </summary>
           <div className="mt-3 space-y-3">{closed.map(box)}</div>
         </details>
       )}
@@ -452,7 +462,7 @@ function StageBox({
             toggle();
           }}
           className="text-left text-sm font-semibold text-navy-900 hover:underline"
-          title="Sorot tahap ini di grafik dan tabel"
+          title={tx("Sorot tahap ini di grafik dan tabel", "Highlight this stage in the chart and table")}
         >
           {stageName(project, box.stage)}
         </button>
@@ -462,7 +472,7 @@ function StageBox({
       </header>
       <ul className="mt-2 space-y-2 text-xs leading-relaxed text-navy-800">
         <li>
-          <b className="text-navy-900">Di mana boros: </b>
+          <b className="text-navy-900">{tx("Di mana boros: ", "Where the waste is: ")}</b>
           {box.hot.length ? (
             box.hot.map((h, i) => (
               <span key={h.key}>
@@ -471,12 +481,14 @@ function StageBox({
               </span>
             ))
           ) : (
-            <span>tidak ada indikator di kelas merah atau oranye.</span>
+            <span>{tx("tidak ada indikator di kelas merah atau oranye.", "no indicator in the red or orange class.")}</span>
           )}
         </li>
         {main && main.drivers[box.stage].length > 0 && (
           <li>
-            <b className="text-navy-900">Pemicunya ({INDICATOR[main.key].label.toLowerCase()}): </b>
+            <b className="text-navy-900">
+              {tx("Pemicunya", "Drivers")} ({INDICATOR[main.key].label.toLowerCase()}):{" "}
+            </b>
             {main.drivers[box.stage]
               .slice(0, 3)
               .map((d) => driverText(d, main, project))
@@ -484,7 +496,7 @@ function StageBox({
           </li>
         )}
         <li>
-          <b className="text-navy-900">Kenapa bisa boros: </b>
+          <b className="text-navy-900">{tx("Kenapa bisa boros: ", "Why it is wasteful: ")}</b>
           {reasons.length ? (
             reasons.map((r, i) => (
               <span key={i} className="block">
@@ -503,30 +515,31 @@ function StageBox({
               </span>
             ))
           ) : (
-            <span>{NO_REASON_TEXT}</span>
+            <span>{noReasonText()}</span>
           )}
         </li>
         <li>
-          <b className="text-navy-900">Yang bisa dicoba: </b>
+          <b className="text-navy-900">{tx("Yang bisa dicoba: ", "What you can try: ")}</b>
           {levers.length ? (
             <span className="mt-1 block space-y-1.5">
               {levers.map((o) => (
                 <span key={o.scenario.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-sand-50 px-2 py-1.5">
                   <span>
-                    {o.scenario.name} — hemat <b>{fmtRp(o.lcc.annualSavingRp)}</b> per tahun
+                    {o.scenario.name} —{" "}
+                    <T id={<>hemat <b>{fmtRp(o.lcc.annualSavingRp)}</b> per tahun</>} en={<>saves <b>{fmtRp(o.lcc.annualSavingRp)}</b> per year</>} />
                   </span>
                   <Link
                     href={`/simulasi?skenario=${encodeURIComponent(o.scenario.id)}`}
                     onClick={(e) => e.stopPropagation()}
                     className="inline-flex items-center gap-1 font-medium text-brand-blue hover:underline"
                   >
-                    Lihat perhitungannya <ArrowRight className="h-3 w-3" />
+                    {tx("Lihat perhitungannya", "See the calculation")} <ArrowRight className="h-3 w-3" />
                   </Link>
                 </span>
               ))}
             </span>
           ) : (
-            <span>belum ada simulasi perbaikan yang menghemat biaya untuk tahap ini.</span>
+            <span>{tx("belum ada simulasi perbaikan yang menghemat biaya untuk tahap ini.", "no cost-saving improvement simulation for this stage yet.")}</span>
           )}
         </li>
       </ul>

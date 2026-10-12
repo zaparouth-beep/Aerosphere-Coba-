@@ -1,3 +1,4 @@
+import { tx } from "@/lib/i18n";
 import { defaultBackgrounds, defaultMethodPackage, SCREENING_PROXIES } from "@/lib/engine/method";
 import { defaultPedigree } from "@/lib/engine/quality";
 import type {
@@ -411,10 +412,45 @@ export function emptyTemplate(): Project {
   return baseProject({ name: "Proyek baru", template: "Kosong" });
 }
 
-export const TEMPLATES: Array<{ id: string; label: string; description: string; build: () => Project }> = [
-  { id: "hard-chrome", label: "Plating – Hard Chrome (demo)", description: "Dataset demo BUILD 2026: 250 m²/tahun, 30 input, 6 tahap A–F.", build: hardChromeDemo },
-  { id: "ni-watts", label: "Plating – Ni Watts Bath", description: "Inventori Takuma et al. 2018 per m² (Tier 5) × 250 m².", build: niWattsTemplate },
-  { id: "anodize", label: "Anodize – Chromic Acid Type I/IB", description: "14 stasiun SCM (dianonimkan); kuantitas diisi pabrik.", build: anodizeTemplate },
-  { id: "cd-znni", label: "Plating – Cd/Zn-Ni", description: "Struktur 30 input, kuantitas kosong.", build: cdZnNiTemplate },
-  { id: "empty", label: "Kosong", description: "Struktur tahap A–F dan 30 input tanpa data.", build: emptyTemplate },
+/**
+ * Templates offered in the pickers. `label`/`description` follow the interface
+ * language; `labelId` is the stable Indonesian label (used in the audit log).
+ * The projects they build are user data and are not translated.
+ */
+export const TEMPLATES: Array<{ id: string; labelId: string; readonly label: string; readonly description: string; build: () => Project }> = [
+  {
+    id: "hard-chrome",
+    labelId: "Plating – Hard Chrome (demo)",
+    get label() { return tx("Plating – Hard Chrome (demo)", "Plating – Hard Chrome (demo)"); },
+    get description() { return tx("Dataset demo BUILD 2026: 250 m²/tahun, 30 input, 6 tahap A–F.", "BUILD 2026 demo dataset: 250 m²/year, 30 inputs, 6 stages A–F."); },
+    build: hardChromeDemo,
+  },
+  {
+    id: "ni-watts",
+    labelId: "Plating – Ni Watts Bath",
+    get label() { return tx("Plating – Ni Watts Bath", "Plating – Ni Watts Bath"); },
+    get description() { return tx("Inventori Takuma et al. 2018 per m² (Tier 5) × 250 m².", "Takuma et al. 2018 inventory per m² (Tier 5) × 250 m²."); },
+    build: niWattsTemplate,
+  },
+  {
+    id: "anodize",
+    labelId: "Anodize – Chromic Acid Type I/IB",
+    get label() { return tx("Anodize – Chromic Acid Type I/IB", "Anodize – Chromic Acid Type I/IB"); },
+    get description() { return tx("14 stasiun SCM (dianonimkan); kuantitas diisi pabrik.", "14 SCM stations (anonymised); quantities filled in by the plant."); },
+    build: anodizeTemplate,
+  },
+  {
+    id: "cd-znni",
+    labelId: "Plating – Cd/Zn-Ni",
+    get label() { return tx("Plating – Cd/Zn-Ni", "Plating – Cd/Zn-Ni"); },
+    get description() { return tx("Struktur 30 input, kuantitas kosong.", "Structure of 30 inputs, quantities empty."); },
+    build: cdZnNiTemplate,
+  },
+  {
+    id: "empty",
+    labelId: "Kosong",
+    get label() { return tx("Kosong", "Empty"); },
+    get description() { return tx("Struktur tahap A–F dan 30 input tanpa data.", "Stage A–F structure and 30 inputs without data."); },
+    build: emptyTemplate,
+  },
 ];

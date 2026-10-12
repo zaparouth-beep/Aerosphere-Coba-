@@ -22,6 +22,7 @@ import {
 } from "@/lib/report/edits";
 import { useAppStore, type ReportDocEdits } from "@/lib/store/useAppStore";
 import { cn } from "@/lib/utils/cn";
+import { T, tx } from "@/lib/i18n";
 
 /**
  * Report text the user can adjust before printing or downloading. Wrap a
@@ -105,7 +106,10 @@ export function useReportEdits() {
       invalid: invalid.length,
       blocked: invalid.length > 0,
       blockedReason: invalid.length
-        ? "Ada teks berisi angka yang tidak berasal dari hasil hitung. Perbaiki atau kembalikan teks aslinya dulu."
+        ? tx(
+            "Ada teks berisi angka yang tidak berasal dari hasil hitung. Perbaiki atau kembalikan teks aslinya dulu.",
+            "Some text contains numbers that do not come from the calculation results. Fix it or restore the original text first.",
+          )
         : undefined,
       /** Resolved text for exports (Excel): the user's edit when it applies. */
       text: (id: string, original: string) => resolveText(edits, id, original),
@@ -133,11 +137,11 @@ export function ReportEditBar() {
         ) : (
           <PencilLine className="h-4 w-4" />
         )}
-        {s.editing ? "Selesai mengubah" : "Ubah teks laporan"}
+        {s.editing ? tx("Selesai mengubah", "Done editing") : tx("Ubah teks laporan", "Edit report text")}
       </Button>
       {any && (
         <Button variant="ghost" onClick={() => setConfirm(true)}>
-          <RotateCcw className="h-4 w-4" /> Kembalikan semua teks asli
+          <RotateCcw className="h-4 w-4" /> {tx("Kembalikan semua teks asli", "Restore all original text")}
         </Button>
       )}
       {(s.edited > 0 || s.hidden > 0) && (
@@ -145,19 +149,19 @@ export function ReportEditBar() {
           className="text-xs text-navy-700/70"
           data-testid="report-edit-count"
         >
-          {s.edited > 0 && `${s.edited} bagian diubah`}
+          {s.edited > 0 && tx(`${s.edited} bagian diubah`, `${s.edited} ${s.edited === 1 ? "section" : "sections"} edited`)}
           {s.edited > 0 && s.hidden > 0 && " · "}
-          {s.hidden > 0 && `${s.hidden} bagian tidak disertakan`}
+          {s.hidden > 0 && tx(`${s.hidden} bagian tidak disertakan`, `${s.hidden} ${s.hidden === 1 ? "section" : "sections"} left out`)}
         </span>
       )}
       <Modal
         open={confirm}
-        title="Kembalikan semua teks asli?"
+        title={tx("Kembalikan semua teks asli?", "Restore all original text?")}
         onClose={() => setConfirm(false)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirm(false)}>
-              Batal
+              {tx("Batal", "Cancel")}
             </Button>
             <Button
               variant="danger"
@@ -166,14 +170,16 @@ export function ReportEditBar() {
                 setConfirm(false);
               }}
             >
-              Kembalikan
+              {tx("Kembalikan", "Restore")}
             </Button>
           </>
         }
       >
         <p className="text-sm text-navy-800">
-          Semua perubahan teks di laporan ini dihapus dan bagian yang
-          disembunyikan ditampilkan lagi. Angka dan tabel tidak berubah.
+          {tx(
+            "Semua perubahan teks di laporan ini dihapus dan bagian yang disembunyikan ditampilkan lagi. Angka dan tabel tidak berubah.",
+            "All text changes in this report are removed and hidden sections are shown again. Numbers and tables do not change.",
+          )}
         </p>
       </Modal>
     </>
@@ -188,28 +194,46 @@ export function ReportEditNotice() {
       {s.editing && (
         <div className="no-print" data-testid="report-edit-help">
           <Callout>
-            Klik teks bergaris putus-putus untuk mengubahnya. Kata-kata boleh
-            diubah, dipersingkat, atau ditambah;{" "}
-            <b>angka hanya boleh yang sudah ada di teks asli</b> karena berasal
-            dari mesin hitung. Tabel tidak bisa diubah. Teks di antara ** dan **
-            dicetak tebal. Perubahan tersimpan otomatis di browser ini.
+            <T
+              id={
+                <>
+                  Klik teks bergaris putus-putus untuk mengubahnya. Kata-kata boleh
+                  diubah, dipersingkat, atau ditambah;{" "}
+                  <b>angka hanya boleh yang sudah ada di teks asli</b> karena berasal
+                  dari mesin hitung. Tabel tidak bisa diubah. Teks di antara ** dan **
+                  dicetak tebal. Perubahan tersimpan otomatis di browser ini.
+                </>
+              }
+              en={
+                <>
+                  Click text with a dashed border to change it. Words may be changed,
+                  shortened, or added;{" "}
+                  <b>only numbers already in the original text are allowed</b> because
+                  they come from the calculation engine. Tables cannot be changed. Text
+                  between ** and ** is printed in bold. Changes are saved automatically
+                  in this browser.
+                </>
+              }
+            />
           </Callout>
         </div>
       )}
       {s.invalid > 0 && (
         <div className="no-print" data-testid="report-edit-invalid">
           <Callout tone="danger">
-            {s.invalid} bagian berisi angka yang tidak ada di hasil hitung.
-            Cetak dan unduh dinonaktifkan sampai angkanya diperbaiki atau teks
-            aslinya dikembalikan.
+            {tx(
+              `${s.invalid} bagian berisi angka yang tidak ada di hasil hitung. Cetak dan unduh dinonaktifkan sampai angkanya diperbaiki atau teks aslinya dikembalikan.`,
+              `${s.invalid} ${s.invalid === 1 ? "section contains" : "sections contain"} numbers that are not in the calculation results. Printing and downloading are disabled until the numbers are fixed or the original text is restored.`,
+            )}
           </Callout>
         </div>
       )}
       {s.stale > 0 && (
         <Callout tone="warn" className="no-print">
-          {s.stale} perubahan teks tidak dipakai karena hasil hitung berubah
-          sejak teks itu diubah. Teks asli yang baru ditampilkan; ubah lagi bila
-          perlu.
+          {tx(
+            `${s.stale} perubahan teks tidak dipakai karena hasil hitung berubah sejak teks itu diubah. Teks asli yang baru ditampilkan; ubah lagi bila perlu.`,
+            `${s.stale} text ${s.stale === 1 ? "change is" : "changes are"} not used because the calculation results changed since the text was edited. The new original text is shown; edit again if needed.`,
+          )}
         </Callout>
       )}
     </>
@@ -299,7 +323,7 @@ export function EditableText({
         ref={ref}
         rows={1}
         lang={lang}
-        aria-label={label ?? "Teks laporan"}
+        aria-label={label ?? tx("Teks laporan", "Report text")}
         data-testid="report-editable"
         data-block={id}
         placeholder={placeholder}
@@ -327,17 +351,19 @@ export function EditableText({
       {(state !== "none" || foreign.length > 0) && (
         <span className="no-print mt-0.5 flex flex-wrap items-center gap-2 text-[10px] not-italic">
           {state === "edited" && (
-            <span className="text-brand-teal">Diubah</span>
+            <span className="text-brand-teal">{tx("Diubah", "Edited")}</span>
           )}
           {state === "stale" && (
             <span className="text-status-warn">
-              Hasil hitung berubah; teks asli dipakai
+              {tx("Hasil hitung berubah; teks asli dipakai", "Results changed; original text used")}
             </span>
           )}
           {foreign.length > 0 && (
             <span className="text-status-danger" role="alert">
-              Angka {foreign.join(", ")} tidak ada di hasil hitung. Hapus, tulis
-              dengan huruf, atau pakai angka asli.
+              {tx(
+                `Angka ${foreign.join(", ")} tidak ada di hasil hitung. Hapus, tulis dengan huruf, atau pakai angka asli.`,
+                `Number ${foreign.join(", ")} is not in the calculation results. Remove it, write it in words, or use the original number.`,
+              )}
             </span>
           )}
           {state !== "none" && (
@@ -346,7 +372,7 @@ export function EditableText({
               className="font-medium text-brand-blue hover:underline"
               onClick={() => resetBlock(doc, id)}
             >
-              Kembalikan teks asli
+              {tx("Kembalikan teks asli", "Restore original text")}
             </button>
           )}
         </span>
@@ -371,8 +397,8 @@ export function IncludeToggle({ id, label }: { id: string; label: string }) {
     >
       {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
       {hidden
-        ? `Tidak disertakan — sertakan lagi ${label}`
-        : `Disertakan — keluarkan ${label}`}
+        ? tx(`Tidak disertakan — sertakan lagi ${label}`, `Left out — include ${label} again`)
+        : tx(`Disertakan — keluarkan ${label}`, `Included — leave out ${label}`)}
     </button>
   );
 }

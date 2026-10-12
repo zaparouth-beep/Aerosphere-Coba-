@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { term } from "@/lib/content/glossary";
+import { tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -48,7 +49,7 @@ export function InfoTip({
     <span ref={ref} className={cn("relative inline-flex align-middle", className)}>
       <button
         type="button"
-        aria-label={`Apa ini? ${heading ?? ""}`}
+        aria-label={`${tx("Apa ini?", "What is this?")} ${heading ?? ""}`}
         aria-expanded={open}
         aria-controls={id}
         onClick={(e) => {
@@ -69,11 +70,13 @@ export function InfoTip({
           {heading && <span className="mb-1 block text-xs font-semibold text-navy-900">{heading}</span>}
           {lines.map((l, i) => (
             <span key={i} className="mb-1 block last:mb-0">
-              <span className="font-medium text-navy-700/60">{["Artinya", "Kenapa penting", "Yang bisa dilakukan"][i]}: </span>
+              <span className="font-medium text-navy-700/60">{[tx("Artinya", "Meaning"), tx("Kenapa penting", "Why it matters"), tx("Yang bisa dilakukan", "What you can do")][i]}: </span>
               {l}
             </span>
           ))}
-          {g && g.term !== g.label && <span className="mt-1 block text-[10px] text-navy-700/50">Istilah teknis: {g.term}</span>}
+          {g && g.term !== g.label && <span className="mt-1 block text-[10px] text-navy-700/50">
+              {tx("Istilah teknis", "Technical term")}: {g.term}
+            </span>}
         </span>
       )}
     </span>

@@ -3,6 +3,8 @@
  * ProjectInput and a FactorSet and returns a RunResult; nothing else.
  */
 
+import { getLang } from "@/lib/i18n";
+
 export type StageCode = "A" | "B" | "C" | "D" | "E" | "F";
 
 export const STAGES: Record<StageCode, { nameId: string; nameEn: string }> = {
@@ -124,8 +126,11 @@ export interface FactorSet {
 
 export interface TraceStep {
   id: string;
+  /** Indonesian label; `labelEn` holds the English one (results never depend on the interface language). */
   label: string;
+  labelEn?: string;
   formula: string;
+  formulaEn?: string;
   inputs: Record<string, { value: number; unit: string; source?: string }>;
   result: { value: number; unit: string };
 }
@@ -218,7 +223,16 @@ export interface HotspotFinding {
 export interface EngineWarning {
   code: "WATER_BALANCE" | "SCREENING_FACTORS" | "FACTOR_MISSING" | "NO_AREA";
   message: string;
+  /** English text of the same message. */
+  messageEn?: string;
 }
+
+/** Engine warning text in the interface language. */
+export const warningText = (w: Pick<EngineWarning, "message" | "messageEn">): string => (getLang() === "en" && w.messageEn ? w.messageEn : w.message);
+/** Trace step label in the interface language. */
+export const traceLabel = (t: Pick<TraceStep, "label" | "labelEn">): string => (getLang() === "en" && t.labelEn ? t.labelEn : t.label);
+/** Trace step formula in the interface language. */
+export const traceFormula = (t: Pick<TraceStep, "formula" | "formulaEn">): string => (getLang() === "en" && t.formulaEn ? t.formulaEn : t.formula);
 
 /** Pusri-style data-quality indicator: primary = company-specific (measured, weighed, lab, invoice, own calculation). */
 export interface DataQuality {

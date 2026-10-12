@@ -88,7 +88,9 @@ export function computeCosts(active: InventoryComponent[], prices: PriceTable, t
   trace.add({
     id: "cost.total",
     label: "Biaya proses",
+    labelEn: "Process cost",
     formula: "Σ (jumlah × harga) + transport limbah B3 + tenaga kerja + biaya tetap lain",
+    formulaEn: "Σ (quantity × price) + B3 waste transport + labour + other fixed cost",
     inputs: {
       komponen: { value: componentsRp, unit: "Rp" },
       transportB3: { value: prices.b3TransportRpPerPeriod, unit: "Rp" },
@@ -103,14 +105,18 @@ export function computeCosts(active: InventoryComponent[], prices: PriceTable, t
   trace.add({
     id: "waste.total",
     label: "Nilai terbuang",
+    labelEn: "Wasted value",
     formula: "kimia proses (bukan anoda) + kimia IPAL + consumable + pengolahan & transport limbah B3 + air",
+    formulaEn: "process chemicals (not anodes) + WWTP chemicals + consumables + B3 waste treatment & transport + water",
     inputs: Object.fromEntries(Object.entries(items).map(([k, v]) => [k, { value: v, unit: "Rp" }])),
     result: { value: totalRp, unit: "Rp" },
   });
   trace.add({
     id: "waste.pct",
     label: "Persen nilai terbuang",
+    labelEn: "Wasted value share",
     formula: "nilai terbuang ÷ biaya proses × 100",
+    formulaEn: "wasted value ÷ process cost × 100",
     inputs: { nilaiTerbuang: { value: totalRp, unit: "Rp" }, biayaProses: { value: costRp, unit: "Rp" } },
     result: { value: pctOfCost, unit: "%" },
   });

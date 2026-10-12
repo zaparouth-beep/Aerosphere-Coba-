@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tx } from "@/lib/i18n";
 import type { Project } from "./types";
 
 /** Runtime validation for anything that enters from outside (imported JSON, localStorage). */
@@ -149,5 +150,5 @@ export function parseProject(value: unknown): { ok: true; project: Project } | {
   const result = projectSchema.safeParse(value);
   if (result.success) return { ok: true, project: result.data as Project };
   const first = result.error.issues[0];
-  return { ok: false, error: first ? `${first.path.join(".")}: ${first.message}` : "Format proyek tidak valid" };
+  return { ok: false, error: first ? `${first.path.join(".")}: ${first.message}` : tx("Format proyek tidak valid", "Invalid project format") };
 }

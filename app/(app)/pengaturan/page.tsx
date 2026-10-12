@@ -25,6 +25,7 @@ import { useActiveResults } from "@/lib/store/useResults";
 import { downloadBlob, downloadCSV, downloadJSON, fileStamp } from "@/lib/utils/export";
 import { fmtDate, fmtSig } from "@/lib/utils/format";
 import { stageLabel } from "@/lib/view/helpers";
+import { T, tx } from "@/lib/i18n";
 
 type Tab = "paket" | "proyek" | "users" | "keamanan" | "hasil" | "method";
 const TAB_IDS: Tab[] = ["paket", "proyek", "users", "keamanan", "hasil", "method"];
@@ -51,12 +52,12 @@ function Settings() {
         value={tab}
         onChange={setTab}
         tabs={[
-          { id: "paket", label: "Paket" },
-          { id: "proyek", label: "Proyek & target" },
-          { id: "users", label: "Pengguna & peran" },
-          { id: "keamanan", label: "Keamanan & jejak audit" },
-          { id: "hasil", label: "Hasil hitung tersimpan" },
-          { id: "method", label: "Metode & database (Ahli)" },
+          { id: "paket", label: tx("Paket", "Plan") },
+          { id: "proyek", label: tx("Proyek & target", "Project & targets") },
+          { id: "users", label: tx("Pengguna & peran", "Users & roles") },
+          { id: "keamanan", label: tx("Keamanan & jejak audit", "Security & audit trail") },
+          { id: "hasil", label: tx("Hasil hitung tersimpan", "Saved results") },
+          { id: "method", label: tx("Metode & database (Ahli)", "Method & database (Expert)") },
         ]}
       />
       <CardBody>
@@ -77,13 +78,16 @@ function PlanTab() {
     <div className="space-y-5">
       {account && (
         <p className="text-xs text-navy-700/70">
-          Masuk sebagai <b className="text-navy-900">{account.name}</b> ({account.email}) · {account.company}
+          <T
+            id={<>Masuk sebagai <b className="text-navy-900">{account.name}</b> ({account.email}) · {account.company}</>}
+            en={<>Signed in as <b className="text-navy-900">{account.name}</b> ({account.email}) · {account.company}</>}
+          />
         </p>
       )}
       <SubscriptionSummary />
       <PlanCards />
       <details className="rounded-xl border border-sand-200 p-3">
-        <summary className="cursor-pointer text-xs font-medium text-navy-900">Bandingkan semua fitur</summary>
+        <summary className="cursor-pointer text-xs font-medium text-navy-900">{tx("Bandingkan semua fitur", "Compare all features")}</summary>
         <div className="mt-3">
           <PlanComparison />
         </div>
@@ -95,12 +99,12 @@ function PlanTab() {
 function LockedOrSwitch() {
   const subscription = useAppStore((s) => s.subscription);
   const setExpertMode = useAppStore((s) => s.setExpertMode);
-  if (!hasFeature(subscription, "expertMode")) return <LockedFeature feature="expertMode" title="Metode & database" />;
+  if (!hasFeature(subscription, "expertMode")) return <LockedFeature feature="expertMode" title={tx("Metode & database", "Method & database")} />;
   return (
     <Callout>
-      Pengaturan metode, database, dan pemetaan aliran hanya tampil di Mode Ahli.{" "}
+      {tx("Pengaturan metode, database, dan pemetaan aliran hanya tampil di Mode Ahli.", "Method, database and flow-mapping settings are only shown in Expert mode.")}{" "}
       <button type="button" className="font-medium text-brand-blue underline" onClick={() => setExpertMode(true)}>
-        Aktifkan Mode Ahli
+        {tx("Aktifkan Mode Ahli", "Turn on Expert mode")}
       </button>
     </Callout>
   );
@@ -123,68 +127,68 @@ function ProjectTab() {
   return (
     <div className="space-y-6">
       <section>
-        <h3 className="mb-3 text-sm font-semibold text-navy-900">Metadata proyek</h3>
+        <h3 className="mb-3 text-sm font-semibold text-navy-900">{tx("Metadata proyek", "Project metadata")}</h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Nama proyek">
+          <Field label={tx("Nama proyek", "Project name")}>
             <TextInput value={project.name} onCommit={(v) => updateProjectMeta({ name: v })} />
           </Field>
-          <Field label="Fasilitas">
+          <Field label={tx("Fasilitas", "Facility")}>
             <TextInput value={project.facility} onCommit={(v) => updateProjectMeta({ facility: v })} />
           </Field>
-          <Field label="Klien">
+          <Field label={tx("Klien", "Client")}>
             <TextInput value={project.client} onCommit={(v) => updateProjectMeta({ client: v })} />
           </Field>
-          <Field label="Periode (label)">
+          <Field label={tx("Periode (label)", "Period (label)")}>
             <TextInput value={project.periodLabel} onCommit={(v) => updateProjectMeta({ periodLabel: v })} />
           </Field>
-          <Field label="Jumlah bulan dalam periode" hint="Dipakai untuk data per bulan.">
+          <Field label={tx("Jumlah bulan dalam periode", "Months in period")} hint={tx("Dipakai untuk data per bulan.", "Used for monthly data.")}>
             <NumberInput value={project.periodMonths} min={1} onCommit={(v) => updateProjectMeta({ periodMonths: v ?? 12 })} />
           </Field>
           <Field label="Part">
             <TextInput value={project.partName} onCommit={(v) => updateProjectMeta({ partName: v })} />
           </Field>
-          <Field label="Material substrat">
+          <Field label={tx("Material substrat", "Substrate material")}>
             <TextInput value={project.substrate} onCommit={(v) => updateProjectMeta({ substrate: v })} />
           </Field>
-          <Field label="Jenis lapisan">
+          <Field label={tx("Jenis lapisan", "Coating type")}>
             <TextInput value={project.coatingType} onCommit={(v) => updateProjectMeta({ coatingType: v })} />
           </Field>
-          <Field label="Ambang titik boros (%)" hint="Tahap dengan porsi sebesar ini atau lebih ditandai merah di Titik Boros. Bawaan 30%.">
-            <NumberInput ariaLabel="Ambang titik boros (%)" value={project.hotspotThresholdPct ?? 30} min={1} onCommit={(v) => updateProjectMeta({ hotspotThresholdPct: Math.min(100, Math.max(1, v ?? 30)) })} />
+          <Field label={tx("Ambang titik boros (%)", "Waste hotspot threshold (%)")} hint={tx("Tahap dengan porsi sebesar ini atau lebih ditandai merah di Titik Boros. Bawaan 30%.", "Stages with this share or more are marked red in Waste Hotspots. Default 30%.")}>
+            <NumberInput ariaLabel={tx("Ambang titik boros (%)", "Waste hotspot threshold (%)")} value={project.hotspotThresholdPct ?? 30} min={1} onCommit={(v) => updateProjectMeta({ hotspotThresholdPct: Math.min(100, Math.max(1, v ?? 30)) })} />
           </Field>
         </div>
       </section>
 
       <section>
-        <h3 className="mb-3 text-sm font-semibold text-navy-900">Target perusahaan (M12)</h3>
+        <h3 className="mb-3 text-sm font-semibold text-navy-900">{tx("Target perusahaan (M12)", "Company targets (M12)")}</h3>
         <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <Field label="Baseline">
             <TextInput value={t.baselineLabel} onCommit={(v) => updateTargets({ baselineLabel: v })} />
           </Field>
-          <Field label="Target tahun">
+          <Field label={tx("Target tahun", "Target year")}>
             <NumberInput value={t.targetYear} min={2000} onCommit={(v) => updateTargets({ targetYear: v ?? t.targetYear })} />
           </Field>
-          <Field label="GWP turun (%)">
+          <Field label={tx("GWP turun (%)", "GWP reduction (%)")}>
             <NumberInput value={t.gwpReductionPct} min={0} onCommit={(v) => updateTargets({ gwpReductionPct: v ?? 0 })} />
           </Field>
-          <Field label="Limbah B3 turun (%)">
+          <Field label={tx("Limbah B3 turun (%)", "Hazardous (B3) waste reduction (%)")}>
             <NumberInput value={t.wasteReductionPct} min={0} onCommit={(v) => updateTargets({ wasteReductionPct: v ?? 0 })} />
           </Field>
-          <Field label="Air turun (%)">
+          <Field label={tx("Air turun (%)", "Water reduction (%)")}>
             <NumberInput value={t.waterReductionPct} min={0} onCommit={(v) => updateTargets({ waterReductionPct: v ?? 0 })} />
           </Field>
-          <Field label="Discount rate NPV (%)">
+          <Field label={tx("Discount rate NPV (%)", "NPV discount rate (%)")}>
             <NumberInput value={t.discountRatePct} min={0} onCommit={(v) => updateTargets({ discountRatePct: v ?? 0 })} />
           </Field>
         </div>
       </section>
 
       <section>
-        <h3 className="mb-1 text-sm font-semibold text-navy-900">Jam kerja per tahap (kunci alokasi system cost)</h3>
-        <p className="mb-3 text-xs text-navy-700/65">Bila kosong, tenaga kerja & depresiasi dibagi rata ke tahap dalam boundary.</p>
+        <h3 className="mb-1 text-sm font-semibold text-navy-900">{tx("Jam kerja per tahap (kunci alokasi system cost)", "Working hours per stage (system cost allocation key)")}</h3>
+        <p className="mb-3 text-xs text-navy-700/65">{tx("Bila kosong, tenaga kerja & depresiasi dibagi rata ke tahap dalam boundary.", "If empty, labour & depreciation are split evenly across stages within the boundary.")}</p>
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {project.stages.map((s) => (
-            <Field key={s.id} label={`${stageLabel(project, s.id)} (jam/periode)`}>
+            <Field key={s.id} label={`${stageLabel(project, s.id)} ${tx("(jam/periode)", "(hours/period)")}`}>
               <NumberInput value={project.laborHoursByStage[s.id]} min={0} onCommit={(v) => updateStageScores("laborHoursByStage", s.id, v ?? 0)} />
             </Field>
           ))}
@@ -192,7 +196,7 @@ function ProjectTab() {
       </section>
 
       <section>
-        <h3 className="mb-3 text-sm font-semibold text-navy-900">Proyek baru dari template (FR-01.5)</h3>
+        <h3 className="mb-3 text-sm font-semibold text-navy-900">{tx("Proyek baru dari template (FR-01.5)", "New project from template (FR-01.5)")}</h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {TEMPLATES.map((tpl) => (
             <button key={tpl.id} type="button" onClick={() => setConfirmTpl(tpl.id)} className="rounded-lg border border-sand-200 p-3 text-left hover:border-brand-blue/40">
@@ -205,10 +209,10 @@ function ProjectTab() {
 
       <section className="flex flex-wrap gap-2">
         <Button variant="secondary" onClick={() => downloadJSON(project, `AeroSphere-proyek-${fileStamp()}.json`)}>
-          <FileJson className="h-4 w-4" /> Ekspor proyek (JSON)
+          <FileJson className="h-4 w-4" /> {tx("Ekspor proyek (JSON)", "Export project (JSON)")}
         </Button>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}>
-          <Upload className="h-4 w-4" /> Impor proyek (JSON)
+          <Upload className="h-4 w-4" /> {tx("Impor proyek (JSON)", "Import project (JSON)")}
         </Button>
         <input
           ref={fileRef}
@@ -219,11 +223,11 @@ function ProjectTab() {
             const f = e.target.files?.[0];
             e.target.value = "";
             if (!f) return;
-            if (f.size > 25 * 1024 * 1024) return notify("error", "File melebihi 25 MB.");
+            if (f.size > 25 * 1024 * 1024) return notify("error", tx("File melebihi 25 MB.", "File exceeds 25 MB."));
             try {
               importProject(JSON.parse(await f.text()));
             } catch {
-              notify("error", "File bukan JSON yang valid.");
+              notify("error", tx("File bukan JSON yang valid.", "File is not valid JSON."));
             }
           }}
         />
@@ -231,12 +235,12 @@ function ProjectTab() {
 
       <Modal
         open={!!confirmTpl}
-        title="Buat proyek dari template?"
+        title={tx("Buat proyek dari template?", "Create project from template?")}
         onClose={() => setConfirmTpl(null)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmTpl(null)}>
-              Batal
+              {tx("Batal", "Cancel")}
             </Button>
             <Button
               onClick={() => {
@@ -244,12 +248,15 @@ function ProjectTab() {
                 setConfirmTpl(null);
               }}
             >
-              Buat proyek
+              {tx("Buat proyek", "Create project")}
             </Button>
           </>
         }
       >
-        Proyek aktif akan diganti. Ekspor proyek ke JSON lebih dulu bila ingin menyimpannya. Hasil hitung tersimpan dan jejak audit tetap ada.
+        {tx(
+          "Proyek aktif akan diganti. Ekspor proyek ke JSON lebih dulu bila ingin menyimpannya. Hasil hitung tersimpan dan jejak audit tetap ada.",
+          "The active project will be replaced. Export the project to JSON first if you want to keep it. Saved results and the audit trail are kept.",
+        )}
       </Modal>
     </div>
   );
@@ -269,32 +276,34 @@ function MethodTab() {
   return (
     <div className="space-y-6">
       <Callout tone="info">
-        Engine ini database-agnostic (P3). Faktor background (dampak cradle-to-gate per kg/L/kWh) dan faktor karakterisasi dihitung di openLCA dengan USLCI/LCA Commons, ecoinvent
-        (bila berlisensi), atau database lain, lalu diimpor di sini. Hanya nilai yang bersumber yang disertakan bawaan; sel kosong berarti belum tersedia, bukan nol.
+        {tx(
+          "Engine ini database-agnostic (P3). Faktor background (dampak cradle-to-gate per kg/L/kWh) dan faktor karakterisasi dihitung di openLCA dengan USLCI/LCA Commons, ecoinvent (bila berlisensi), atau database lain, lalu diimpor di sini. Hanya nilai yang bersumber yang disertakan bawaan; sel kosong berarti belum tersedia, bukan nol.",
+          "This engine is database-agnostic (P3). Background factors (cradle-to-gate impacts per kg/L/kWh) and characterisation factors are calculated in openLCA with USLCI/LCA Commons, ecoinvent (if licensed), or another database, then imported here. Only sourced values are included by default; an empty cell means not yet available, not zero.",
+        )}
       </Callout>
 
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-navy-900">
-            <Database className="h-4 w-4 text-brand-teal" /> Dataset background ({project.backgrounds.length})
+            <Database className="h-4 w-4 text-brand-teal" /> {tx("Dataset background", "Background datasets")} ({project.backgrounds.length})
           </h3>
           <Button size="sm" variant="secondary" onClick={() => downloadBlob(BACKGROUND_TEMPLATE, "template-dataset-background.csv", "text/csv")}>
             <Download className="h-3.5 w-3.5" /> Template CSV
           </Button>
         </div>
-        <Table caption="Dataset background">
+        <Table caption={tx("Dataset background", "Background datasets")}>
           <THead>
             <tr>
               <Th>Dataset</Th>
-              <Th>Provider · versi</Th>
-              <Th>Geografi</Th>
+              <Th>{tx("Provider · versi", "Provider · version")}</Th>
+              <Th>{tx("Geografi", "Geography")}</Th>
               <Th>Unit</Th>
               {IMPACT_CATEGORIES.slice(0, 4).map((c) => (
                 <Th key={c.id} align="right">
                   {c.short}
                 </Th>
               ))}
-              <Th align="right">Kategori lain</Th>
+              <Th align="right">{tx("Kategori lain", "Other categories")}</Th>
               <Th />
             </tr>
           </THead>
@@ -314,7 +323,7 @@ function MethodTab() {
                 ))}
                 <Td num>{IMPACT_CATEGORIES.slice(4).filter((c) => b.factors[c.id] !== undefined).length}/7</Td>
                 <Td>
-                  <IconButton label={`Hapus ${b.name}`} onClick={() => removeBackground(b.id)} className="hover:text-status-danger">
+                  <IconButton label={`${tx("Hapus", "Delete")} ${b.name}`} onClick={() => removeBackground(b.id)} className="hover:text-status-danger">
                     <Trash2 className="h-4 w-4" />
                   </IconButton>
                 </Td>
@@ -322,7 +331,10 @@ function MethodTab() {
             ))}
           </tbody>
         </Table>
-        <Field label="Impor dataset background (CSV; kolom id;name;provider;version;geography;ref_unit;cc;ac;euf;pof;pm;rum;ruf;htc;htnc;etf;wu)" className="mt-3">
+        <Field label={tx(
+            "Impor dataset background (CSV; kolom id;name;provider;version;geography;ref_unit;cc;ac;euf;pof;pm;rum;ruf;htc;htnc;etf;wu)",
+            "Import background datasets (CSV; columns id;name;provider;version;geography;ref_unit;cc;ac;euf;pof;pm;rum;ruf;htc;htnc;etf;wu)",
+          )} className="mt-3">
           <Textarea rows={4} value={bgText} onChange={(e) => setBgText(e.target.value)} className="num text-xs" placeholder={BACKGROUND_TEMPLATE} />
         </Field>
         <Button
@@ -332,28 +344,34 @@ function MethodTab() {
           onClick={() => {
             const { datasets, errors } = parseBackgroundCsv(bgText, new Date().toISOString());
             datasets.forEach((d) => upsertBackground(d));
-            notify(errors.length ? "error" : "success", `${datasets.length} dataset diimpor${errors.length ? `; ${errors.length} baris ditolak: ${errors.slice(0, 3).join("; ")}` : ""}.`);
+            notify(
+              errors.length ? "error" : "success",
+              tx(
+                `${datasets.length} dataset diimpor${errors.length ? `; ${errors.length} baris ditolak: ${errors.slice(0, 3).join("; ")}` : ""}.`,
+                `${datasets.length} dataset(s) imported${errors.length ? `; ${errors.length} row(s) rejected: ${errors.slice(0, 3).join("; ")}` : ""}.`,
+              ),
+            );
             if (!errors.length) setBgText("");
           }}
         >
-          <Upload className="h-3.5 w-3.5" /> Terapkan
+          <Upload className="h-3.5 w-3.5" /> {tx("Terapkan", "Apply")}
         </Button>
       </section>
 
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-navy-900">Faktor karakterisasi emisi langsung — {project.method.release}</h3>
+          <h3 className="text-sm font-semibold text-navy-900">{tx("Faktor karakterisasi emisi langsung", "Direct-emission characterisation factors")} — {project.method.release}</h3>
           <Button size="sm" variant="secondary" onClick={() => downloadBlob(CF_TEMPLATE, "template-cf.csv", "text/csv")}>
             <Download className="h-3.5 w-3.5" /> Template CSV
           </Button>
         </div>
-        <Table caption="Faktor karakterisasi">
+        <Table caption={tx("Faktor karakterisasi", "Characterisation factors")}>
           <THead>
             <tr>
-              <Th>Aliran</Th>
+              <Th>{tx("Aliran", "Flow")}</Th>
               <Th>Media</Th>
-              <Th>Faktor (per kg)</Th>
-              <Th>Sumber</Th>
+              <Th>{tx("Faktor (per kg)", "Factor (per kg)")}</Th>
+              <Th>{tx("Sumber", "Source")}</Th>
             </tr>
           </THead>
           <tbody>
@@ -362,15 +380,15 @@ function MethodTab() {
               return (
                 <Tr key={f.key}>
                   <Td className="text-xs font-medium">{f.label}</Td>
-                  <Td className="text-xs">{f.compartment === "air" ? "udara" : "air"}</Td>
-                  <Td className="text-xs">{entries.length ? entries.map(([k, v]) => `${IMPACT_CATEGORIES.find((c) => c.id === k)?.short}: ${fmtSig(v)}`).join(" · ") : <Badge tone="gold">belum ada CF</Badge>}</Td>
+                  <Td className="text-xs">{f.compartment === "air" ? tx("udara", "air") : tx("air", "water")}</Td>
+                  <Td className="text-xs">{entries.length ? entries.map(([k, v]) => `${IMPACT_CATEGORIES.find((c) => c.id === k)?.short}: ${fmtSig(v)}`).join(" · ") : <Badge tone="gold">{tx("belum ada CF", "no CF yet")}</Badge>}</Td>
                   <Td className="text-[11px] text-navy-700/65">{f.source}</Td>
                 </Tr>
               );
             })}
           </tbody>
         </Table>
-        <Field label="Impor CF (CSV; kolom key;label;compartment;cc;ac;…)" className="mt-3">
+        <Field label={tx("Impor CF (CSV; kolom key;label;compartment;cc;ac;…)", "Import CFs (CSV; columns key;label;compartment;cc;ac;…)")} className="mt-3">
           <Textarea rows={3} value={cfText} onChange={(e) => setCfText(e.target.value)} className="num text-xs" placeholder={CF_TEMPLATE} />
         </Field>
         <Button
@@ -380,11 +398,11 @@ function MethodTab() {
           onClick={() => {
             const { flows, errors } = parseCfCsv(cfText);
             if (flows.length) upsertFlowCF(flows, `${project.method.release.replace(/ \+ impor.*$/, "")} + impor ${new Date().toISOString().slice(0, 10)}`);
-            notify(errors.length ? "error" : "success", `${flows.length} CF diimpor${errors.length ? `; ${errors.length} ditolak` : ""}.`);
+            notify(errors.length ? "error" : "success", tx(`${flows.length} CF diimpor${errors.length ? `; ${errors.length} ditolak` : ""}.`, `${flows.length} CF(s) imported${errors.length ? `; ${errors.length} rejected` : ""}.`));
             if (!errors.length) setCfText("");
           }}
         >
-          <Upload className="h-3.5 w-3.5" /> Terapkan
+          <Upload className="h-3.5 w-3.5" /> {tx("Terapkan", "Apply")}
         </Button>
       </section>
     </div>
@@ -407,21 +425,21 @@ function RunsTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => runCalculation("draft")}>Simpan hasil (draf)</Button>
+        <Button onClick={() => runCalculation("draft")}>{tx("Simpan hasil (draf)", "Save result (draft)")}</Button>
         <Button variant="brand" disabled={!v.readyForOfficialRun} onClick={() => runCalculation("official")}>
-          <ShieldCheck className="h-4 w-4" /> Simpan hasil resmi
+          <ShieldCheck className="h-4 w-4" /> {tx("Simpan hasil resmi", "Save official result")}
         </Button>
-        {!v.readyForOfficialRun && <span className="text-xs text-navy-700/65">Hasil resmi butuh pengaturan studi dikunci, data disetujui, tanpa kesalahan, dan semua buangan terpetakan.</span>}
+        {!v.readyForOfficialRun && <span className="text-xs text-navy-700/65">{tx("Hasil resmi butuh pengaturan studi dikunci, data disetujui, tanpa kesalahan, dan semua buangan terpetakan.", "An official result needs a locked study setup, approved data, no errors, and all releases mapped.")}</span>}
       </div>
-      <Table caption="Hasil hitung tersimpan">
+      <Table caption={tx("Hasil hitung tersimpan", "Saved results")}>
         <THead>
           <tr>
-            <Th>Nomor hasil</Th>
-            <Th>Jenis</Th>
-            <Th>Dibuat</Th>
+            <Th>{tx("Nomor hasil", "Result number")}</Th>
+            <Th>{tx("Jenis", "Type")}</Th>
+            <Th>{tx("Dibuat", "Created")}</Th>
             <Th>Scope · dataset</Th>
-            <Th>Hash hasil</Th>
-            <Th>Reproduksi</Th>
+            <Th>{tx("Hash hasil", "Result hash")}</Th>
+            <Th>{tx("Reproduksi", "Reproduce")}</Th>
             <Th />
           </tr>
         </THead>
@@ -430,14 +448,14 @@ function RunsTab() {
             <Tr key={r.id}>
               <Td className="num text-xs font-medium">{r.label}</Td>
               <Td>
-                <Badge tone={r.manifest.kind === "official" ? "green" : "neutral"}>{r.manifest.kind === "official" ? "resmi" : "draf"}</Badge>
+                <Badge tone={r.manifest.kind === "official" ? "green" : "neutral"}>{r.manifest.kind === "official" ? tx("resmi", "official") : tx("draf", "draft")}</Badge>
               </Td>
               <Td className="text-xs">
                 {fmtDate(r.manifest.createdAt)} · {r.manifest.createdBy}
               </Td>
               <Td className="text-xs">
                 v{r.manifest.scopeVersion}
-                {r.manifest.scopeLocked ? " (terkunci)" : ""} · v{r.manifest.datasetVersion} {r.manifest.datasetStatus}
+                {r.manifest.scopeLocked ? tx(" (terkunci)", " (locked)") : ""} · v{r.manifest.datasetVersion} {r.manifest.datasetStatus}
               </Td>
               <Td className="num text-[11px]">{r.resultHash.slice(0, 16)}…</Td>
               <Td>
@@ -451,28 +469,28 @@ function RunsTab() {
                       log("run", r.id, "rerun-check", { newValue: res });
                     }}
                   >
-                    <RefreshCw className="h-3.5 w-3.5" /> Re-run dari manifest
+                    <RefreshCw className="h-3.5 w-3.5" /> {tx("Re-run dari manifest", "Re-run from manifest")}
                   </Button>
                 ) : checks[r.id] ? (
                   <Badge tone="green">
-                    <CheckCircle2 className="h-3 w-3" /> hash identik
+                    <CheckCircle2 className="h-3 w-3" /> {tx("hash identik", "hash identical")}
                   </Badge>
                 ) : (
                   <Badge tone="red">
-                    <XCircle className="h-3 w-3" /> berbeda
+                    <XCircle className="h-3 w-3" /> {tx("berbeda", "different")}
                   </Badge>
                 )}
               </Td>
               <Td>
                 <div className="flex gap-1">
                   <Button size="sm" variant="ghost" onClick={() => setUi({ activeRunId: r.id })}>
-                    Tampilkan
+                    {tx("Tampilkan", "Show")}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setManifest(JSON.stringify(r.manifest, null, 2))}>
                     Manifest
                   </Button>
                   {r.manifest.kind !== "official" && (
-                    <IconButton label={`Hapus ${r.id}`} onClick={() => deleteRun(r.id)} className="hover:text-status-danger">
+                    <IconButton label={`${tx("Hapus", "Delete")} ${r.id}`} onClick={() => deleteRun(r.id)} className="hover:text-status-danger">
                       <Trash2 className="h-4 w-4" />
                     </IconButton>
                   )}
@@ -483,13 +501,16 @@ function RunsTab() {
           {!runs.length && (
             <Tr>
               <Td colSpan={7} className="py-6 text-center text-xs text-navy-700/60">
-                Belum ada hasil tersimpan. Setiap hasil mengunci salinan data, versi metode, versi engine ({ENGINE_VERSION}), dan hash hasil.
+                {tx(
+                  `Belum ada hasil tersimpan. Setiap hasil mengunci salinan data, versi metode, versi engine (${ENGINE_VERSION}), dan hash hasil.`,
+                  `No saved results yet. Each result locks a copy of the data, the method version, the engine version (${ENGINE_VERSION}), and the result hash.`,
+                )}
               </Td>
             </Tr>
           )}
         </tbody>
       </Table>
-      <Modal open={!!manifest} title="Rincian hasil tersimpan" onClose={() => setManifest(null)}>
+      <Modal open={!!manifest} title={tx("Rincian hasil tersimpan", "Saved result details")} onClose={() => setManifest(null)}>
         <pre className="num max-h-[60vh] overflow-auto rounded bg-sand-50 p-3 text-[11px]">{manifest}</pre>
       </Modal>
     </div>
@@ -504,14 +525,16 @@ function AccessTab() {
   return (
     <div className="space-y-5">
       <Callout tone="warn">
-        Versi browser ini mensimulasikan RBAC di sisi klien untuk demo dan uji alur (FR-13.1). Autentikasi SSO/MFA, Row-Level Security, dan tautan auditor berbatas waktu
-        membutuhkan backend (Keycloak + PostgreSQL, PRD 2.6–2.7) sebelum dipasang di pabrik.
+        {tx(
+          "Versi browser ini mensimulasikan RBAC di sisi klien untuk demo dan uji alur (FR-13.1). Autentikasi SSO/MFA, Row-Level Security, dan tautan auditor berbatas waktu membutuhkan backend (Keycloak + PostgreSQL, PRD 2.6–2.7) sebelum dipasang di pabrik.",
+          "This browser version simulates RBAC on the client for demos and flow testing (FR-13.1). SSO/MFA authentication, Row-Level Security, and time-limited auditor links need a backend (Keycloak + PostgreSQL, PRD 2.6–2.7) before deployment at a plant.",
+        )}
       </Callout>
       <div className="grid max-w-xl gap-4 sm:grid-cols-2">
-        <Field label="Nama pengguna (tercatat di audit log)">
+        <Field label={tx("Nama pengguna (tercatat di audit log)", "User name (recorded in the audit log)")}>
           <TextInput value={user.name} onCommit={(v) => setUser(v, user.role)} />
         </Field>
-        <Field label="Peran aktif">
+        <Field label={tx("Peran aktif", "Active role")}>
           <select className="w-full rounded-lg border border-sand-300 bg-white px-2.5 py-1.5 text-sm" value={user.role} onChange={(e) => setUser(user.name, e.target.value as Role)}>
             {ROLES.map((r) => (
               <option key={r} value={r}>
@@ -521,10 +544,10 @@ function AccessTab() {
           </select>
         </Field>
       </div>
-      <Table caption="Matriks izin">
+      <Table caption={tx("Matriks izin", "Permission matrix")}>
         <THead>
           <tr>
-            <Th>Izin</Th>
+            <Th>{tx("Izin", "Permission")}</Th>
             {ROLES.map((r) => (
               <Th key={r} align="center">
                 {ROLE_LABEL[r]}
@@ -538,7 +561,7 @@ function AccessTab() {
               <Td className="text-xs">{PERMISSION_LABEL[p]}</Td>
               {ROLES.map((r) => (
                 <Td key={r} align="center">
-                  {can(r, p) ? <CheckCircle2 className="mx-auto h-4 w-4 text-status-ok" aria-label="boleh" /> : <span className="text-navy-700/30" aria-label="tidak">–</span>}
+                  {can(r, p) ? <CheckCircle2 className="mx-auto h-4 w-4 text-status-ok" aria-label={tx("boleh", "allowed")} /> : <span className="text-navy-700/30" aria-label={tx("tidak", "not allowed")}>–</span>}
                 </Td>
               ))}
             </Tr>
@@ -548,10 +571,15 @@ function AccessTab() {
       <div className="flex items-start gap-2 rounded-lg border border-sand-200 p-3 text-xs">
         <Link2 className="mt-0.5 h-4 w-4 text-brand-teal" />
         <div>
-          <p className="font-semibold text-navy-900">Mode auditor</p>
-          <p className="text-navy-700/70">Ganti peran ke “Auditor (read-only)” untuk melihat Goal & Scope, LCI, mapping, metode, hasil, dan log perubahan tanpa bisa mengubah data.</p>
+          <p className="font-semibold text-navy-900">{tx("Mode auditor", "Auditor mode")}</p>
+          <p className="text-navy-700/70">
+            {tx(
+              "Ganti peran ke “Auditor (read-only)” untuk melihat Goal & Scope, LCI, mapping, metode, hasil, dan log perubahan tanpa bisa mengubah data.",
+              "Switch the role to “Auditor (read-only)” to view Goal & Scope, LCI, mapping, method, results, and the change log without being able to change data.",
+            )}
+          </p>
           <Button size="sm" variant="secondary" className="mt-2" onClick={() => setUser(user.name, "Auditor")}>
-            Masuk mode auditor
+            {tx("Masuk mode auditor", "Enter auditor mode")}
           </Button>
         </div>
       </div>
@@ -571,14 +599,14 @@ function AuditTab() {
       <div className="flex flex-wrap items-center gap-2">
         {broken === null ? (
           <Badge tone="green">
-            <ShieldCheck className="h-3.5 w-3.5" /> Hash chain utuh ({events.length} event)
+            <ShieldCheck className="h-3.5 w-3.5" /> {tx(`Hash chain utuh (${events.length} event)`, `Hash chain intact (${events.length} events)`)}
           </Badge>
         ) : (
           <Badge tone="red">
-            <XCircle className="h-3.5 w-3.5" /> Hash chain rusak mulai event #{broken}
+            <XCircle className="h-3.5 w-3.5" /> {tx(`Hash chain rusak mulai event #${broken}`, `Hash chain broken from event #${broken}`)}
           </Badge>
         )}
-        <TextInput value={filter} onCommit={setFilter} placeholder="Filter entitas/aksi/aktor…" className="max-w-xs" ariaLabel="Filter audit log" />
+        <TextInput value={filter} onCommit={setFilter} placeholder={tx("Filter entitas/aksi/aktor…", "Filter entity/action/actor…")} className="max-w-xs" ariaLabel={tx("Filter audit log", "Filter audit log")} />
         <Button
           size="sm"
           variant="secondary"
@@ -589,19 +617,19 @@ function AuditTab() {
             )
           }
         >
-          <Download className="h-3.5 w-3.5" /> Ekspor CSV
+          <Download className="h-3.5 w-3.5" /> {tx("Ekspor CSV", "Export CSV")}
         </Button>
       </div>
-      <p className="text-xs text-navy-700/65">Append-only: setiap event menyimpan hash event sebelumnya sehingga perubahan pada riwayat terdeteksi (PRD 2.4).</p>
+      <p className="text-xs text-navy-700/65">{tx("Append-only: setiap event menyimpan hash event sebelumnya sehingga perubahan pada riwayat terdeteksi (PRD 2.4).", "Append-only: each event stores the previous event's hash so changes to the history are detected (PRD 2.4).")}</p>
       <Table caption="Audit log">
         <THead>
           <tr>
             <Th>#</Th>
-            <Th>Waktu</Th>
-            <Th>Aktor</Th>
-            <Th>Entitas</Th>
-            <Th>Aksi</Th>
-            <Th className="min-w-[260px]">Perubahan / alasan</Th>
+            <Th>{tx("Waktu", "Time")}</Th>
+            <Th>{tx("Aktor", "Actor")}</Th>
+            <Th>{tx("Entitas", "Entity")}</Th>
+            <Th>{tx("Aksi", "Action")}</Th>
+            <Th className="min-w-[260px]">{tx("Perubahan / alasan", "Change / reason")}</Th>
             <Th>Hash</Th>
           </tr>
         </THead>
@@ -620,9 +648,9 @@ function AuditTab() {
                 <Badge tone={e.action === "denied" ? "red" : e.action.startsWith("approve") || e.action === "lock" ? "green" : "neutral"}>{e.action}</Badge>
               </Td>
               <Td className="max-w-[420px] text-[11px] text-navy-800">
-                {e.reason && <p className="font-medium">Alasan: {e.reason}</p>}
-                {e.oldValue !== undefined && <p className="truncate text-navy-700/60">lama: {JSON.stringify(e.oldValue)}</p>}
-                {e.newValue !== undefined && <p className="truncate">baru: {JSON.stringify(e.newValue)}</p>}
+                {e.reason && <p className="font-medium">{tx("Alasan", "Reason")}: {e.reason}</p>}
+                {e.oldValue !== undefined && <p className="truncate text-navy-700/60">{tx("lama", "old")}: {JSON.stringify(e.oldValue)}</p>}
+                {e.newValue !== undefined && <p className="truncate">{tx("baru", "new")}: {JSON.stringify(e.newValue)}</p>}
               </Td>
               <Td className="num text-[10px] text-navy-700/55">{e.hash.slice(0, 10)}…</Td>
             </Tr>
@@ -630,7 +658,7 @@ function AuditTab() {
           {!rows.length && (
             <Tr>
               <Td colSpan={7} className="py-6 text-center text-xs text-navy-700/60">
-                Belum ada event.
+                {tx("Belum ada event.", "No events yet.")}
               </Td>
             </Tr>
           )}

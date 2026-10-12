@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
+import { tx } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "./Button";
@@ -24,7 +25,7 @@ export function Notices() {
           >
             <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", n.tone === "error" ? "text-status-danger" : n.tone === "success" ? "text-status-ok" : "text-brand-blue")} />
             <p className="flex-1 leading-relaxed text-navy-900">{n.text}</p>
-            <button type="button" aria-label="Tutup" onClick={() => dismiss(n.id)} className="text-navy-700/50 hover:text-navy-900">
+            <button type="button" aria-label={tx("Tutup", "Close")} onClick={() => dismiss(n.id)} className="text-navy-700/50 hover:text-navy-900">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -55,7 +56,7 @@ export function Modal({
       <div className={cn("flex max-h-[92vh] w-full flex-col rounded-xl bg-white shadow-xl", size === "xl" ? "max-w-6xl" : "max-w-lg")} onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-sand-200 px-5 py-3">
           <h2 className="text-sm font-semibold text-navy-900">{title}</h2>
-          <button type="button" aria-label="Tutup" onClick={onClose} className="text-navy-700/50 hover:text-navy-900">
+          <button type="button" aria-label={tx("Tutup", "Close")} onClick={onClose} className="text-navy-700/50 hover:text-navy-900">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -71,7 +72,7 @@ export function ReasonDialog({
   open,
   title,
   description,
-  confirmLabel = "Simpan",
+  confirmLabel,
   onCancel,
   onConfirm,
 }: {
@@ -91,7 +92,7 @@ export function ReasonDialog({
       footer={
         <>
           <Button variant="secondary" onClick={onCancel}>
-            Batal
+            {tx("Batal", "Cancel")}
           </Button>
           <Button
             disabled={reason.trim().length < 5}
@@ -100,14 +101,14 @@ export function ReasonDialog({
               setReason("");
             }}
           >
-            {confirmLabel}
+            {confirmLabel ?? tx("Simpan", "Save")}
           </Button>
         </>
       }
     >
       {description && <div className="mb-3 text-xs leading-relaxed text-navy-700/80">{description}</div>}
       <label className="mb-1 block text-[11px] font-medium text-navy-700/75" htmlFor="reason">
-        Alasan (tersimpan di audit trail, minimal 5 karakter)
+        {tx("Alasan (tersimpan di audit trail, minimal 5 karakter)", "Reason (saved in the audit trail, at least 5 characters)")}
       </label>
       <Textarea id="reason" autoFocus value={reason} onChange={(e) => setReason(e.target.value)} />
     </Modal>

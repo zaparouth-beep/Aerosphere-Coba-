@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { effectiveStatus, daysLeft, PLAN_BY_ID } from "@/lib/domain/plans";
+import { tx } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { ContextBar } from "./ContextBar";
 import { CopilotDrawer } from "./CopilotDrawer";
@@ -38,24 +39,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-sand-50">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">
-        Lewati ke konten
+        {tx("Lewati ke konten", "Skip to content")}
       </a>
       <Sidebar mobileOpen={mobileNav} onClose={() => setMobileNav(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onMenu={() => setMobileNav(true)} />
         {ready && status === "expired" && (
           <div className="no-print border-b border-status-danger/30 bg-status-danger/5 px-4 py-2 text-xs text-navy-900 md:px-8">
-            Masa paket {PLAN_BY_ID.get(subscription!.plan)?.name} sudah berakhir. Data tetap bisa dibaca selama 30 hari.{" "}
+            {tx(
+              `Masa paket ${PLAN_BY_ID.get(subscription!.plan)?.name} sudah berakhir. Data tetap bisa dibaca selama 30 hari.`,
+              `Your ${PLAN_BY_ID.get(subscription!.plan)?.name} plan has ended. Your data stays readable for 30 days.`,
+            )}{" "}
             <Link href="/pengaturan?tab=paket" className="font-medium text-brand-blue underline">
-              Pilih paket
+              {tx("Pilih paket", "Choose a plan")}
             </Link>
           </div>
         )}
         {ready && status === "trial" && left !== null && (
           <div className="no-print border-b border-brand-gold/30 bg-brand-gold/10 px-4 py-1.5 text-[11px] text-navy-900 md:px-8">
-            Paket Coba: sisa {left} hari · proyek contoh · laporan bertanda “Contoh”.{" "}
+            {tx(
+              `Paket Coba: sisa ${left} hari · proyek contoh · laporan bertanda “Contoh”.`,
+              `Trial plan: ${left} days left · sample project · reports marked “Sample”.`,
+            )}{" "}
             <Link href="/pengaturan?tab=paket" className="font-medium text-brand-blue underline">
-              Lihat paket
+              {tx("Lihat paket", "View plans")}
             </Link>
           </div>
         )}
@@ -71,7 +78,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </main>
         <footer className="no-print border-t border-sand-200 px-4 py-3 text-[11px] text-navy-700/50 md:px-8">
-          AeroSphere LCA · selaras ISO 14040/14044 (belum melalui critical review) · versi demo: data tersimpan di browser ini
+          {tx(
+            "AeroSphere LCA · selaras ISO 14040/14044 (belum melalui critical review) · versi demo: data tersimpan di browser ini",
+            "AeroSphere LCA · aligned with ISO 14040/14044 (not yet critically reviewed) · demo version: data is stored in this browser",
+          )}
         </footer>
       </div>
       {ready && <CopilotDrawer />}

@@ -1,3 +1,4 @@
+import { tx } from "@/lib/i18n";
 import type { Role } from "./types";
 
 export type Permission =
@@ -25,7 +26,9 @@ const MATRIX: Record<Role, Permission[]> = {
 };
 
 export const ROLE_LABEL: Record<Role, string> = {
-  Admin: "Admin platform",
+  get Admin() {
+    return tx("Admin platform", "Platform admin");
+  },
   DataSteward: "EHS / Data Steward",
   Engineer: "Process Engineer",
   Analyst: "ESG Analyst",
@@ -34,18 +37,42 @@ export const ROLE_LABEL: Record<Role, string> = {
 };
 
 export const PERMISSION_LABEL: Record<Permission, string> = {
-  editData: "Ubah data proses",
-  editPrices: "Ubah harga satuan",
-  editScope: "Ubah Goal & Scope",
-  editMethod: "Ubah metode & database",
-  acceptWarning: "Terima peringatan",
-  approveDataset: "Approve dataset",
-  runCalc: "Jalankan run draf",
-  officialRun: "Jalankan run resmi",
-  editScenario: "Buat/ubah skenario",
-  approveScenario: "Approve skenario",
-  generateReport: "Buat laporan",
-  admin: "Kelola akses & data",
+  get editData() {
+    return tx("Ubah data proses", "Edit process data");
+  },
+  get editPrices() {
+    return tx("Ubah harga satuan", "Edit unit prices");
+  },
+  get editScope() {
+    return tx("Ubah Goal & Scope", "Edit Goal & Scope");
+  },
+  get editMethod() {
+    return tx("Ubah metode & database", "Edit method & database");
+  },
+  get acceptWarning() {
+    return tx("Terima peringatan", "Accept warnings");
+  },
+  get approveDataset() {
+    return tx("Approve dataset", "Approve dataset");
+  },
+  get runCalc() {
+    return tx("Jalankan run draf", "Run draft calculation");
+  },
+  get officialRun() {
+    return tx("Jalankan run resmi", "Run official calculation");
+  },
+  get editScenario() {
+    return tx("Buat/ubah skenario", "Create/edit scenarios");
+  },
+  get approveScenario() {
+    return tx("Approve skenario", "Approve scenarios");
+  },
+  get generateReport() {
+    return tx("Buat laporan", "Create reports");
+  },
+  get admin() {
+    return tx("Kelola akses & data", "Manage access & data");
+  },
 };
 
 export const ROLES = Object.keys(MATRIX) as Role[];

@@ -1,3 +1,4 @@
+import { tx } from "@/lib/i18n";
 import type { ImpactId, Project, StageId } from "@/lib/domain/types";
 import { STAGE_IDS, type LciResult } from "./lci";
 import type { LciaResult } from "./lcia";
@@ -7,10 +8,10 @@ import { IMPACT_IDS } from "./method";
 export type HotspotMetric = "energy" | "water" | "chemical" | "waste" | "costLoss" | ImpactId;
 
 export const OPERATIONAL_METRICS: Array<{ id: HotspotMetric; label: string }> = [
-  { id: "energy", label: "Energi" },
-  { id: "water", label: "Air" },
-  { id: "chemical", label: "Kimia" },
-  { id: "waste", label: "Limbah B3" },
+  { id: "energy", get label() { return tx("Energi", "Energy"); } },
+  { id: "water", get label() { return tx("Air", "Water"); } },
+  { id: "chemical", get label() { return tx("Kimia", "Chemicals"); } },
+  { id: "waste", get label() { return tx("Limbah B3", "Hazardous (B3) waste"); } },
   { id: "costLoss", label: "Cost loss" },
 ];
 

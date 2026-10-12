@@ -1,26 +1,28 @@
+import { getLang, tx } from "@/lib/i18n";
 import type { ImpactId, ImpactVector, Project, StageId } from "@/lib/domain/types";
 import { IMPACT_IDS, resolveFlowKey, zeroVector } from "./method";
 import type { LciFlow, LciResult } from "./lci";
 
 export type SourceKey = "electricity" | "water" | "chemicals" | "wwtpChemicals" | "consumables" | "wasteTreatment" | "directAir" | "directWater";
 
+/** Display labels (follow the interface language); never stored in results. */
 export const SOURCE_LABEL: Record<SourceKey, string> = {
-  electricity: "Listrik",
-  water: "Air proses",
-  chemicals: "Kimia & anoda",
-  wwtpChemicals: "Kimia IPAL",
-  consumables: "Consumable",
-  wasteTreatment: "Pengolahan limbah B3",
-  directAir: "Emisi udara langsung",
-  directWater: "Efluen langsung",
+  get electricity() { return tx("Listrik", "Electricity"); },
+  get water() { return tx("Air proses", "Process water"); },
+  get chemicals() { return tx("Kimia & anoda", "Chemicals & anodes"); },
+  get wwtpChemicals() { return tx("Kimia IPAL", "WWTP chemicals"); },
+  get consumables() { return tx("Consumable", "Consumables"); },
+  get wasteTreatment() { return tx("Pengolahan limbah B3", "Hazardous (B3) waste treatment"); },
+  get directAir() { return tx("Emisi udara langsung", "Direct air emissions"); },
+  get directWater() { return tx("Efluen langsung", "Direct effluent"); },
 };
 
 export type GhgScope = "scope1" | "scope2" | "scope3cat1" | "scope3cat5";
 export const SCOPE_LABEL: Record<GhgScope, string> = {
-  scope1: "Scope 1 — emisi langsung",
-  scope2: "Scope 2 — listrik dibeli",
-  scope3cat1: "Scope 3 kat. 1 — barang dibeli",
-  scope3cat5: "Scope 3 kat. 5 — limbah",
+  get scope1() { return tx("Scope 1 — emisi langsung", "Scope 1 — direct emissions"); },
+  get scope2() { return tx("Scope 2 — listrik dibeli", "Scope 2 — purchased electricity"); },
+  get scope3cat1() { return tx("Scope 3 kat. 1 — barang dibeli", "Scope 3 cat. 1 — purchased goods"); },
+  get scope3cat5() { return tx("Scope 3 kat. 5 — limbah", "Scope 3 cat. 5 — waste"); },
 };
 
 export interface Contribution {
@@ -54,9 +56,19 @@ export interface LciaResult {
   contributions: Contribution[];
   coverage: CoverageRow[];
   unmapped: string[];
+  /** Indonesian; `uncharacterisedEn` holds the same list in English (show with uncharacterisedText). */
   uncharacterised: string[];
+  uncharacterisedEn?: string[];
+  /** Indonesian; `errorsEn` holds the same list in English (show with lciaErrorsText). */
   errors: string[];
+  errorsEn?: string[];
 }
+
+/** Flows without characterisation factors, in the interface language. */
+export const uncharacterisedText = (l: Pick<LciaResult, "uncharacterised" | "uncharacterisedEn">): string[] =>
+  getLang() === "en" && l.uncharacterisedEn ? l.uncharacterisedEn : l.uncharacterised;
+/** Dataset/unit mismatch errors, in the interface language. */
+export const lciaErrorsText = (l: Pick<LciaResult, "errors" | "errorsEn">): string[] => (getLang() === "en" && l.errorsEn ? l.errorsEn : l.errors);
 
 function coveredAll(v: boolean): Record<ImpactId, boolean> {
   return Object.fromEntries(IMPACT_IDS.map((id) => [id, v])) as Record<ImpactId, boolean>;
@@ -84,7 +96,9 @@ export function computeLcia(project: Project, lci: LciResult): LciaResult {
   const contributions: Contribution[] = [];
   const unmapped: string[] = [];
   const uncharacterised: string[] = [];
+  const uncharacterisedEn: string[] = [];
   const errors: string[] = [];
+  const errorsEn: string[] = [];
 
   const inputsById = new Map(project.inputs.map((i) => [i.id, i]));
   const wasteById = new Map(project.waste.map((w) => [w.id, w]));
@@ -99,6 +113,7 @@ export function computeLcia(project: Project, lci: LciResult): LciaResult {
       unmapped.push(flow.name);
     } else if (ds.refUnit !== flow.unit) {
       errors.push(`Dataset "${ds.name}" per ${ds.refUnit}, aliran "${flow.name}" dalam ${flow.unit}.`);
+      errorsEn.push(`Dataset "${ds.name}" is per ${ds.refUnit}, flow "${flow.name}" is in ${flow.unit}.`);
     } else {
       for (const id of IMPACT_IDS) {
         const f = ds.factors[id];
@@ -154,6 +169,7 @@ export function computeLcia(project: Project, lci: LciResult): LciaResult {
       }
       if (!any) {
         uncharacterised.push(`${flow.name} (${compartment === "air" ? "udara" : "air"})`);
+        uncharacterisedEn.push(`${flow.name} (${compartment})`);
         continue;
       }
       contributions.push({
@@ -211,5 +227,5 @@ export function computeLcia(project: Project, lci: LciResult): LciaResult {
     missing: bg.filter((c) => !c.covered[impact]).map((c) => c.name),
   }));
 
-  return { totals, perFu, uncertainty, byStage, bySource, ghgScopes, contributions, coverage, unmapped, uncharacterised, errors };
+  return { totals, perFu, uncertainty, byStage, bySource, ghgScopes, contributions, coverage, unmapped, uncharacterised, uncharacterisedEn, errors, errorsEn };
 }

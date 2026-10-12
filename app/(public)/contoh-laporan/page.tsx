@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { hardChromeDemo } from "@/lib/domain/templates";
 import { calculate, indicatorsOf } from "@/lib/engine/calculate";
 import { evaluateScenario } from "@/lib/engine/scenario";
+import { tx } from "@/lib/i18n";
 
 /** Public sample of the Laporan Ringkas Manajemen, computed from the sample line. */
 export default function Page() {
@@ -21,20 +22,20 @@ export default function Page() {
     <div className="mx-auto max-w-4xl px-4 py-10">
       <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-teal">Contoh laporan</p>
-          <h1 className="text-2xl font-semibold text-navy-900">Laporan Ringkas Manajemen</h1>
-          <p className="text-sm text-navy-700/70">Dari lini contoh hard chrome. Laporan Anda memakai data dan nomor hasil Anda sendiri.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-teal">{tx("Contoh laporan", "Sample report")}</p>
+          <h1 className="text-2xl font-semibold text-navy-900">{tx("Laporan Ringkas Manajemen", "Management Summary Report")}</h1>
+          <p className="text-sm text-navy-700/70">{tx("Dari lini contoh hard chrome. Laporan Anda memakai data dan nomor hasil Anda sendiri.", "From the sample hard chrome line. Your report uses your own data and result numbers.")}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => window.print()}>
-            <Printer className="h-4 w-4" /> Cetak / PDF
+            <Printer className="h-4 w-4" /> {tx("Cetak / PDF", "Print / PDF")}
           </Button>
           <Link href="/masuk?daftar=1" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-gradient px-3.5 text-sm font-medium text-white">
-            Coba dengan data saya <ArrowRight className="h-4 w-4" />
+            {tx("Coba dengan data saya", "Try with my data")} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
-      <SummaryReport {...data} comparison={null} resultLabel="data contoh (belum disimpan)" nextSteps={[]} watermark company="Contoh" />
+      <SummaryReport {...data} comparison={null} resultLabel={tx("data contoh (belum disimpan)", "sample data (not saved)")} nextSteps={[]} watermark company={tx("Contoh", "Sample")} />
     </div>
   );
 }

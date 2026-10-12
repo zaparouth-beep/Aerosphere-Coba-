@@ -10,6 +10,7 @@ import type { LifeCycleRow, WasteItemShare } from "@/lib/engine/flow";
 import type { TitikBorosRow } from "@/lib/engine/titikBoros";
 import type { RunResult } from "@/lib/engine/types";
 import { STAGE_CODES } from "@/lib/engine/types";
+import { locale, tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 import { fmt3, fmtPct, fmtValue, INDICATOR, stageName } from "@/lib/view/titikBoros";
 
@@ -58,19 +59,19 @@ export function Tip({ children, href, cta }: { children: React.ReactNode; href: 
 }
 
 export function InfoCard({ project, run, resultLabel }: { project: Project; run: RunResult; resultLabel: string }) {
-  const conf = { high: "Tinggi", medium: "Sedang", low: "Rendah" }[run.dataConfidence];
+  const conf = { high: tx("Tinggi", "High"), medium: tx("Sedang", "Medium"), low: tx("Rendah", "Low") }[run.dataConfidence];
   const rows: Array<[string, string]> = [
-    ["Lini", project.name],
-    ["Fasilitas", project.facility],
-    ["Periode", project.periodLabel],
-    ["Permukaan dilapisi", `${fmt3(run.areaPlatedM2)} m²${project.production.parts > 0 ? ` (${project.production.parts.toLocaleString("id-ID")} part)` : ""}`],
-    ["Nomor hasil", resultLabel],
-    ["Faktor dampak", `skrining (${run.factorVersion})`],
-    ["Keyakinan data", conf],
+    [tx("Lini", "Line"), project.name],
+    [tx("Fasilitas", "Facility"), project.facility],
+    [tx("Periode", "Period"), project.periodLabel],
+    [tx("Permukaan dilapisi", "Plated surface"), `${fmt3(run.areaPlatedM2)} m²${project.production.parts > 0 ? ` (${project.production.parts.toLocaleString(locale())} ${tx("part", "parts")})` : ""}`],
+    [tx("Nomor hasil", "Result number"), resultLabel],
+    [tx("Faktor dampak", "Impact factors"), `${tx("skrining", "screening")} (${run.factorVersion})`],
+    [tx("Keyakinan data", "Data confidence"), conf],
   ];
   return (
     <Card id="informasi" className="scroll-mt-36">
-      <CardHeader title="Informasi" />
+      <CardHeader title={tx("Informasi", "Information")} />
       <CardBody>
         <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           {rows.map(([k, v]) => (
@@ -89,14 +90,16 @@ export function CarbonCard({ project, row }: { project: Project; row: TitikBoros
   const parts = STAGE_CODES.filter((s) => row.perStage[s] > 0).map((s) => ({ s, label: stageName(project, s), value: row.perStage[s], color: STAGE_COLOR[s] }));
   return (
     <Card id="jejak-karbon" className="h-full scroll-mt-36">
-      <CardHeader title="Jejak karbon" subtitle="Per 1 m² permukaan dilapisi, dibagi per tahap proses" />
+      <CardHeader title={tx("Jejak karbon", "Carbon footprint")} subtitle={tx("Per 1 m² permukaan dilapisi, dibagi per tahap proses", "Per 1 m² of plated surface, split by process stage")} />
       <CardBody>
         <div className="flex flex-col items-center gap-4">
           <Donut parts={parts} center={fmt3(row.totalPerFU)} sub={`${row.unit.replace(/ eq$/, "e")} per m²`} />
           <Legend items={parts.map((p) => ({ label: p.label, color: p.color, value: fmtValue(p.value, row), pct: row.share[p.s] }))} />
         </div>
-        <Tip href="/titik-boros" cta="Cara menurunkan jejak karbon">
-          {row.topStage ? `${stageName(project, row.topStage)} menyumbang ${fmtPct(row.share[row.topStage])}.` : ""}
+        <Tip href="/titik-boros" cta={tx("Cara menurunkan jejak karbon", "How to lower the carbon footprint")}>
+          {row.topStage
+            ? tx(`${stageName(project, row.topStage)} menyumbang ${fmtPct(row.share[row.topStage])}.`, `${stageName(project, row.topStage)} accounts for ${fmtPct(row.share[row.topStage])}.`)
+            : ""}
         </Tip>
       </CardBody>
     </Card>
@@ -104,28 +107,40 @@ export function CarbonCard({ project, row }: { project: Project; row: TitikBoros
 }
 
 const WASTE_LABEL: Record<WasteItemShare["key"], string> = {
-  processChemicalRp: "Bahan kimia proses",
-  wwtpChemicalRp: "Bahan kimia IPAL",
-  consumableRp: "Bahan habis pakai",
-  b3TreatmentRp: "Pengolahan limbah B3",
-  b3TransportRp: "Transport limbah B3",
-  waterRp: "Air",
+  get processChemicalRp() {
+    return tx("Bahan kimia proses", "Process chemicals");
+  },
+  get wwtpChemicalRp() {
+    return tx("Bahan kimia IPAL", "WWTP chemicals");
+  },
+  get consumableRp() {
+    return tx("Bahan habis pakai", "Consumables");
+  },
+  get b3TreatmentRp() {
+    return tx("Pengolahan limbah B3", "B3 waste treatment");
+  },
+  get b3TransportRp() {
+    return tx("Transport limbah B3", "B3 waste transport");
+  },
+  get waterRp() {
+    return tx("Air", "Water");
+  },
 };
 
 export function WasteCard({ run, items, totalPerFU }: { run: RunResult; items: WasteItemShare[]; totalPerFU: number }) {
   const parts = items.map((it, i) => ({ label: WASTE_LABEL[it.key], value: it.valuePerFU, color: CATEGORICAL[i % CATEGORICAL.length]! }));
   return (
     <Card id="nilai-terbuang" className="h-full scroll-mt-36">
-      <CardHeader title="Nilai yang terbuang" subtitle={`${fmtPct(run.waste.pctOfCost)} dari biaya proses, per 1 m²`} />
+      <CardHeader title={tx("Nilai yang terbuang", "Wasted value")} subtitle={tx(`${fmtPct(run.waste.pctOfCost)} dari biaya proses, per 1 m²`, `${fmtPct(run.waste.pctOfCost)} of process cost, per 1 m²`)} />
       <CardBody>
         <div className="flex flex-col items-center gap-4">
-          <Donut parts={parts} center={`Rp${fmt3(totalPerFU)}`} sub="terbuang per m²" />
+          <Donut parts={parts} center={`Rp${fmt3(totalPerFU)}`} sub={tx("terbuang per m²", "wasted per m²")} />
           <Legend items={items.map((it, i) => ({ label: WASTE_LABEL[it.key], color: parts[i]!.color, value: `Rp${fmt3(it.valuePerFU)}`, pct: it.sharePct }))} />
         </div>
-        <Tip href="/simulasi" cta="Kurangi biaya">
-          Bahan kimia, air, dan limbah yang terbuang bisa ditekan lewat perbaikan proses.
+        <Tip href="/simulasi" cta={tx("Kurangi biaya", "Reduce costs")}>
+          {tx("Bahan kimia, air, dan limbah yang terbuang bisa ditekan lewat perbaikan proses.", "Wasted chemicals, water and waste can be reduced through process improvements.")}
         </Tip>
-        <p className="mt-2 text-[11px] text-navy-700/60">Listrik dan tenaga kerja dihitung sebagai biaya operasi, bukan nilai terbuang.</p>
+        <p className="mt-2 text-[11px] text-navy-700/60">{tx("Listrik dan tenaga kerja dihitung sebagai biaya operasi, bukan nilai terbuang.", "Electricity and labour count as operating cost, not wasted value.")}</p>
       </CardBody>
     </Card>
   );
@@ -150,17 +165,17 @@ export function LifeCycleCard({ rows }: { rows: LifeCycleRow[] }) {
   const label = (k: string) => (k in INDICATOR ? INDICATOR[k as keyof typeof INDICATOR].label : k);
   return (
     <Card id="siklus-hidup" className="scroll-mt-36">
-      <CardHeader title="Siklus hidup" subtitle="Dari mana dampaknya datang: bahan dan listrik yang dibeli, atau proses di lini Anda" />
+      <CardHeader title={tx("Siklus hidup", "Life cycle")} subtitle={tx("Dari mana dampaknya datang: bahan dan listrik yang dibeli, atau proses di lini Anda", "Where the impact comes from: purchased materials and electricity, or processes on your line")} />
       <CardBody className="space-y-3">
         <div className="flex flex-wrap gap-4 text-[11px] text-navy-700/75">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm bg-[#5B7DB1]" /> Produksi bahan & listrik yang dibeli
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#5B7DB1]" /> {tx("Produksi bahan & listrik yang dibeli", "Production of purchased materials & electricity")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm bg-[#E8731A]" /> Langsung di lini (asap, air buangan)
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#E8731A]" /> {tx("Langsung di lini (asap, air buangan)", "Directly on the line (fumes, wastewater)")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm border border-dashed border-navy-700/40 bg-white" /> Pemakaian & akhir masa pakai part: tidak dikaji
+            <span className="h-2.5 w-2.5 rounded-sm border border-dashed border-navy-700/40 bg-white" /> {tx("Pemakaian & akhir masa pakai part: tidak dikaji", "Use & end of life of parts: not assessed")}
           </span>
         </div>
         {rows.map((r) => (
@@ -168,7 +183,7 @@ export function LifeCycleCard({ rows }: { rows: LifeCycleRow[] }) {
             <div className="mb-1 flex justify-between text-xs">
               <span className="font-medium text-navy-900">{label(r.key)}</span>
               <span className="num text-navy-700/70">
-                {fmtPct(r.upstreamPct)} dibeli · {fmtPct(r.linePct)} di lini
+                {fmtPct(r.upstreamPct)} {tx("dibeli", "purchased")} · {fmtPct(r.linePct)} {tx("di lini", "on the line")}
               </span>
             </div>
             <div className="flex h-4 overflow-hidden rounded bg-sand-100">
@@ -177,8 +192,8 @@ export function LifeCycleCard({ rows }: { rows: LifeCycleRow[] }) {
             </div>
           </div>
         ))}
-        <Tip href="/laporan" cta="Lihat laporan lengkap">
-          Kajian ini dihitung sampai part keluar dari pabrik; pemakaian part oleh pelanggan belum dihitung.
+        <Tip href="/laporan" cta={tx("Lihat laporan lengkap", "See the full report")}>
+          {tx("Kajian ini dihitung sampai part keluar dari pabrik; pemakaian part oleh pelanggan belum dihitung.", "This study runs until parts leave the factory; use of parts by customers is not calculated.")}
         </Tip>
       </CardBody>
     </Card>
@@ -186,13 +201,48 @@ export function LifeCycleCard({ rows }: { rows: LifeCycleRow[] }) {
 }
 
 export const SECTIONS: Array<{ id: string; label: string }> = [
-  { id: "informasi", label: "Informasi" },
-  { id: "angka-utama", label: "Angka utama" },
-  { id: "jejak-karbon", label: "Jejak karbon" },
-  { id: "nilai-terbuang", label: "Nilai terbuang" },
-  { id: "alur", label: "Alur bahan & energi" },
-  { id: "siklus-hidup", label: "Siklus hidup" },
-  { id: "per-tahap", label: "Per tahap proses" },
+  {
+    id: "informasi",
+    get label() {
+      return tx("Informasi", "Information");
+    },
+  },
+  {
+    id: "angka-utama",
+    get label() {
+      return tx("Angka utama", "Key figures");
+    },
+  },
+  {
+    id: "jejak-karbon",
+    get label() {
+      return tx("Jejak karbon", "Carbon footprint");
+    },
+  },
+  {
+    id: "nilai-terbuang",
+    get label() {
+      return tx("Nilai terbuang", "Wasted value");
+    },
+  },
+  {
+    id: "alur",
+    get label() {
+      return tx("Alur bahan & energi", "Material & energy flow");
+    },
+  },
+  {
+    id: "siklus-hidup",
+    get label() {
+      return tx("Siklus hidup", "Life cycle");
+    },
+  },
+  {
+    id: "per-tahap",
+    get label() {
+      return tx("Per tahap proses", "Per process stage");
+    },
+  },
 ];
 
 /** Sticky contents list; the section in view is highlighted. */
@@ -213,8 +263,8 @@ export function Contents() {
     return () => obs.disconnect();
   }, []);
   return (
-    <nav aria-label="Isi halaman" className="no-print sticky top-36 hidden h-fit rounded-xl border border-sand-200 bg-white p-3 xl:block">
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-navy-700/55">Isi</p>
+    <nav aria-label={tx("Isi halaman", "Page contents")} className="no-print sticky top-36 hidden h-fit rounded-xl border border-sand-200 bg-white p-3 xl:block">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-navy-700/55">{tx("Isi", "Contents")}</p>
       <ul className="space-y-0.5 text-xs">
         {SECTIONS.map((s) => (
           <li key={s.id}>
@@ -234,15 +284,18 @@ export function ExternalImpactsCard({ project, run }: { project: Project; run: R
   if (!items.length) return null;
   return (
     <Card id="pembanding" className="scroll-mt-36">
-      <CardHeader title="Pembanding dari dokumen" subtitle={`Hasil dampak yang tertulis di ${items[0]!.source}, berdampingan dengan hitungan AeroSphere (per periode)`} />
+      <CardHeader
+        title={tx("Pembanding dari dokumen", "Comparison from document")}
+        subtitle={tx(`Hasil dampak yang tertulis di ${items[0]!.source}, berdampingan dengan hitungan AeroSphere (per periode)`, `Impact results stated in ${items[0]!.source}, next to AeroSphere's calculation (per period)`)}
+      />
       <CardBody>
         <div className="overflow-x-auto">
           <table className="w-full text-xs" data-testid="external-impacts">
             <thead className="text-left text-[11px] text-navy-700/65">
               <tr>
-                <th className="py-1.5 pr-3">Kategori</th>
-                <th className="py-1.5 pr-3 text-right">Angka di dokumen</th>
-                <th className="py-1.5 text-right">Hitungan AeroSphere</th>
+                <th className="py-1.5 pr-3">{tx("Kategori", "Category")}</th>
+                <th className="py-1.5 pr-3 text-right">{tx("Angka di dokumen", "Figure in document")}</th>
+                <th className="py-1.5 text-right">{tx("Hitungan AeroSphere", "AeroSphere calculation")}</th>
               </tr>
             </thead>
             <tbody>
@@ -254,7 +307,7 @@ export function ExternalImpactsCard({ project, run }: { project: Project; run: R
                     <td className="num py-1.5 pr-3 text-right">
                       {fmt3(x.value)} {x.unit}
                     </td>
-                    <td className="num py-1.5 text-right text-navy-900">{own && own.total !== null ? `${fmt3(own.total)} ${own.unit}` : <span className="text-navy-700/55">belum dihitung</span>}</td>
+                    <td className="num py-1.5 text-right text-navy-900">{own && own.total !== null ? `${fmt3(own.total)} ${own.unit}` : <span className="text-navy-700/55">{tx("belum dihitung", "not calculated")}</span>}</td>
                   </tr>
                 );
               })}
@@ -262,7 +315,10 @@ export function ExternalImpactsCard({ project, run }: { project: Project; run: R
           </table>
         </div>
         <p className="mt-2 text-[11px] text-navy-700/60">
-          Angka dokumen hanya pembanding dan tidak dipakai dalam perhitungan. Perbedaan bisa berasal dari batas kajian, faktor, atau satuan fungsi yang berbeda.
+          {tx(
+            "Angka dokumen hanya pembanding dan tidak dipakai dalam perhitungan. Perbedaan bisa berasal dari batas kajian, faktor, atau satuan fungsi yang berbeda.",
+            "Document figures are for comparison only and are not used in calculations. Differences may come from a different study boundary, factors or functional unit.",
+          )}
         </p>
       </CardBody>
     </Card>

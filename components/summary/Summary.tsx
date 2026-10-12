@@ -8,8 +8,9 @@ import { statusFromChange } from "@/components/ui/Status";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
 import type { Project } from "@/lib/domain/types";
 import type { Results } from "@/lib/engine/calculate";
+import { tx } from "@/lib/i18n";
 import { fmt, fmtDelta, fmtRp, fmtRpShort } from "@/lib/utils/format";
-import { stageValues, type Action, type Headline, type WorstStage } from "@/lib/view/summary";
+import { effortWord, stageValues, timelineWord, type Action, type Headline, type WorstStage } from "@/lib/view/summary";
 
 const ICON = { cc: CloudFog, water: Droplets, waste: Recycle, cost: Coins } as const;
 
@@ -35,7 +36,7 @@ export function HeadlineCards({ heads, compareLabel, hrefs }: { heads: Headline[
           hint={
             h.changePct !== null ? (
               <>
-                {fmtDelta(h.changePct)} vs {compareLabel ?? "pembanding"}
+                {fmtDelta(h.changePct)} vs {compareLabel ?? tx("pembanding", "comparison")}
               </>
             ) : undefined
           }
@@ -57,17 +58,17 @@ export function WorstStageBars({ project, results, worst }: { project: Project; 
 }
 
 export function ActionsTable({ actions }: { actions: Action[] }) {
-  if (!actions.length) return <p className="py-4 text-xs text-navy-700/60">Belum ada perbaikan yang menghemat biaya atau jejak karbon. Coba di menu Simulasi Perbaikan.</p>;
+  if (!actions.length) return <p className="py-4 text-xs text-navy-700/60">{tx("Belum ada perbaikan yang menghemat biaya atau jejak karbon. Coba di menu Simulasi Perbaikan.", "No improvement saves cost or carbon yet. Try the Improvement Simulation menu.")}</p>;
   return (
     <>
-    <Table caption="Perbaikan yang disarankan">
+    <Table caption={tx("Perbaikan yang disarankan", "Suggested improvements")}>
       <THead>
         <tr>
-          <Th>Perbaikan</Th>
-          <Th align="right">Hemat per tahun</Th>
-          <Th align="right">Jejak karbon</Th>
-          <Th>Usaha</Th>
-          <Th>Waktu</Th>
+          <Th>{tx("Perbaikan", "Improvement")}</Th>
+          <Th align="right">{tx("Hemat per tahun", "Saving per year")}</Th>
+          <Th align="right">{tx("Jejak karbon", "Carbon footprint")}</Th>
+          <Th>{tx("Usaha", "Effort")}</Th>
+          <Th>{tx("Waktu", "Timeline")}</Th>
         </tr>
       </THead>
       <tbody>
@@ -83,13 +84,13 @@ export function ActionsTable({ actions }: { actions: Action[] }) {
             <Td align="right" className="num">
               {fmtDelta(a.ccPct)}
             </Td>
-            <Td className="capitalize">{a.effort}</Td>
-            <Td>{a.timeline}</Td>
+            <Td className="capitalize">{effortWord(a.effort)}</Td>
+            <Td>{timelineWord(a.timeline)}</Td>
           </Tr>
         ))}
       </tbody>
     </Table>
-    <p className="mt-2 text-[11px] text-navy-700/60">Hemat per tahun = selisih biaya proses sebelum dan sesudah perbaikan, belum dikurangi biaya investasi.</p>
+    <p className="mt-2 text-[11px] text-navy-700/60">{tx("Hemat per tahun = selisih biaya proses sebelum dan sesudah perbaikan, belum dikurangi biaya investasi.", "Saving per year = process cost before minus after the improvement, before investment cost.")}</p>
     </>
   );
 }

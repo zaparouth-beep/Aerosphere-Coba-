@@ -19,6 +19,7 @@ import { buildStudyModel } from "@/lib/engine/study";
 import { buildDirections } from "@/lib/report/directions";
 import type { ReportLang, StudyContext } from "@/lib/report/lcaStudy";
 import { downloadBlob } from "@/lib/utils/export";
+import { getLang, tx } from "@/lib/i18n";
 import { topActions } from "@/lib/view/summary";
 
 type Layer = "kajian" | "ringkas" | "teknis" | "kepatuhan";
@@ -28,7 +29,7 @@ export default function Page() {
   const [layer, setLayer] = useState<Layer>("kajian");
   const lock = (ok: boolean, label: string) => (
     <span className="inline-flex items-center gap-1">
-      {!ok && <Lock className="h-3 w-3" aria-label="terkunci" />}
+      {!ok && <Lock className="h-3 w-3" aria-label={tx("terkunci", "locked")} />}
       {label}
     </span>
   );
@@ -39,23 +40,23 @@ export default function Page() {
           value={layer}
           onChange={setLayer}
           tabs={[
-            { id: "kajian", label: "Laporan Kajian LCA" },
-            { id: "ringkas", label: "Ringkasan untuk manajemen" },
-            { id: "teknis", label: lock(hasFeature(subscription, "reportTechnical"), "Teknis (ISO 14044 & MFCA)") },
-            { id: "kepatuhan", label: lock(hasFeature(subscription, "reportCompliance"), "Kepatuhan (GRI, GHG, PROPER)") },
+            { id: "kajian", label: tx("Laporan Kajian LCA", "LCA Study Report") },
+            { id: "ringkas", label: tx("Ringkasan untuk manajemen", "Management summary") },
+            { id: "teknis", label: lock(hasFeature(subscription, "reportTechnical"), tx("Teknis (ISO 14044 & MFCA)", "Technical (ISO 14044 & MFCA)")) },
+            { id: "kepatuhan", label: lock(hasFeature(subscription, "reportCompliance"), tx("Kepatuhan (GRI, GHG, PROPER)", "Compliance (GRI, GHG, PROPER)")) },
           ]}
         />
         <CardBody className="py-2.5 text-xs text-navy-700/70">
-          {layer === "kajian" && "Laporan utama: tujuan, ruang lingkup, kesimpulan per titik cradle/gate, tabel dampak per tahap, nilai per m², kualitas data, dan dampak tertinggi beserta alasannya."}
-          {layer === "ringkas" && "2 halaman untuk atasan: kesimpulan, angka utama, masalah, saran, keyakinan, dan langkah berikutnya."}
-          {layer === "teknis" && "Untuk engineer dan reviewer LCA: metode, inventori lengkap, semua kategori dampak, dan aliran biaya."}
-          {layer === "kepatuhan" && "Untuk EHS dan auditor: GRI 302/303/305/306, jejak karbon produk (GHG Protocol/ISO 14067), dan PROPER."}
+          {layer === "kajian" && tx("Laporan utama: tujuan, ruang lingkup, kesimpulan per titik cradle/gate, tabel dampak per tahap, nilai per m², kualitas data, dan dampak tertinggi beserta alasannya.", "Main report: goal, scope, conclusions per cradle/gate point, impact table per stage, values per m², data quality, and the highest impacts with their reasons.")}
+          {layer === "ringkas" && tx("2 halaman untuk atasan: kesimpulan, angka utama, masalah, saran, keyakinan, dan langkah berikutnya.", "2 pages for management: conclusion, key figures, problems, suggestions, confidence, and next steps.")}
+          {layer === "teknis" && tx("Untuk engineer dan reviewer LCA: metode, inventori lengkap, semua kategori dampak, dan aliran biaya.", "For engineers and LCA reviewers: method, full inventory, all impact categories, and cost flows.")}
+          {layer === "kepatuhan" && tx("Untuk EHS dan auditor: GRI 302/303/305/306, jejak karbon produk (GHG Protocol/ISO 14067), dan PROPER.", "For EHS and auditors: GRI 302/303/305/306, product carbon footprint (GHG Protocol/ISO 14067), and PROPER.")}
         </CardBody>
       </Card>
       {layer === "kajian" && <Kajian />}
       {layer === "ringkas" && <Ringkas />}
-      {layer === "teknis" && (hasFeature(subscription, "reportTechnical") ? <ExpertReports layer="teknis" /> : <LockedFeature feature="reportTechnical" title="Laporan Teknis" />)}
-      {layer === "kepatuhan" && (hasFeature(subscription, "reportCompliance") ? <ExpertReports layer="kepatuhan" /> : <LockedFeature feature="reportCompliance" title="Laporan Kepatuhan" />)}
+      {layer === "teknis" && (hasFeature(subscription, "reportTechnical") ? <ExpertReports layer="teknis" /> : <LockedFeature feature="reportTechnical" title={tx("Laporan Teknis", "Technical Report")} />)}
+      {layer === "kepatuhan" && (hasFeature(subscription, "reportCompliance") ? <ExpertReports layer="kepatuhan" /> : <LockedFeature feature="reportCompliance" title={tx("Laporan Kepatuhan", "Compliance Report")} />)}
     </div>
   );
 }
@@ -63,7 +64,7 @@ export default function Page() {
 function Ringkas() {
   const { run } = useActiveResults();
   return (
-    <ReportEditor doc={`ringkas:${run?.id ?? "DRAF"}`}>
+    <ReportEditor doc={`ringkas:${getLang()}:${run?.id ?? "DRAF"}`}>
       <RingkasInner />
     </ReportEditor>
   );
@@ -85,7 +86,7 @@ function RingkasInner() {
   const dirty = JSON.stringify(steps) !== JSON.stringify(stored);
   const sample = subscription?.plan === "coba";
   const allowed = can(user.role, "generateReport") || user.role === "Auditor";
-  const directions = useMemo(() => buildDirections(project, results, outcomes, "id"), [project, results, outcomes]);
+  const directions = useMemo(() => buildDirections(project, results, outcomes, getLang()), [project, results, outcomes]);
 
   return (
     <div className="space-y-4">
@@ -100,28 +101,31 @@ function RingkasInner() {
             window.print();
           }}
         >
-          <Printer className="h-4 w-4" /> Cetak / simpan PDF
+          <Printer className="h-4 w-4" /> {tx("Cetak / simpan PDF", "Print / save PDF")}
         </Button>
-        <Button variant="secondary" disabled={!dirty} title={dirty ? undefined : "Belum ada perubahan langkah berikutnya"} onClick={() => setNextSteps(steps)}>
-          <Save className="h-4 w-4" /> Simpan langkah berikutnya
+        <Button variant="secondary" disabled={!dirty} title={dirty ? undefined : tx("Belum ada perubahan langkah berikutnya", "No changes to next steps yet")} onClick={() => setNextSteps(steps)}>
+          <Save className="h-4 w-4" /> {tx("Simpan langkah berikutnya", "Save next steps")}
         </Button>
         <ReportEditBar />
-        {!allowed && <span className="text-xs text-navy-700/60">Peran Anda tidak bisa membuat laporan.</span>}
+        {!allowed && <span className="text-xs text-navy-700/60">{tx("Peran Anda tidak bisa membuat laporan.", "Your role cannot create reports.")}</span>}
       </div>
       <ReportEditNotice />
       {!run && (
         <Callout tone="warn" className="no-print">
-          Laporan ini memakai data terkini yang belum disimpan. Tekan “Hitung hasil” di bar atas agar laporan merujuk nomor hasil yang bisa dicek ulang.
+          {tx(
+            "Laporan ini memakai data terkini yang belum disimpan. Tekan “Hitung hasil” di bar atas agar laporan merujuk nomor hasil yang bisa dicek ulang.",
+            "This report uses current data that has not been saved. Press “Calculate results” in the top bar so the report refers to a result number that can be re-checked.",
+          )}
         </Callout>
       )}
-      {sample && <Callout className="no-print">Paket Coba: laporan diberi tanda “Contoh”. Pilih paket Esensial atau lebih tinggi untuk laporan tanpa tanda.</Callout>}
+      {sample && <Callout className="no-print">{tx("Paket Coba: laporan diberi tanda “Contoh”. Pilih paket Esensial atau lebih tinggi untuk laporan tanpa tanda.", "Trial plan: reports carry a “Sample” mark. Choose the Essential plan or higher for reports without the mark.")}</Callout>}
       <SummaryReport
         project={project}
         results={results}
         indicators={indicators}
         outcomes={outcomes}
         comparison={comparison}
-        resultLabel={run ? `Hasil #${run.id}` : "data terkini (belum disimpan)"}
+        resultLabel={run ? `${tx("Hasil", "Result")} #${run.id}` : tx("data terkini (belum disimpan)", "current data (not saved)")}
         nextSteps={steps}
         onNextSteps={setSteps}
         directions={directions}
@@ -132,7 +136,11 @@ function RingkasInner() {
   );
 }
 
-const LANG_LABEL: Record<ReportLang, string> = { id: "Bahasa Indonesia", en: "English", both: "Dwibahasa" };
+const LANG_LABEL: Record<ReportLang, () => string> = {
+  id: () => "Bahasa Indonesia",
+  en: () => "English",
+  both: () => tx("Dwibahasa", "Bilingual"),
+};
 
 function Kajian() {
   const { project, results, run } = useActiveResults();
@@ -152,7 +160,10 @@ function Kajian() {
   if (!ctx) {
     return (
       <Callout tone="warn">
-        Hasil ini dibuat dengan mesin hitung versi lama, sehingga tabel dampak per tahap belum tersedia. Tekan “Hitung hasil” di bar atas untuk membuat hasil baru.
+        {tx(
+          "Hasil ini dibuat dengan mesin hitung versi lama, sehingga tabel dampak per tahap belum tersedia. Tekan “Hitung hasil” di bar atas untuk membuat hasil baru.",
+          "This result was made with an older version of the calculation engine, so the impact table per stage is not available yet. Press “Calculate results” in the top bar to create a new result.",
+        )}
       </Callout>
     );
   }
@@ -169,12 +180,12 @@ function KajianInner({ ctx, hasRun }: { ctx: StudyContext; hasRun: boolean }) {
   const setUi = useAppStore((s) => s.setUi);
   const log = useAppStore((s) => s.log);
   const edits = useReportEdits();
-  const [lang, setLang] = useState<ReportLang>("id");
+  const [lang, setLang] = useState<ReportLang>(() => getLang());
   const [busy, setBusy] = useState(false);
   const allowed = can(user.role, "generateReport") || user.role === "Auditor";
   const sample = subscription?.plan === "coba";
   const off = !allowed || edits.blocked;
-  const why = !allowed ? "Peran Anda tidak bisa membuat laporan." : edits.blockedReason;
+  const why = !allowed ? tx("Peran Anda tidak bisa membuat laporan.", "Your role cannot create reports.") : edits.blockedReason;
 
   const exportExcel = async () => {
     setBusy(true);
@@ -193,10 +204,10 @@ function KajianInner({ ctx, hasRun }: { ctx: StudyContext; hasRun: boolean }) {
     <div className="space-y-4">
       <div className="no-print flex flex-wrap items-center gap-2">
         <Segmented<ReportLang>
-          ariaLabel="Bahasa laporan"
+          ariaLabel={tx("Bahasa laporan", "Report language")}
           value={lang}
           onChange={setLang}
-          options={(["id", "en", "both"] as const).map((id) => ({ id, label: LANG_LABEL[id] }))}
+          options={(["id", "en", "both"] as const).map((id) => ({ id, label: LANG_LABEL[id]() }))}
         />
         <Button
           variant="brand"
@@ -213,24 +224,30 @@ function KajianInner({ ctx, hasRun }: { ctx: StudyContext; hasRun: boolean }) {
             });
           }}
         >
-          <Printer className="h-4 w-4" /> Cetak / simpan PDF (A4)
+          <Printer className="h-4 w-4" /> {tx("Cetak / simpan PDF (A4)", "Print / save PDF (A4)")}
         </Button>
         <Button variant="secondary" disabled={off || busy} title={why} onClick={exportExcel}>
-          <FileSpreadsheet className="h-4 w-4" /> {busy ? "Menyiapkan…" : "Unduh Excel"}
+          <FileSpreadsheet className="h-4 w-4" /> {busy ? tx("Menyiapkan…", "Preparing…") : tx("Unduh Excel", "Download Excel")}
         </Button>
         <ReportEditBar />
-        {!allowed && <span className="text-xs text-navy-700/60">Peran Anda tidak bisa membuat laporan.</span>}
+        {!allowed && <span className="text-xs text-navy-700/60">{tx("Peran Anda tidak bisa membuat laporan.", "Your role cannot create reports.")}</span>}
       </div>
       <ReportEditNotice />
       {!hasRun && (
         <Callout tone="warn" className="no-print">
-          Laporan ini memakai data terkini yang belum disimpan (nomor hasil “DRAF”). Tekan “Hitung hasil” di bar atas agar laporan merujuk nomor hasil yang bisa dicek ulang.
+          {tx(
+            "Laporan ini memakai data terkini yang belum disimpan (nomor hasil “DRAF”). Tekan “Hitung hasil” di bar atas agar laporan merujuk nomor hasil yang bisa dicek ulang.",
+            "This report uses current data that has not been saved (result number “DRAF”). Press “Calculate results” in the top bar so the report refers to a result number that can be re-checked.",
+          )}
         </Callout>
       )}
       <Callout className="no-print">
-        Nilai dampak masih memakai faktor skrining. Kategori yang faktornya belum tersedia ditulis “belum dihitung”, bukan 0. Laporan ini belum melalui tinjauan kritis pihak ketiga.
+        {tx(
+          "Nilai dampak masih memakai faktor skrining. Kategori yang faktornya belum tersedia ditulis “belum dihitung”, bukan 0. Laporan ini belum melalui tinjauan kritis pihak ketiga.",
+          "Impact values still use screening factors. Categories without factors are shown as “not calculated”, not 0. This report has not undergone third-party critical review.",
+        )}
       </Callout>
-      {sample && <Callout className="no-print">Paket Coba: laporan diberi tanda “Contoh”. Pilih paket Esensial atau lebih tinggi untuk laporan tanpa tanda.</Callout>}
+      {sample && <Callout className="no-print">{tx("Paket Coba: laporan diberi tanda “Contoh”. Pilih paket Esensial atau lebih tinggi untuk laporan tanpa tanda.", "Trial plan: reports carry a “Sample” mark. Choose the Essential plan or higher for reports without the mark.")}</Callout>}
       <LcaStudyReport ctx={ctx} lang={lang} watermark={sample} />
     </div>
   );

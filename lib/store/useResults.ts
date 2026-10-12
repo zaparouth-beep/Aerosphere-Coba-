@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { tx } from "@/lib/i18n";
 import type { Project } from "@/lib/domain/types";
 import { calculate, indicatorsOf, type Indicators, type Results } from "@/lib/engine/calculate";
 import type { Run } from "@/lib/engine/run";
@@ -83,6 +84,6 @@ export function useComparison(): Comparison | null {
       target = runs[idx];
     }
     if (!target || target.id === activeRunId) return null;
-    return { label: `Hasil #${target.id}`, indicators: indicatorsOf(target.results), ref: target.results.lci.referenceFlow };
+    return { label: `${tx("Hasil", "Result")} #${target.id}`, indicators: indicatorsOf(target.results), ref: target.results.lci.referenceFlow };
   }, [runs, activeRunId, compareRunId]);
 }

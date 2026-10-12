@@ -1,4 +1,5 @@
 import type { BackgroundDataset, ImpactId, ImpactVector, InputCategory, MethodPackage } from "@/lib/domain/types";
+import { tx } from "@/lib/i18n";
 import { SCREENING_V1 } from "./factors";
 
 export interface ImpactCategory {
@@ -7,24 +8,24 @@ export interface ImpactCategory {
   short: string;
   /** Legacy label shown as an alias only (FR-06.3). */
   legacy?: string;
-  /** Everyday label (PRD v1.1 §3.0.4). */
+  /** Everyday label (PRD v1.1 §3.0.4); follows the interface language. */
   plain: string;
   unit: string;
 }
 
 /** EF 3.1 core categories for the MVP (FR-06.2), units per EF 3.1. */
 export const IMPACT_CATEGORIES: ImpactCategory[] = [
-  { id: "cc", plain: "Jejak karbon", label: "Climate change", short: "Climate change", legacy: "GWP", unit: "kg CO₂-eq" },
-  { id: "ac", plain: "Potensi hujan asam", label: "Acidification", short: "Acidification", legacy: "AP", unit: "mol H⁺-eq" },
-  { id: "euf", plain: "Potensi pencemaran nutrien air", label: "Eutrophication, freshwater", short: "Eutroph. freshwater", legacy: "EP", unit: "kg P-eq" },
-  { id: "pof", plain: "Potensi kabut asap (ozon)", label: "Photochemical ozone formation", short: "Ozone formation", legacy: "POCP", unit: "kg NMVOC-eq" },
-  { id: "pm", plain: "Partikel debu halus", label: "Particulate matter", short: "Particulate matter", unit: "disease inc." },
-  { id: "rum", plain: "Pemakaian logam langka", label: "Resource use, minerals & metals", short: "Resource minerals", legacy: "ADP elements", unit: "kg Sb-eq" },
-  { id: "ruf", plain: "Pemakaian bahan bakar fosil", label: "Resource use, fossils", short: "Resource fossils", legacy: "ADP fossil", unit: "MJ" },
-  { id: "htc", plain: "Risiko kesehatan (kanker)", label: "Human toxicity, cancer", short: "Human tox. cancer", unit: "CTUh" },
-  { id: "htnc", plain: "Risiko kesehatan (non-kanker)", label: "Human toxicity, non-cancer", short: "Human tox. non-cancer", unit: "CTUh" },
-  { id: "etf", plain: "Racun bagi makhluk air", label: "Ecotoxicity, freshwater", short: "Ecotox. freshwater", unit: "CTUe" },
-  { id: "wu", plain: "Pemakaian air", label: "Water use", short: "Water use", unit: "m³ world-eq" },
+  { id: "cc", get plain() { return tx("Jejak karbon", "Carbon footprint"); }, label: "Climate change", short: "Climate change", legacy: "GWP", unit: "kg CO₂-eq" },
+  { id: "ac", get plain() { return tx("Potensi hujan asam", "Acid rain potential"); }, label: "Acidification", short: "Acidification", legacy: "AP", unit: "mol H⁺-eq" },
+  { id: "euf", get plain() { return tx("Potensi pencemaran nutrien air", "Nutrient pollution of water"); }, label: "Eutrophication, freshwater", short: "Eutroph. freshwater", legacy: "EP", unit: "kg P-eq" },
+  { id: "pof", get plain() { return tx("Potensi kabut asap (ozon)", "Smog (ozone) potential"); }, label: "Photochemical ozone formation", short: "Ozone formation", legacy: "POCP", unit: "kg NMVOC-eq" },
+  { id: "pm", get plain() { return tx("Partikel debu halus", "Fine dust particles"); }, label: "Particulate matter", short: "Particulate matter", unit: "disease inc." },
+  { id: "rum", get plain() { return tx("Pemakaian logam langka", "Use of scarce metals"); }, label: "Resource use, minerals & metals", short: "Resource minerals", legacy: "ADP elements", unit: "kg Sb-eq" },
+  { id: "ruf", get plain() { return tx("Pemakaian bahan bakar fosil", "Use of fossil fuels"); }, label: "Resource use, fossils", short: "Resource fossils", legacy: "ADP fossil", unit: "MJ" },
+  { id: "htc", get plain() { return tx("Risiko kesehatan (kanker)", "Health risk (cancer)"); }, label: "Human toxicity, cancer", short: "Human tox. cancer", unit: "CTUh" },
+  { id: "htnc", get plain() { return tx("Risiko kesehatan (non-kanker)", "Health risk (non-cancer)"); }, label: "Human toxicity, non-cancer", short: "Human tox. non-cancer", unit: "CTUh" },
+  { id: "etf", get plain() { return tx("Racun bagi makhluk air", "Toxic to aquatic life"); }, label: "Ecotoxicity, freshwater", short: "Ecotox. freshwater", unit: "CTUe" },
+  { id: "wu", get plain() { return tx("Pemakaian air", "Water use"); }, label: "Water use", short: "Water use", unit: "m³ world-eq" },
 ];
 
 export const IMPACT_IDS: ImpactId[] = IMPACT_CATEGORIES.map((c) => c.id);

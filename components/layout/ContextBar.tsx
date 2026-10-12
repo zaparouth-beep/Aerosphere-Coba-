@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { InfoTip } from "@/components/ui/InfoTip";
 import { Segmented } from "@/components/ui/Tabs";
 import { FU_LABEL } from "@/lib/engine/lci";
+import { tx } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store/useAppStore";
 
 /**
@@ -24,34 +25,36 @@ export function ContextBar() {
   return (
     <div className="no-print sticky top-16 z-20 flex flex-wrap items-center gap-2 border-b border-sand-200 bg-sand-50/95 px-4 py-2 text-xs backdrop-blur md:px-8">
       <label className="flex items-center gap-1.5">
-        <span className="text-navy-700/60">Periode</span>
+        <span className="text-navy-700/60">{tx("Periode", "Period")}</span>
         <select
           value={ui.activeRunId ?? ""}
           onChange={(e) => setUi({ activeRunId: e.target.value || null })}
           className="max-w-[300px] rounded-md border border-sand-300 bg-white px-2 py-1 text-xs"
-          aria-label="Data yang ditampilkan"
+          aria-label={tx("Data yang ditampilkan", "Data shown")}
         >
-          <option value="">{project.periodLabel} · data terkini (belum disimpan)</option>
+          <option value="">
+            {project.periodLabel} · {tx("data terkini (belum disimpan)", "current data (not saved)")}
+          </option>
           {runs.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.snapshot.periodLabel} · Hasil #{r.id}
-              {r.manifest.kind === "official" ? " (resmi)" : ""}
+              {r.snapshot.periodLabel} · {tx("Hasil", "Result")} #{r.id}
+              {r.manifest.kind === "official" ? tx(" (resmi)", " (official)") : ""}
             </option>
           ))}
         </select>
       </label>
       <label className="flex items-center gap-1.5">
-        <span className="text-navy-700/60">Bandingkan dengan</span>
+        <span className="text-navy-700/60">{tx("Bandingkan dengan", "Compare with")}</span>
         <select
           value={ui.compareRunId ?? ""}
           onChange={(e) => setUi({ compareRunId: e.target.value || null })}
           className="max-w-[210px] rounded-md border border-sand-300 bg-white px-2 py-1 text-xs"
-          aria-label="Bandingkan dengan"
+          aria-label={tx("Bandingkan dengan", "Compare with")}
         >
-          <option value="">Hasil tersimpan sebelumnya</option>
+          <option value="">{tx("Hasil tersimpan sebelumnya", "Previous saved result")}</option>
           {runs.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.snapshot.periodLabel} · Hasil #{r.id}
+              {r.snapshot.periodLabel} · {tx("Hasil", "Result")} #{r.id}
             </option>
           ))}
         </select>
@@ -60,40 +63,44 @@ export function ContextBar() {
         type="button"
         onClick={() => runCalculation("draft")}
         className="flex items-center gap-1 rounded-md bg-navy-900 px-2.5 py-1 font-medium text-white hover:bg-navy-800"
-        title="Simpan perhitungan data terkini dengan nomor hasil agar bisa dibandingkan dan dirujuk di laporan"
+        title={tx(
+          "Simpan perhitungan data terkini dengan nomor hasil agar bisa dibandingkan dan dirujuk di laporan",
+          "Save a numbered calculation of the current data so it can be compared and cited in reports",
+        )}
       >
-        <Calculator className="h-3.5 w-3.5" /> Hitung hasil
+        <Calculator className="h-3.5 w-3.5" /> {tx("Hitung hasil", "Calculate results")}
       </button>
       <InfoTip k="run" />
       {ui.activeRunId && (
         <Badge tone="navy">
-          <Lock className="h-3 w-3" /> Hasil #{ui.activeRunId} (terkunci)
+          <Lock className="h-3 w-3" /> {tx(`Hasil #${ui.activeRunId} (terkunci)`, `Result #${ui.activeRunId} (locked)`)}
         </Badge>
       )}
       {expert && (
         <>
           <span className="hidden h-4 w-px bg-sand-300 md:block" />
           <Segmented
-            ariaLabel="Tampilan satuan"
+            ariaLabel={tx("Tampilan satuan", "Unit view")}
             size="xs"
             value={ui.fuView}
             onChange={(v) => setUi({ fuView: v })}
             options={[
               { id: "perFu", label: `per ${FU_LABEL[project.scope.fuType]}` },
-              { id: "total", label: "total periode" },
+              { id: "total", label: tx("total periode", "period total") },
             ]}
           />
           <Badge tone="blue" title={project.method.release}>
-            Metode {project.method.primary}
+            {tx("Metode", "Method")} {project.method.primary}
           </Badge>
           <Link href="/data?view=studi">
             <Badge tone={project.scope.lockedAt ? "green" : "gold"}>
-              {project.scope.lockedAt && <Lock className="h-3 w-3" />}Studi v{project.scope.version}
+              {project.scope.lockedAt && <Lock className="h-3 w-3" />}
+              {tx("Studi", "Study")} v{project.scope.version}
             </Badge>
           </Link>
           <Link href="/data?view=cek">
             <Badge tone={project.dataset.status === "approved" ? "green" : "gold"}>
-              Data v{project.dataset.version} · {project.dataset.status === "approved" ? "disetujui" : "draf"}
+              Data v{project.dataset.version} · {project.dataset.status === "approved" ? tx("disetujui", "approved") : tx("draf", "draft")}
             </Badge>
           </Link>
         </>

@@ -2,6 +2,7 @@
 
 import { EditableText, IncludeToggle, Optional } from "@/components/report/Editable";
 import type { Direction, DirLang } from "@/lib/report/directions";
+import { tx } from "@/lib/i18n";
 import { cn } from "@/lib/utils/cn";
 
 const LABEL: Record<string, Record<DirLang, string>> = {
@@ -13,6 +14,9 @@ const LABEL: Record<string, Record<DirLang, string>> = {
   schedule: { id: "Waktu", en: "Timing" },
   basis: { id: "Dasar perhitungan (dari mesin hitung, tidak bisa diubah)", en: "Calculation basis (from the engine, not editable)" },
   note: { id: "Catatan tambahan", en: "Additional note" },
+  dirTitle: { id: "Judul arahan", en: "Direction title" },
+  step: { id: "Langkah", en: "Step" },
+  optional: { id: "opsional", en: "optional" },
 };
 
 /**
@@ -50,16 +54,16 @@ export function DirectionsList({
                 <div className="min-w-0 flex-1 font-semibold text-navy-900">
                   <span className="mr-1">{k + 1}.</span>
                   {per.map(({ l, d: x }, i) => (
-                    <EditableText key={l} id={`${l}:dir:${d.id}:title`} text={x.title} as="span" lang={l} className={cn(i > 0 ? "block font-normal italic text-navy-700/80" : "")} label="Judul arahan" />
+                    <EditableText key={l} id={`${l}:dir:${d.id}:title`} text={x.title} as="span" lang={l} className={cn(i > 0 ? "block font-normal italic text-navy-700/80" : "")} label={LABEL.dirTitle![l]} />
                   ))}
                 </div>
-                <IncludeToggle id={`dir:${d.id}`} label="arahan ini" />
+                <IncludeToggle id={`dir:${d.id}`} label={tx("arahan ini", "this direction")} />
               </div>
               {compact ? (
                 <div className="mt-1 space-y-0.5">
                   {field("target")}
                   <p className="text-navy-700/80">
-                    <b>{LABEL.owner!.id}:</b> {per[0]!.d.owner}
+                    <b>{LABEL.owner![langs[0]!]}:</b> {per[0]!.d.owner}
                   </p>
                 </div>
               ) : (
@@ -72,7 +76,7 @@ export function DirectionsList({
                       {per[0]!.d.steps.map((_, j) => (
                         <li key={j}>
                           {per.map(({ l, d: x }, i) => (
-                            <EditableText key={l} id={`${l}:dir:${d.id}:step${j}`} text={x.steps[j] ?? ""} lang={l} className={sub(i)} label={`Langkah ${j + 1} — ${x.title}`} />
+                            <EditableText key={l} id={`${l}:dir:${d.id}:step${j}`} text={x.steps[j] ?? ""} lang={l} className={sub(i)} label={`${LABEL.step![l]} ${j + 1} — ${x.title}`} />
                           ))}
                         </li>
                       ))}
@@ -102,7 +106,7 @@ export function DirectionsList({
                   {/* Free note, empty by default: printed only when the user writes something. */}
                   {per.map(({ l }) => (
                     <div key={l} className="sm:col-span-2">
-                      <EditableText id={`${l}:dir:${d.id}:note`} text="" lang={l} placeholder={`${LABEL.note![l]}${both ? ` (${l.toUpperCase()})` : ""} — opsional`} label={LABEL.note![l]} className="italic" />
+                      <EditableText id={`${l}:dir:${d.id}:note`} text="" lang={l} placeholder={`${LABEL.note![l]}${both ? ` (${l.toUpperCase()})` : ""} — ${LABEL.optional![l]}`} label={LABEL.note![l]} className="italic" />
                     </div>
                   ))}
                 </dl>

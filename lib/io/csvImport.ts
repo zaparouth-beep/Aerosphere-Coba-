@@ -1,5 +1,6 @@
 import type { BackgroundDataset, ElementaryFlowCF, ImpactFactors, ImpactId } from "@/lib/domain/types";
 import { IMPACT_IDS } from "@/lib/engine/method";
+import { tx } from "@/lib/i18n";
 
 /**
  * CSV adapters for factors computed in openLCA (P3: database-agnostic).
@@ -47,7 +48,7 @@ function factorsFrom(header: string[], row: string[], delimiter: string, errors:
     const idx = header.indexOf(id);
     if (idx < 0) continue;
     const v = num(row[idx], delimiter);
-    if (v === null) errors.push(`Baris ${line}: nilai ${id} bukan angka`);
+    if (v === null) errors.push(tx(`Baris ${line}: nilai ${id} bukan angka`, `Row ${line}: ${id} value is not a number`));
     else if (v !== undefined) f[id as ImpactId] = v;
   }
   return f;
@@ -60,14 +61,14 @@ export function parseBackgroundCsv(text: string, now: string): { datasets: Backg
   const { header, rows, delimiter } = parseTable(text);
   const errors: string[] = [];
   const col = (r: string[], h: string) => r[header.indexOf(h)] ?? "";
-  if (!header.includes("name") || !header.includes("ref_unit")) return { datasets: [], errors: ['Header wajib memuat "name" dan "ref_unit".'] };
+  if (!header.includes("name") || !header.includes("ref_unit")) return { datasets: [], errors: [tx('Header wajib memuat "name" dan "ref_unit".', 'The header must contain "name" and "ref_unit".')] };
   const datasets: BackgroundDataset[] = [];
   rows.forEach((r, i) => {
     const line = i + 2;
     const name = col(r, "name");
     const refUnit = col(r, "ref_unit") as BackgroundDataset["refUnit"];
-    if (!name) return errors.push(`Baris ${line}: name kosong`);
-    if (!["kg", "L", "kWh"].includes(refUnit)) return errors.push(`Baris ${line}: ref_unit harus kg, L, atau kWh`);
+    if (!name) return errors.push(tx(`Baris ${line}: name kosong`, `Row ${line}: name is empty`));
+    if (!["kg", "L", "kWh"].includes(refUnit)) return errors.push(tx(`Baris ${line}: ref_unit harus kg, L, atau kWh`, `Row ${line}: ref_unit must be kg, L or kWh`));
     const factors = factorsFrom(header, r, delimiter, errors, line);
     datasets.push({
       id: col(r, "id") || `bg-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}`,
@@ -89,12 +90,12 @@ export function parseCfCsv(text: string): { flows: ElementaryFlowCF[]; errors: s
   const { header, rows, delimiter } = parseTable(text);
   const errors: string[] = [];
   const col = (r: string[], h: string) => r[header.indexOf(h)] ?? "";
-  if (!header.includes("key")) return { flows: [], errors: ['Header wajib memuat "key".'] };
+  if (!header.includes("key")) return { flows: [], errors: [tx('Header wajib memuat "key".', 'The header must contain "key".')] };
   const flows: ElementaryFlowCF[] = [];
   rows.forEach((r, i) => {
     const key = col(r, "key");
     const compartment = (col(r, "compartment") || "water") as "air" | "water";
-    if (!key) return errors.push(`Baris ${i + 2}: key kosong`);
+    if (!key) return errors.push(tx(`Baris ${i + 2}: key kosong`, `Row ${i + 2}: key is empty`));
     flows.push({ key, label: col(r, "label") || key, compartment: compartment === "air" ? "air" : "water", factors: factorsFrom(header, r, delimiter, errors, i + 2), source: "Impor CSV (openLCA method package)" });
     return undefined;
   });

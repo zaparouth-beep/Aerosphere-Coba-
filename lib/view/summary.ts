@@ -4,6 +4,7 @@ import type { Indicators, Results } from "@/lib/engine/calculate";
 import { STAGE_IDS } from "@/lib/engine/lci";
 import { pedigreeScore } from "@/lib/engine/quality";
 import type { ScenarioOutcome } from "@/lib/engine/scenario";
+import { pick as pickLang, tx } from "@/lib/i18n";
 
 /**
  * Mode Ringkas view model (PRD v1.1 §3.0.3, §3.5): four headline numbers,
@@ -12,20 +13,23 @@ import type { ScenarioOutcome } from "@/lib/engine/scenario";
  * and phrases.
  */
 
-const PLAIN_STAGE: Record<StageId, string> = {
-  A: "Pembersihan awal",
-  B: "Lapisan pengikat",
-  C: "Pelapisan utama",
-  D: "Perlakuan akhir",
-  E: "Utilitas (listrik & panas)",
-  F: "Pengolahan air limbah",
+const PLAIN_STAGE: Record<StageId, { id: string; en: string }> = {
+  A: { id: "Pembersihan awal", en: "Pre-treatment" },
+  B: { id: "Lapisan pengikat", en: "Strike/underlayer" },
+  C: { id: "Pelapisan utama", en: "Main plating" },
+  D: { id: "Perlakuan akhir", en: "Post-treatment" },
+  E: { id: "Utilitas (listrik & panas)", en: "Utilities (power & heat)" },
+  F: { id: "Pengolahan air limbah", en: "Wastewater treatment" },
 };
+
+/** Default everyday name of a stage in the current language. */
+export const defaultStageName = (id: StageId): string => pickLang(PLAIN_STAGE[id]);
 
 /** Everyday stage name; a renamed stage keeps the user's own name. */
 export function plainStage(project: Project, id: StageId): string {
   const name = project.stages.find((s) => s.id === id)?.name;
   const def = DEFAULT_STAGES.find((s) => s.id === id)?.name;
-  return !name || name === def ? PLAIN_STAGE[id] : name;
+  return !name || name === def ? pickLang(PLAIN_STAGE[id]) : name;
 }
 
 export type HeadlineKey = "cc" | "water" | "waste" | "cost";
@@ -50,10 +54,10 @@ export function headlines(ind: Indicators, ref: number, fu: string, prev: { indi
     return { key, label, glossary, value, unit, previous, changePct };
   };
   return [
-    make("cc", "Jejak karbon", "cc", (i) => i.ccKg, `kg CO₂e per ${fu}`),
-    make("water", "Pemakaian air", "wu", (i) => i.waterL, `liter per ${fu}`),
-    make("waste", "Limbah berbahaya (B3)", "b3", (i) => i.wasteKg, `kg per ${fu}`),
-    make("cost", "Biaya proses", "costPerM2", (i) => i.costRp, `per ${fu}`),
+    make("cc", tx("Jejak karbon", "Carbon footprint"), "cc", (i) => i.ccKg, `kg CO₂e per ${fu}`),
+    make("water", tx("Pemakaian air", "Water use"), "wu", (i) => i.waterL, tx(`liter per ${fu}`, `litres per ${fu}`)),
+    make("waste", tx("Limbah berbahaya (B3)", "Hazardous (B3) waste"), "b3", (i) => i.wasteKg, `kg per ${fu}`),
+    make("cost", tx("Biaya proses", "Process cost"), "costPerM2", (i) => i.costRp, `per ${fu}`),
   ];
 }
 
@@ -120,7 +124,7 @@ export function worstStage(project: Project, r: Results, heads: Headline[]): Wor
   const pick = worsened[0] ?? [...candidates].sort((a, b) => b.share - a.share)[0]!;
   return {
     key: pick.h.key,
-    indicator: pick.h.key === "cost" ? "nilai yang terbuang" : pick.h.label.toLowerCase(),
+    indicator: pick.h.key === "cost" ? tx("nilai yang terbuang", "wasted value") : pick.h.label.toLowerCase(),
     stageId: pick.stageId,
     stageName: plainStage(project, pick.stageId),
     sharePct: pick.share,
@@ -161,7 +165,7 @@ export function overallConfidence(project: Project): { level: Confidence; senten
     ...project.waste.filter((w) => w.quantityKg > 0).map((w) => ({ q: 1, s: pedigreeScore(w.meta.pedigree), src: w.meta.sourceType })),
   ];
   if (!rows.length) {
-    return { level: "Low", sentence: "Belum ada angka pemakaian; isi data agar tingkat keyakinan bisa dinilai.", estimatedSharePct: 0 };
+    return { level: "Low", sentence: tx("Belum ada angka pemakaian; isi data agar tingkat keyakinan bisa dinilai.", "No usage figures yet; fill in data so confidence can be assessed."), estimatedSharePct: 0 };
   }
   const n = rows.length;
   const score = rows.reduce((a, r) => a + r.q * r.s, 0) / n;
@@ -170,23 +174,33 @@ export function overallConfidence(project: Project): { level: Confidence; senten
   const estimatedSharePct = (estimated / n) * 100;
   const sentence =
     level === "High"
-      ? "Sebagian besar angka berasal dari meter dan catatan timbang, jadi hasil ini cukup kuat untuk keputusan."
+      ? tx("Sebagian besar angka berasal dari meter dan catatan timbang, jadi hasil ini cukup kuat untuk keputusan.", "Most figures come from meters and weighing records, so this result is solid enough for decisions.")
       : level === "Medium"
-        ? "Sebagian angka dari faktur atau perhitungan; arah kesimpulan dapat dipegang, besarnya angka masih bisa bergeser."
-        : "Banyak angka masih perkiraan; pakai hasil ini untuk menentukan prioritas, bukan untuk klaim ke pihak luar.";
+        ? tx("Sebagian angka dari faktur atau perhitungan; arah kesimpulan dapat dipegang, besarnya angka masih bisa bergeser.", "Some figures come from invoices or calculations; the direction holds, but the size may still shift.")
+        : tx("Banyak angka masih perkiraan; pakai hasil ini untuk menentukan prioritas, bukan untuk klaim ke pihak luar.", "Many figures are still estimates; use this result to set priorities, not for external claims.");
   return { level, sentence, estimatedSharePct };
 }
 
 export function conclusion(r: Results, worst: WorstStage | null, actions: Action[], fmtRp: (v: number) => string, fmtPct: (v: number) => string): string[] {
   const out: string[] = [];
-  if (worst) out.push(`Tahap ${worst.stageName} menjadi sumber terbesar: ${fmtPct(worst.sharePct)} dari ${worst.indicator} lini.`);
+  if (worst) out.push(tx(`Tahap ${worst.stageName} menjadi sumber terbesar: ${fmtPct(worst.sharePct)} dari ${worst.indicator} lini.`, `The ${worst.stageName} stage is the largest source: ${fmtPct(worst.sharePct)} of the line's ${worst.indicator}.`));
   if (r.analysis && r.analysis.totals.costRp > 0) {
     // §4.5: chemicals, water and B3 handling only; energy and labour are operating cost, not waste.
-    out.push(`Nilai bahan kimia, air, dan pengolahan limbah yang terbuang setara ${fmtPct(r.analysis.waste.pctOfCost)} biaya proses.`);
+    out.push(tx(`Nilai bahan kimia, air, dan pengolahan limbah yang terbuang setara ${fmtPct(r.analysis.waste.pctOfCost)} biaya proses.`, `Wasted chemicals, water and waste treatment equal ${fmtPct(r.analysis.waste.pctOfCost)} of process cost.`));
   } else if (r.mfca.totalCostRp > 0) {
-    out.push(`Nilai bahan dan energi yang terbuang setara ${fmtPct((r.mfca.costLossRp / r.mfca.totalCostRp) * 100)} biaya proses.`);
+    out.push(tx(`Nilai bahan dan energi yang terbuang setara ${fmtPct((r.mfca.costLossRp / r.mfca.totalCostRp) * 100)} biaya proses.`, `Wasted materials and energy equal ${fmtPct((r.mfca.costLossRp / r.mfca.totalCostRp) * 100)} of process cost.`));
   }
-  if (actions[0]) out.push(`Perbaikan paling bermanfaat: ${actions[0].action.toLowerCase()}, perkiraan hemat ${fmtRp(actions[0].savingRpYear)} per tahun.`);
-  else out.push("Belum ada simulasi perbaikan yang menghemat biaya; susun simulasi di menu Simulasi Perbaikan.");
+  if (actions[0]) out.push(tx(`Perbaikan paling bermanfaat: ${actions[0].action.toLowerCase()}, perkiraan hemat ${fmtRp(actions[0].savingRpYear)} per tahun.`, `Most useful improvement: ${actions[0].action.toLowerCase()}, saving about ${fmtRp(actions[0].savingRpYear)} per year.`));
+  else out.push(tx("Belum ada simulasi perbaikan yang menghemat biaya; susun simulasi di menu Simulasi Perbaikan.", "No cost-saving improvement simulation yet; build one under Improvement Simulation."));
   return out;
+}
+
+/** Effort level as shown (Action.effort stays the Indonesian key). */
+export function effortWord(e: Action["effort"]): string {
+  return e === "rendah" ? tx("rendah", "low") : e === "tinggi" ? tx("tinggi", "high") : tx("sedang", "medium");
+}
+
+/** Timeline as shown; scenario timelines are written in Indonesian ("1–3 bulan"). */
+export function timelineWord(t: string): string {
+  return tx(t, t.replace(/bulan/g, "months").replace(/minggu/g, "weeks").replace("perlu dikaji", "to be assessed"));
 }

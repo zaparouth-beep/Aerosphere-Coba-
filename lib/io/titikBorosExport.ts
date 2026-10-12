@@ -2,6 +2,7 @@ import type { Workbook } from "exceljs";
 import type { Project } from "@/lib/domain/types";
 import type { TitikBorosModel } from "@/lib/engine/titikBoros";
 import { STAGE_CODES } from "@/lib/engine/types";
+import { tx } from "@/lib/i18n";
 import { sanitizeCell } from "@/lib/utils/export";
 import { GROUP_LABEL, INDICATOR, SEVERITY_STYLE, stageName, unitOf } from "@/lib/view/titikBoros";
 
@@ -15,9 +16,9 @@ export async function buildTitikBorosWorkbook(project: Project, model: TitikBoro
   wb.creator = "AeroSphere LCA";
 
   for (const mode of ["pct", "value"] as const) {
-    const ws = wb.addWorksheet(mode === "pct" ? "Titik boros (%)" : "Nilai per m2");
-    ws.addRow([`${project.name} · ${resultLabel} · ambang titik boros ${model.thresholdPct}%`].map(sanitizeCell)).font = { bold: true };
-    const head = ws.addRow(["Indikator", "Satuan", ...STAGE_CODES.map((s) => `${s}. ${stageName(project, s)}`), "Total per m²"].map(sanitizeCell));
+    const ws = wb.addWorksheet(mode === "pct" ? tx("Titik boros (%)", "Waste hotspots (%)") : tx("Nilai per m2", "Values per m2"));
+    ws.addRow([`${project.name} · ${resultLabel} · ${tx("ambang titik boros", "hotspot threshold")} ${model.thresholdPct}%`].map(sanitizeCell)).font = { bold: true };
+    const head = ws.addRow([tx("Indikator", "Indicator"), tx("Satuan", "Unit"), ...STAGE_CODES.map((s) => `${s}. ${stageName(project, s)}`), "Total per m²"].map(sanitizeCell));
     head.font = { bold: true, color: { argb: "FFFFFFFF" } };
     head.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0B1660" } };
     for (const group of ["impact", "use"] as const) {
@@ -38,7 +39,12 @@ export async function buildTitikBorosWorkbook(project: Project, model: TitikBoro
       }
     }
     ws.addRow([]);
-    ws.addRow(["Kelas: Merah = titik boros (≥ ambang) · Oranye = tinggi (20% – < ambang) · Kuning = sedang (10–<20%) · Hijau = rendah (>0–<10%) · Abu-abu = tidak ada / belum dihitung"]);
+    ws.addRow([
+      tx(
+        "Kelas: Merah = titik boros (≥ ambang) · Oranye = tinggi (20% – < ambang) · Kuning = sedang (10–<20%) · Hijau = rendah (>0–<10%) · Abu-abu = tidak ada / belum dihitung",
+        "Classes: Red = waste hotspot (≥ threshold) · Orange = high (20% – < threshold) · Yellow = medium (10–<20%) · Green = low (>0–<10%) · Grey = none / not calculated",
+      ),
+    ]);
     ws.getColumn(1).width = 44;
     ws.getColumn(2).width = 18;
     STAGE_CODES.forEach((_, i) => (ws.getColumn(3 + i).width = 16));

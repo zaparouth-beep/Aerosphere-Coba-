@@ -18,7 +18,7 @@ export interface WaterBalance {
  */
 export function waterBalance(input: ProjectInput, active: InventoryComponent[], trace: Trace): WaterBalance {
   const waterInL = active.filter((c) => c.category === "water").reduce((s, c) => s + c.quantity, 0);
-  trace.add({ id: "water.in", label: "Air masuk", formula: "Σ komponen air", inputs: {}, result: { value: waterInL, unit: "L" } });
+  trace.add({ id: "water.in", label: "Air masuk", labelEn: "Water in", formula: "Σ komponen air", formulaEn: "Σ water components", inputs: {}, result: { value: waterInL, unit: "L" } });
 
   const loss = input.waterLossFraction ?? DEFAULT_WATER_LOSS;
   const measured = input.effluentMeasuredM3 !== undefined && input.effluentMeasuredM3 > 0;
@@ -26,14 +26,16 @@ export function waterBalance(input: ProjectInput, active: InventoryComponent[], 
   trace.add({
     id: "water.effluent",
     label: "Volume air buangan",
+    labelEn: "Wastewater volume",
     formula: measured ? "volume terukur" : "air masuk × (1 − bagian hilang)",
+    formulaEn: measured ? "measured volume" : "water in × (1 − lost fraction)",
     inputs: measured ? { terukur: { value: effluentM3, unit: "m³" } } : { airMasuk: { value: waterInL / 1000, unit: "m³" }, bagianHilang: { value: loss, unit: "-" } },
     result: { value: effluentM3, unit: "m³" },
   });
 
   const warning: EngineWarning | null =
     measured && effluentM3 * 1000 > waterInL
-      ? { code: "WATER_BALANCE", message: "Air buangan lebih besar dari air masuk. Periksa angka air masuk atau volume efluen." }
+      ? { code: "WATER_BALANCE", message: "Air buangan lebih besar dari air masuk. Periksa angka air masuk atau volume efluen.", messageEn: "Wastewater exceeds water in. Check the water-in figure or the effluent volume." }
       : null;
 
   const loadsKg = new Map<string, number>();
