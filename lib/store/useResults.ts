@@ -35,8 +35,26 @@ export function useActiveResults(): ActiveResults {
   }, [project, run, weights]);
 }
 
-export function useScenarioOutcomes(): { base: Indicators; outcomes: ScenarioOutcome[] } {
-  const { project, indicators } = useActiveResults();
+/** Results of the live data, whatever saved result is selected (Simulasi works on the live data). */
+export function useLiveResults(): ActiveResults {
+  const project = useAppStore((s) => s.project);
+  const weights = useAppStore((s) => s.ui.hotspotWeights);
+  return useMemo(() => {
+    const results = calculate(project, weights);
+    return { project, results, indicators: indicatorsOf(results), run: null, isLive: true };
+  }, [project, weights]);
+}
+
+/** Simulations evaluated on the shown results, or on the live data when `live` is set. */
+export function useScenarioOutcomes(opts: { live?: boolean } = {}): { base: Indicators; outcomes: ScenarioOutcome[] } {
+  const active = useActiveResults();
+  const live = useAppStore((s) => s.project);
+  const weights = useAppStore((s) => s.ui.hotspotWeights);
+  // Only recalculate when a saved result is on screen and the live data is asked for.
+  const { project, indicators } = useMemo(() => {
+    if (!opts.live || active.isLive) return active;
+    return { project: live, indicators: indicatorsOf(calculate(live, weights)) };
+  }, [opts.live, active, live, weights]);
   return useMemo(
     () => ({ base: indicators, outcomes: project.scenarios.map((s) => evaluateScenario(project, s, indicators)) }),
     [project, indicators],

@@ -5,10 +5,11 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight, Minus, Pin, X } from "lucide-
 import { FlowExplorer } from "@/components/flow/FlowExplorer";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import type { Project } from "@/lib/domain/types";
+import type { Indicators } from "@/lib/engine/calculate";
 import type { ScenarioOutcome } from "@/lib/engine/scenario";
 import type { RunResult } from "@/lib/engine/types";
 import { cn } from "@/lib/utils/cn";
-import { fmtRp } from "@/lib/utils/format";
+import { fmtRp, fmtSig } from "@/lib/utils/format";
 
 /**
  * "Coba perubahan": apply a saved simulation to the flow diagram and see what
@@ -19,12 +20,23 @@ import { fmtRp } from "@/lib/utils/format";
 
 export const OPEN_SCENARIO_EVENT = "aerosphere:open-scenario";
 
-const METRICS: Array<{ key: keyof ScenarioOutcome["delta"]; label: string }> = [
-  { key: "ccKg", label: "Jejak karbon" },
-  { key: "wasteValueRp", label: "Nilai terbuang" },
-  { key: "waterL", label: "Air" },
-  { key: "wasteKg", label: "Limbah B3" },
+type MetricKey = keyof ScenarioOutcome["delta"];
+
+/** Every effect a simulation can have; carbon and wasted value are always shown, the rest only when they change. */
+const METRICS: Array<{ key: MetricKey; label: string; unit: string; always?: boolean; rp?: boolean }> = [
+  { key: "ccKg", label: "Jejak karbon", unit: "kg CO₂e", always: true },
+  { key: "wasteValueRp", label: "Nilai terbuang", unit: "", rp: true, always: true },
+  { key: "costRp", label: "Biaya proses", unit: "", rp: true },
+  { key: "energyKwh", label: "Listrik", unit: "kWh" },
+  { key: "waterL", label: "Air", unit: "L" },
+  { key: "chemicalKg", label: "Bahan kimia", unit: "kg" },
+  { key: "wasteKg", label: "Limbah B3", unit: "kg" },
+  { key: "airKg", label: "Emisi udara langsung", unit: "kg" },
+  { key: "effluentMetalKg", label: "Logam di air buangan", unit: "kg" },
 ];
+
+const changed = (o: ScenarioOutcome, k: MetricKey) => Math.abs(o.delta[k].pct) >= 0.05;
+const metricsOf = (o: ScenarioOutcome) => METRICS.filter((m) => m.always || changed(o, m.key));
 
 function DeltaChip({ label, pct }: { label: string; pct: number }) {
   const flat = Math.abs(pct) < 0.05;
@@ -43,7 +55,7 @@ function DeltaChip({ label, pct }: { label: string; pct: number }) {
   );
 }
 
-export function ChangeLab({ project, run, outcomes }: { project: Project; run: RunResult; outcomes: ScenarioOutcome[] }) {
+export function ChangeLab({ project, run, base, outcomes }: { project: Project; run: RunResult; base: Indicators; outcomes: ScenarioOutcome[] }) {
   const usable = outcomes.filter((o) => o.results.analysis);
   const [activeId, setActiveId] = useState<string | null>(usable[0]?.scenario.id ?? null);
   const [pins, setPins] = useState<string[]>([]);
@@ -108,10 +120,37 @@ export function ChangeLab({ project, run, outcomes }: { project: Project; run: R
                 <p className="font-semibold text-navy-900">{active.scenario.name}</p>
                 <p className="mt-0.5 text-navy-700/70">Hemat {fmtRp(active.lcc.annualSavingRp)} per tahun</p>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {METRICS.map((m) => (
+                  {metricsOf(active).map((m) => (
                     <DeltaChip key={m.key} label={m.label} pct={active.delta[m.key].pct} />
                   ))}
                 </div>
+                {/* Absolute values per period: changes in Data Saya show up here directly. */}
+                <table className="mt-2 w-full text-[11px]" data-testid="change-values">
+                  <thead>
+                    <tr className="text-left text-navy-700/60">
+                      <th className="py-0.5 font-medium">Per periode</th>
+                      <th className="py-0.5 text-right font-medium">Sekarang</th>
+                      <th className="py-0.5 text-right font-medium">Sesudah</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {metricsOf(active).map((m) => {
+                      const v = (x: number) => (m.rp ? fmtRp(x) : `${fmtSig(x)} ${m.unit}`);
+                      return (
+                        <tr key={m.key} className="border-t border-sand-200">
+                          <td className="py-0.5 text-navy-800">{m.label}</td>
+                          <td className="num whitespace-nowrap py-0.5 pl-2 text-right text-navy-800">{v(base[m.key])}</td>
+                          <td className="num whitespace-nowrap py-0.5 pl-2 text-right font-medium text-navy-900">{v(active.indicators[m.key])}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {active.assumptions.some((a) => a.startsWith("Tidak ada ")) && (
+                  <p className="mt-2 rounded-md bg-status-warn/10 px-2 py-1 text-[11px] text-navy-900" role="status" data-testid="change-nothing">
+                    {active.assumptions.filter((a) => a.startsWith("Tidak ada ")).join(" ")}
+                  </p>
+                )}
                 <div className="mt-2 flex flex-wrap gap-3">
                   <button
                     type="button"
@@ -142,7 +181,7 @@ export function ChangeLab({ project, run, outcomes }: { project: Project; run: R
                     </div>
                     <p className="mt-0.5 text-navy-700/70">Hemat {fmtRp(o.lcc.annualSavingRp)}/tahun</p>
                     <div className="mt-1.5 flex flex-wrap gap-1">
-                      {METRICS.map((m) => (
+                      {metricsOf(o).map((m) => (
                         <DeltaChip key={m.key} label={m.label} pct={o.delta[m.key].pct} />
                       ))}
                     </div>

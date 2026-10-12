@@ -238,12 +238,20 @@ export const useAppStore = create<State>()(
         const { registered, account, subscription, onboardingDone } = get();
         if (registered && account && account.email === registered.account.email) set({ registered: { ...registered, subscription, onboardingDone } });
       };
-      const mutate = (fn: (p: Project) => void) =>
+      /**
+       * Every change to the live data. When a saved result is on screen, the
+       * view moves to the live data so the change is visible right away (the
+       * saved result itself is never changed and can be selected again).
+       */
+      const mutate = (fn: (p: Project) => void) => {
+        const pinned = get().ui.activeRunId;
         set((s) => {
           const project = structuredClone(s.project);
           fn(project);
-          return { project };
+          return pinned ? { project, ui: { ...s.ui, activeRunId: null } } : { project };
         });
+        if (pinned) get().notify("info", `Tampilan pindah ke data terkini agar perubahan langsung terlihat. Hasil #${pinned} tetap tersimpan dan bisa dipilih lagi di “Periode”.`);
+      };
 
       return {
         project: hardChromeDemo(),
@@ -818,7 +826,8 @@ export const useAppStore = create<State>()(
             scenarioId,
             levers: scenario?.levers,
           });
-          set((s) => ({ runs: [run, ...s.runs].slice(0, MAX_RUNS), ui: { ...s.ui, activeRunId: id } }));
+          // A saved simulation is kept for comparison; the screens stay on the data being worked on.
+          set((s) => ({ runs: [run, ...s.runs].slice(0, MAX_RUNS), ui: scenarioId ? s.ui : { ...s.ui, activeRunId: id } }));
           get().log("run", id, "create", { newValue: { kind, resultHash: run.resultHash, datasetHash: run.manifest.datasetHash } });
           get().notify("success", `Hasil #${id} tersimpan${kind === "official" ? " sebagai hasil resmi" : ""}.`);
           return id;
