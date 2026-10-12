@@ -6,7 +6,7 @@ import { FlowExplorer } from "@/components/flow/FlowExplorer";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import type { Project } from "@/lib/domain/types";
 import type { Indicators } from "@/lib/engine/calculate";
-import type { ScenarioOutcome } from "@/lib/engine/scenario";
+import { isNothingNote, type ScenarioOutcome } from "@/lib/engine/scenario";
 import type { RunResult } from "@/lib/engine/types";
 import { cn } from "@/lib/utils/cn";
 import { fmtRp, fmtSig } from "@/lib/utils/format";
@@ -146,9 +146,9 @@ export function ChangeLab({ project, run, base, outcomes }: { project: Project; 
                     })}
                   </tbody>
                 </table>
-                {active.assumptions.some((a) => a.startsWith("Tidak ada ")) && (
+                {active.assumptions.some((a) => isNothingNote(a)) && (
                   <p className="mt-2 rounded-md bg-status-warn/10 px-2 py-1 text-[11px] text-navy-900" role="status" data-testid="change-nothing">
-                    {active.assumptions.filter((a) => a.startsWith("Tidak ada ")).join(" ")}
+                    {active.assumptions.filter((a) => isNothingNote(a)).join(" ")}
                   </p>
                 )}
                 <div className="mt-2 flex flex-wrap gap-3">

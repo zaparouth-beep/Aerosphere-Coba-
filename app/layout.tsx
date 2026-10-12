@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { LangRoot } from "@/components/layout/LangRoot";
 import { Notices } from "@/components/ui/Feedback";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -17,8 +18,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" className={`${inter.variable} ${mono.variable}`}>
       <body className="font-sans antialiased">
-        {children}
-        <Notices />
+        <LangRoot>
+          {children}
+          <Notices />
+        </LangRoot>
       </body>
     </html>
   );

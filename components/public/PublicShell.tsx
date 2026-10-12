@@ -1,5 +1,6 @@
 "use client";
 
+import { LangSwitch } from "@/components/layout/LangSwitch";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -46,6 +47,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <div className="ml-auto hidden items-center gap-2 md:flex">
+            <LangSwitch />
             {signedIn ? (
               <Link href={onboardingDone ? "/beranda" : "/mulai"} className="rounded-lg bg-navy-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-navy-800">
                 Buka aplikasi
@@ -61,7 +63,8 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
               </>
             )}
           </div>
-          <button type="button" className="ml-auto text-navy-900 md:hidden" onClick={() => setOpen((o) => !o)} aria-label={open ? "Tutup menu" : "Buka menu"} aria-expanded={open}>
+          <LangSwitch className="ml-auto md:hidden" />
+          <button type="button" className="ml-2 text-navy-900 md:hidden" onClick={() => setOpen((o) => !o)} aria-label={open ? "Tutup menu" : "Buka menu"} aria-expanded={open}>
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>

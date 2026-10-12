@@ -1,3 +1,4 @@
+import { getLang } from "@/lib/i18n";
 import type { Confidence, DataMeta, Pedigree, Project, SourceType, StageId } from "@/lib/domain/types";
 import { CHEMICAL_CATEGORIES, STAGE_IDS, type LciResult } from "./lci";
 import { concentrationFactor } from "./units";
@@ -55,6 +56,8 @@ export interface Issue {
   code: string;
   severity: Severity;
   message: string;
+  /** English text of the same message (results stay identical whatever the interface language). */
+  messageEn?: string;
   entityId?: string;
   tab: IssueTab;
   value?: string;
@@ -216,3 +219,6 @@ export function validate(project: Project, lci: LciResult, unmapped: string[]): 
 }
 
 export { STAGE_IDS };
+
+/** Issue text in the interface language. */
+export const issueText = (i: Pick<Issue, "message" | "messageEn">): string => (getLang() === "en" && i.messageEn ? i.messageEn : i.message);

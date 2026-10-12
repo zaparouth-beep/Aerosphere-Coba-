@@ -55,6 +55,8 @@ interface Ui {
   /** Checklist progress that has no data trace (PRD v1.1 §3.0.5). */
   seenHotspot: boolean;
   reportDownloaded: boolean;
+  /** Interface language: Bahasa Indonesia (default) or English. */
+  lang: "id" | "en";
 }
 
 export interface Account {
@@ -278,6 +280,7 @@ export const useAppStore = create<State>()(
           compareRunId: null,
           seenHotspot: false,
           reportDownloaded: false,
+          lang: "id",
         },
         notices: [],
 

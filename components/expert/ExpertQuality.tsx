@@ -13,7 +13,7 @@ import { KpiCard } from "@/components/ui/KpiCard";
 import { Table, Td, Th, THead, Tr } from "@/components/ui/Table";
 import { can } from "@/lib/domain/permissions";
 import { STAGE_IDS } from "@/lib/engine/lci";
-import { PEDIGREE_KEYS, type Issue } from "@/lib/engine/quality";
+import { issueText, PEDIGREE_KEYS, type Issue } from "@/lib/engine/quality";
 import { concentrationFactor } from "@/lib/engine/units";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults } from "@/lib/store/useResults";
@@ -120,7 +120,7 @@ export default function KualitasDataPage() {
                     </Td>
                     <Td className="num text-[11px]">{i.code}</Td>
                     <Td className="text-xs leading-relaxed">
-                      {i.message}
+                      {issueText(i)}
                       {i.compliance && (
                         <Badge tone="blue" className="ml-1">
                           kepatuhan
@@ -288,7 +288,7 @@ export default function KualitasDataPage() {
       <ReasonDialog
         open={!!accepting}
         title="Terima peringatan dengan alasan"
-        description={accepting?.message}
+        description={(accepting ? issueText(accepting) : undefined)}
         confirmLabel="Terima"
         onCancel={() => setAccepting(null)}
         onConfirm={(reason) => {

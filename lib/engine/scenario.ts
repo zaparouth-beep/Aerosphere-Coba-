@@ -51,6 +51,8 @@ const isDevice = (i: Project["inputs"][number], role: string) => i.category === 
 /** Mist and fume rows ("Cr(VI) mist", "Acid mist", "Kabut krom", "Kabut asam"). */
 const isMist = (parameter: string) => /mist|kabut|fume|uap asam/i.test(parameter);
 const NOTHING = (what: string) => `Tidak ada ${what} di data proyek, sehingga perbaikan ini belum mengubah hasil. Tambahkan atau ganti nama komponennya di Data Saya.`;
+/** Assumption lines saying a lever found nothing to change (Indonesian or English wording). */
+export const isNothingNote = (a: string) => a.startsWith("Tidak ada ") || a.startsWith("No ") && a.includes("in the project data");
 
 function dragout(p: Draft, s: NonNullable<LeverSettings["dragout"]>): string[] {
   const r = Math.min(Math.max(s.reductionPct, 0), 100) / 100;

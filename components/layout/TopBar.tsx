@@ -1,5 +1,6 @@
 "use client";
 
+import { LangSwitch } from "@/components/layout/LangSwitch";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -57,6 +58,7 @@ export function TopBar({ onMenu }: { onMenu: () => void }) {
         <Search className="h-3.5 w-3.5" /> Cari
         <kbd className="rounded border border-sand-300 bg-white px-1 text-[10px]">Ctrl K</kbd>
       </button>
+      {mounted && <LangSwitch />}
       {mounted && (
         <div
           role="radiogroup"

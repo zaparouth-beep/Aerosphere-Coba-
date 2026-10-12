@@ -15,7 +15,7 @@ import { LockedFeature } from "@/components/ui/Locked";
 import { Tabs } from "@/components/ui/Tabs";
 import { can } from "@/lib/domain/permissions";
 import { hasFeature } from "@/lib/domain/plans";
-import type { Issue } from "@/lib/engine/quality";
+import { issueText, type Issue } from "@/lib/engine/quality";
 import { useAppStore } from "@/lib/store/useAppStore";
 import { useActiveResults } from "@/lib/store/useResults";
 import { fmt, fmtDate } from "@/lib/utils/format";
@@ -139,7 +139,7 @@ function CekRingkas() {
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warn" aria-label="Perlu diperiksa" />
                     )}
                     <div className="min-w-0 flex-1 text-sm text-navy-900">
-                      <p>{i.message}</p>
+                      <p>{issueText(i)}</p>
                       <p className="mt-0.5 text-[11px] text-navy-700/60">
                         {i.severity === "error" ? "Wajib diperbaiki" : isAccepted ? `Diterima: “${accepted[i.key]}”` : "Perlu diperiksa — boleh diterima dengan alasan"}
                       </p>
@@ -171,7 +171,7 @@ function CekRingkas() {
       <ReasonDialog
         open={!!accepting}
         title="Terima peringatan"
-        description={accepting?.message ?? ""}
+        description={(accepting ? issueText(accepting) : undefined) ?? ""}
         confirmLabel="Terima"
         onCancel={() => setAccepting(null)}
         onConfirm={(r) => {
